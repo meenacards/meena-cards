@@ -63,20 +63,19 @@ const Home = () => {
           .slide-image { display: none !important; } /* Hide right logo entirely on mobile to prevent stretching the box height */
         }
       `}</style>
-      <section className="hero-slider">
-        <div className="slider-container" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
+      <section className="hero-slider" style={{ padding: 0, margin: 0, background: 'none' }}>
+        <div className="slider-container" style={{ transform: `translateX(-${currentSlide * 100}%)`, padding: 0, margin: 0 }}>
           {slides.map((slide, index) => (
             <div key={index} className={`slide ${slide.type === 'text' ? 'text-slide' : ''}`} style={{
               backgroundImage: slide.image ? `url(${slide.image})` : 'none',
-              backgroundColor: slide.bgColor,
+              backgroundColor: slide.type === 'text' ? slide.bgColor : 'transparent',
               backgroundSize: '100% 100%',
-              backgroundPosition: 'center center',
-              width: '100%'
+              backgroundPosition: 'center',
+              width: '100vw',
+              margin: 0,
+              padding: 0
             }}>
-              <div className="slide-overlay" style={{ background: slide.type === 'text' ? 'rgba(255,255,255,0.4)' : 'transparent' }}>
-
-
-
+              <div className="slide-overlay" style={{ background: slide.type === 'text' ? 'rgba(255,255,255,0.4)' : 'transparent', margin: 0, padding: 0 }}>
                 <div className="container" style={{ width: '100%', height: '100%', display: 'flex', alignItems: slide.type === 'text' ? 'center' : 'flex-end', justifyContent: 'center' }}>
                   <div className="slide-content" style={{ paddingBottom: slide.type === 'text' ? '0' : '80px', width: '100%' }}>
                     {slide.type === 'text' && (

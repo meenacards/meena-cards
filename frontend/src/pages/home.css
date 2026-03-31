@@ -164,27 +164,45 @@
 
 /* --- HERO SLIDER --- */
 .hero-slider {
-  height: 85vh;
   width: 100%;
+  aspect-ratio: 21 / 9;
+  width: 100vw;
+  height: 42vw; /* Standard desktop ultra-wide aspect ratio approx 2.4:1 */
   overflow: hidden;
   position: relative;
-  background: var(--bg-color);
+  background: transparent;
+  margin: 0;
+  padding: 0;
+}
+
+@media (max-width: 1024px) {
+  .hero-slider {
+    height: 48vw;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-slider {
+    height: 60vw !important; /* Forces slider height to match mobile layout proportions precisely */
+    max-height: none !important;
+  }
 }
 
 .slider-container {
   display: flex;
   height: 100%;
   transition: transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+  margin: 0;
+  padding: 0;
 }
 
 .slide {
-  min-width: 100%;
+  min-width: 100vw;
   height: 100%;
-  background-size: cover;
   background-repeat: no-repeat;
-  background-position: center;
-  background-color: transparent;
   position: relative;
+  margin: 0;
+  padding: 0;
 }
 
 .slide.text-slide {
@@ -383,28 +401,26 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 40px;
   }
+
   .card-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 768px) {
-  .hero-slider {
-    height: 56vw !important;
-    min-height: 0 !important;
-    max-height: 280px !important;
-  }
-
   .slide:not(.text-slide) {
     background-size: 100% 100% !important;
-    background-color: var(--bg-color) !important;
+    background-position: center !important;
   }
+
+
+
 
   .religion-grid {
     grid-template-columns: 1fr;
     gap: 60px;
   }
-  
+
   .card-grid {
     grid-template-columns: 1fr;
   }
