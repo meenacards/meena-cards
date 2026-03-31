@@ -13,25 +13,23 @@ const Contact = () => {
 
       {/* About Section in Contact Page */}
       <section style={{ padding: '60px 20px', maxWidth: '1200px', margin: '0 auto' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '50px', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>
-
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '40px', alignItems: 'center', background: '#fff', textAlign: 'center' }}>
 
           {/* Shop Image Panel */}
-          <div style={{ flex: '1 1 500px', display: 'flex', justifyContent: 'center' }}>
-            <div className="card glass-panel" style={{ padding: '10px', borderRadius: '12px', width: '100%', maxWidth: '550px' }}>
+          <div style={{ width: '100%', maxWidth: '800px' }}>
+            <div className="card glass-panel" style={{ padding: '15px', borderRadius: '16px' }}>
               <img
                 src="/shop.jpeg"
                 alt="Meena Cards Shop Front"
-                style={{ width: '100%', height: 'auto', borderRadius: '8px', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', display: 'block' }}
+                style={{ width: '100%', height: 'auto', borderRadius: '12px', boxShadow: '0 15px 40px rgba(0,0,0,0.15)' }}
               />
             </div>
           </div>
 
-
           {/* About Text Area */}
-          <div style={{ flex: '1 1 500px', padding: '30px 40px', background: '#F8FAFC', borderRadius: '20px', border: '1px solid #e2e8f0' }}>
+          <div style={{ width: '100%', maxWidth: '900px', padding: '30px 40px', background: '#F8FAFC', borderRadius: '20px', border: '1px solid #e2e8f0' }}>
             <div style={{ marginBottom: '35px' }}>
-              <h3 style={{ fontSize: '2.2rem', color: '#1E3A8A', marginBottom: '25px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <h3 style={{ fontSize: '2.2rem', color: '#1E3A8A', marginBottom: '25px', display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'center' }}>
                 <Store size={32} color="#D4AF37" /> About MEENA CARDS
               </h3>
               <p style={{ fontSize: '1.15rem', color: '#4B5563', lineHeight: '2.0', marginBottom: '20px' }}>
@@ -46,17 +44,17 @@ const Contact = () => {
             </div>
 
             {/* Timing Panel */}
-            <div style={{ background: '#fff', padding: '30px', borderRadius: '16px', border: '1px solid #eee', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
+            <div style={{ background: '#fff', padding: '30px', borderRadius: '16px', border: '1px solid #eee', boxShadow: '0 4px 15px rgba(0,0,0,0.03)', margin: '0 auto' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px', justifyContent: 'center' }}>
                 <Clock size={28} color="#D4AF37" />
                 <h4 style={{ fontSize: '1.3rem', margin: 0 }}>Business Hours</h4>
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '30px' }}>
-                <div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '30px', justifyContent: 'center' }}>
+                <div style={{ textAlign: 'center' }}>
                   <p style={{ color: '#888', fontSize: '0.9rem', marginBottom: '4px' }}>Mon - Sat</p>
                   <p style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>10:00 AM - 9:00 PM</p>
                 </div>
-                <div style={{ borderLeft: '1px solid #ddd', paddingLeft: '30px' }}>
+                <div style={{ borderLeft: '1px solid #eee', paddingLeft: '30px', textAlign: 'center' }}>
                   <p style={{ color: '#888', fontSize: '0.9rem', marginBottom: '4px' }}>Sunday</p>
                   <p style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#C2185B' }}>10:00 AM - 2:00 PM</p>
                 </div>

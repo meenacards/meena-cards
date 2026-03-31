@@ -68,9 +68,15 @@ const Home = () => {
           {slides.map((slide, index) => (
             <div key={index} className={`slide ${slide.type === 'text' ? 'text-slide' : ''}`} style={{
               backgroundImage: slide.image ? `url(${slide.image})` : 'none',
-              backgroundColor: slide.bgColor
+              backgroundColor: slide.bgColor,
+              backgroundSize: '100% 100%',
+              backgroundPosition: 'center center',
+              width: '100%'
             }}>
               <div className="slide-overlay" style={{ background: slide.type === 'text' ? 'rgba(255,255,255,0.4)' : 'transparent' }}>
+
+
+
                 <div className="container" style={{ width: '100%', height: '100%', display: 'flex', alignItems: slide.type === 'text' ? 'center' : 'flex-end', justifyContent: 'center' }}>
                   <div className="slide-content" style={{ paddingBottom: slide.type === 'text' ? '0' : '80px', width: '100%' }}>
                     {slide.type === 'text' && (
