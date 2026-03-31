@@ -10,12 +10,12 @@ import LatestArrivals from './pages/LatestArrivals';
 import Invitation from './pages/Invitation';
 import CelebrationBoutique from './pages/CelebrationBoutique';
 import Footer from './components/Footer';
-import './app.css';
+import './App.css';
 
 const WhatsappFloat = () => (
-  <a 
-    href="https://wa.me/919965125250?text=Hello%20Meena%20Cards!%20I%20absolutely%20love%20your%20beautiful%20wedding%20collections.%20Could%20we%20discuss%20a%20card%20design%20and%20place%20an%20order?" 
-    target="_blank" 
+  <a
+    href="https://wa.me/919965125250?text=Hello%20Meena%20Cards!%20I%20absolutely%20love%20your%20beautiful%20wedding%20collections.%20Could%20we%20discuss%20a%20card%20design%20and%20place%20an%20order?"
+    target="_blank"
     rel="noopener noreferrer"
     className="whatsapp-float"
   >
