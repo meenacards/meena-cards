@@ -13,40 +13,47 @@ const Invitation = () => {
   const [loading, setLoading] = useState(true);
   const traditions = ['All', 'Hindu', 'Muslim', 'Christian', 'Ear piercing', 'Puberty', 'House warming', 'Friends Card', 'Luxe'];
 
+  // All categories that belong on the Invitation page
+  const invitationAllowlist = [
+    'V Cards', 'R Cards', 'K Cards', 'ES Cards',
+    'Friends Card',
+    'Hindu', 'Muslim', 'Christian',
+    'Ear piercing', 'Puberty', 'House warming',
+    'Luxe'
+  ];
+
   useEffect(() => {
     fetchCards();
   }, []);
 
   useEffect(() => {
     if (cards.length > 0) {
-      // Base categories allowed in invitation page
-      const baseInvitationCats = ['V Cards', 'R Cards', 'K Cards', 'ES Cards'];
-      
       const filtered = cards.filter(c => {
         const cardCats = Array.isArray(c.category) ? c.category : [c.category];
-        
-        // Strategy: Must be one of the base invitation brands
-        const belongsToBase = cardCats.some(cat => baseInvitationCats.includes(cat));
-        if (!belongsToBase) return false;
 
-        if (activeTradition === 'All') return true;
-        
-        // Handle Luxe special case (substring match)
+        // Luxe: substring match (catches "Luxe", "Luxe Models", etc.)
         if (activeTradition === 'Luxe') {
           return cardCats.some(cat => cat && cat.toLowerCase().includes('luxe'));
         }
-        
-        // Exact match with the tradition or ceremony category
+
+        // "All": show any card that belongs to at least one invitation category
+        if (activeTradition === 'All') {
+          return cardCats.some(cat =>
+            invitationAllowlist.some(allowed =>
+              cat && (cat === allowed || cat.toLowerCase().includes('luxe'))
+            )
+          );
+        }
+
+        // Specific tab: exact match
         return cardCats.includes(activeTradition);
-      }).sort((a,b) => a.name.localeCompare(b.name));
-      
+      }).sort((a, b) => a.name.localeCompare(b.name));
+
       setFilteredCards(filtered);
     } else {
       setFilteredCards([]);
     }
   }, [activeTradition, cards]);
-
-
 
   const fetchCards = async () => {
     try {
@@ -61,13 +68,21 @@ const Invitation = () => {
   };
 
   const getCount = (trad) => {
-    const baseInvitationCats = ['V Cards', 'R Cards', 'K Cards', 'ES Cards'];
     return cards.filter(c => {
       const cardCats = Array.isArray(c.category) ? c.category : [c.category];
-      const belongsToBase = cardCats.some(cat => baseInvitationCats.includes(cat));
-      if (!belongsToBase) return false;
-      if (trad === 'All') return true;
-      if (trad === 'Luxe') return cardCats.some(cat => cat && cat.toLowerCase().includes('luxe'));
+
+      if (trad === 'Luxe') {
+        return cardCats.some(cat => cat && cat.toLowerCase().includes('luxe'));
+      }
+
+      if (trad === 'All') {
+        return cardCats.some(cat =>
+          invitationAllowlist.some(allowed =>
+            cat && (cat === allowed || cat.toLowerCase().includes('luxe'))
+          )
+        );
+      }
+
       return cardCats.includes(trad);
     }).length;
   };

@@ -208,9 +208,9 @@
   color: #0F172A;
   font-weight: 700;
   margin: 0;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  /* Use flex centering instead of absolute positioning */
+  flex: 1;
+  text-align: center;
 }
 
 .btn-add-model {
@@ -514,6 +514,31 @@
   background: #14B8A6;
   color: white;
   border: none;
+}
+
+/* Medium screens (between mobile and desktop) */
+@media (min-width: 769px) and (max-width: 1100px) {
+  .admin-panel-header {
+    padding: 0 20px;
+  }
+
+  .admin-panel-header h2 {
+    font-size: 1.4rem;
+  }
+
+  .btn-add-model {
+    padding: 10px 14px;
+    font-size: 0.85rem;
+  }
+
+  .sidebar-logout {
+    padding: 10px 14px;
+    font-size: 0.85rem;
+  }
+
+  .admin-main-panel {
+    padding: 0 20px 20px;
+  }
 }
 
 @media (max-width: 768px) {

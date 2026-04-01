@@ -123,6 +123,17 @@
   margin-left: 0;
 }
 
+/* Medium screen - shrink logo before full mobile */
+@media (max-width: 1100px) {
+  .logo-text {
+    font-size: 1.4rem;
+    letter-spacing: 1.5px;
+  }
+  .logo-img {
+    height: 55px;
+  }
+}
+
 /* Mobile Responsiveness */
 @media (max-width: 1100px) {
   .nav-wrapper {
@@ -165,6 +176,11 @@
   
   .nav-container {
     padding: 0 20px;
+  }
+
+  /* Hide search bar in collapsed state */
+  .nav-search {
+    display: none;
   }
 }
 

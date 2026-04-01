@@ -6,6 +6,8 @@ import './home.css';
 
 const Home = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const touchStartX = React.useRef(null);
+  const touchEndX = React.useRef(null);
   const slides = [
     {
       type: 'text',
@@ -40,6 +42,24 @@ const Home = () => {
     return () => clearInterval(timer);
   }, [slides.length]);
 
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches ? e.touches[0].clientX : e.clientX;
+  };
+
+  const handleTouchEnd = (e) => {
+    touchEndX.current = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+    const diff = touchStartX.current - touchEndX.current;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) {
+        // swiped left → next slide
+        setCurrentSlide((prev) => (prev + 1) % slides.length);
+      } else {
+        // swiped right → previous slide
+        setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+      }
+    }
+  };
+
   return (
     <div className="home-page">
       <SEO
@@ -63,57 +83,58 @@ const Home = () => {
           .slide-image { display: none !important; } /* Hide right logo entirely on mobile to prevent stretching the box height */
         }
       `}</style>
-      <section className="hero-slider" style={{ padding: 0, margin: 0, background: 'none' }}>
-        <div className="slider-container" style={{ transform: `translateX(-${currentSlide * 100}%)`, padding: 0, margin: 0 }}>
+      <section
+        className="hero-slider"
+        style={{ padding: 0, margin: 0, background: 'none', overflow: 'hidden', position: 'relative' }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleTouchStart}
+        onMouseUp={handleTouchEnd}
+      >
+        <div
+          className="slider-container"
+          style={{ transform: `translateX(-${currentSlide * 100}%)`, padding: 0, margin: 0, display: 'flex', transition: 'transform 0.7s cubic-bezier(0.16,1,0.3,1)' }}
+        >
           {slides.map((slide, index) => (
-            <div key={index} className={`slide ${slide.type === 'text' ? 'text-slide' : ''}`} style={{
-              backgroundImage: slide.image ? `url(${slide.image})` : 'none',
-              backgroundColor: slide.type === 'text' ? slide.bgColor : 'transparent',
-              backgroundSize: '100% 100%',
-              backgroundPosition: 'center',
-              width: '100vw',
-              margin: 0,
-              padding: 0
-            }}>
-              <div className="slide-overlay" style={{ background: slide.type === 'text' ? 'rgba(255,255,255,0.4)' : 'transparent', margin: 0, padding: 0 }}>
-                <div className="container" style={{ width: '100%', height: '100%', display: 'flex', alignItems: slide.type === 'text' ? 'center' : 'flex-end', justifyContent: 'center' }}>
-                  <div className="slide-content" style={{ paddingBottom: slide.type === 'text' ? '0' : '80px', width: '100%' }}>
-                    {slide.type === 'text' && (
-                      <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexDirection: 'row', gap: '40px', flexWrap: 'wrap' }}>
-                        <div className="intro-content animate-fade-in" style={{
-                          flex: '1 1 500px',
-                          position: 'relative',
-                          zIndex: 2,
-                          padding: '40px 0',
-                          textAlign: 'left'
-                        }}>
-                          <h2 className="slide-title" style={{ color: 'var(--primary-color)', letterSpacing: '8px', fontSize: '2rem' }}>{slide.title}</h2>
-                          <h1 className="slide-subtitle" style={{ color: '#0F172A', fontSize: '4.5rem', marginBottom: '30px' }}>{slide.subtitle}</h1>
-                          <p className="slide-tagline" style={{ color: '#64748B', fontStyle: 'italic', fontSize: '1.8rem', maxWidth: '800px', margin: '0' }}>{slide.tagline}</p>
-                        </div>
-                        <div className="slide-image animate-fade-in" style={{
-                          flex: '1 1 300px',
-                          display: 'flex',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          background: 'var(--primary-color)',
-                          padding: '40px',
-                          borderRadius: '24px',
-                          boxShadow: '0 20px 40px rgba(107, 6, 6, 0.15)'
-                        }}>
-                          <img src={slide.logo} alt="Logo" style={{ maxWidth: '100%', height: 'auto', maxHeight: '250px' }} />
-                        </div>
-                      </div>
-                    )}
+            <div
+              key={index}
+              style={{
+                minWidth: '100vw',
+                width: '100vw',
+                backgroundColor: slide.type === 'text' ? slide.bgColor : 'transparent',
+                flexShrink: 0,
+                userSelect: 'none'
+              }}
+            >
+              {slide.image ? (
+                // Image slide: use <img> tag so image shows 100% without any cropping
+                <img
+                  src={slide.image}
+                  alt="Wedding Banner"
+                  draggable={false}
+                  style={{ width: '100%', height: 'auto', display: 'block', pointerEvents: 'none' }}
+                />
+              ) : (
+                // Text slide (first slide)
+                <div style={{ background: 'rgba(255,255,255,0.4)', minHeight: '420px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
+                  <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexDirection: 'row', gap: '40px', flexWrap: 'wrap', width: '100%' }}>
+                    <div className="intro-content animate-fade-in" style={{ flex: '1 1 300px', position: 'relative', zIndex: 2, padding: '20px 0', textAlign: 'left' }}>
+                      <h2 className="slide-title" style={{ color: 'var(--primary-color)', letterSpacing: '8px', fontSize: '2rem' }}>{slide.title}</h2>
+                      <h1 className="slide-subtitle" style={{ color: '#0F172A', fontSize: '4.5rem', marginBottom: '30px' }}>{slide.subtitle}</h1>
+                      <p className="slide-tagline" style={{ color: '#64748B', fontStyle: 'italic', fontSize: '1.8rem', margin: '0' }}>{slide.tagline}</p>
+                    </div>
+                    <div className="slide-image animate-fade-in" style={{ flex: '1 1 200px', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'var(--primary-color)', padding: '40px', borderRadius: '24px', boxShadow: '0 20px 40px rgba(107,6,6,0.15)' }}>
+                      <img src={slide.logo} alt="Logo" style={{ maxWidth: '100%', height: 'auto', maxHeight: '250px' }} />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           ))}
         </div>
 
         {/* Slider Navigation Dots */}
-        <div className="slider-dots">
+        <div className="slider-dots" style={{ position: 'absolute', bottom: '16px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '12px', zIndex: 20 }}>
           {slides.map((_, index) => (
             <button
               key={index}

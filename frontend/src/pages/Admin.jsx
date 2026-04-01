@@ -168,19 +168,27 @@ const Admin = () => {
   };
 
   const scrollToCategory = (catName) => {
-    const safeId = `group-${catName.replace(/\s+/g, '-').toLowerCase()}`;
-    const element = document.getElementById(safeId);
-    const container = document.querySelector('.admin-main-panel');
+    setActiveTab('dashboard'); // Ensure dashboard/products view is active
+    setIsSidebarOpen(false); // Close mobile sidebar after selection
     
-    if (element && container) {
-      const offset = 100; // Account for sticky header
-      const elementPosition = element.offsetTop;
-      container.scrollTo({
-        top: elementPosition - offset,
-        behavior: 'smooth'
-      });
-      setIsSidebarOpen(false); // Close mobile sidebar after selection
-    }
+    // Small delay to allow re-render before scrolling
+    setTimeout(() => {
+      const safeId = `group-${catName.replace(/\s+/g, '-').toLowerCase()}`;
+      const element = document.getElementById(safeId);
+      const container = document.querySelector('.admin-main-panel');
+      
+      if (element && container) {
+        const offset = 100; // Account for sticky header
+        const elementRect = element.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        // Correct: element position relative to container + current scroll offset
+        const elementPosition = elementRect.top - containerRect.top + container.scrollTop;
+        container.scrollTo({
+          top: elementPosition - offset,
+          behavior: 'smooth'
+        });
+      }
+    }, 100);
   };
 
   if (!isAuthenticated) {
@@ -239,7 +247,7 @@ const Admin = () => {
     "Brand Series": ["V Cards", "K Cards", "R Cards", "ES Cards"],
     "Ceremony Tags": ["Ear piercing", "Puberty", "House warming"],
     "Tradition Tags": ["Hindu", "Muslim", "Christian"],
-    "Special Collections": ["Friends Card", "Luxe Models", "Offer"]
+    "Special Collections": ["Friends Card", "Luxe", "Offer"]
   };
 
   const getFlatCategories = () => {
