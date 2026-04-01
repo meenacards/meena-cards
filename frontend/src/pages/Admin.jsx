@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { LayoutDashboard, Plus, Trash2, Edit, LogOut, Image as ImageIcon, X, Save, Menu } from 'lucide-react';
+import { LayoutDashboard, Plus, Trash2, Edit, LogOut, Image as ImageIcon, X, Save, Menu, Eye, EyeOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import './admin.css';
 
@@ -10,6 +10,8 @@ const Admin = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [loginStatus, setLoginStatus] = useState('Login');
+  const [toast, setToast] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const [cards, setCards] = useState([]);
   const [fetchError, setFetchError] = useState(null);
@@ -28,6 +30,11 @@ const Admin = () => {
   });
   const [imagePreview, setImagePreview] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -56,8 +63,9 @@ const Admin = () => {
       const validPass = import.meta.env.VITE_ADMIN_PASS || '1234';
       if (loginForm.username === validUser && loginForm.password === validPass) {
         setIsAuthenticated(true);
+        showToast('✅ Logged in successfully!', 'success');
       } else {
-        alert('Please enter valid credentials.');
+        showToast('❌ Wrong credentials. Please try again.', 'error');
         setLoginStatus('Login');
       }
     }, 1000);
@@ -194,6 +202,36 @@ const Admin = () => {
   if (!isAuthenticated) {
     return (
       <div className="admin-login-wrapper">
+        {/* Toast Notification on Login Page */}
+        {toast && (
+          <div style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            zIndex: 9999,
+            background: toast.type === 'success' ? '#10B981' : '#EF4444',
+            color: 'white',
+            padding: '14px 22px',
+            borderRadius: '12px',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
+            fontWeight: '600',
+            fontSize: '0.95rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            animation: 'slideInRight 0.3s ease',
+            maxWidth: '320px',
+            lineHeight: '1.4'
+          }}>
+            {toast.message}
+          </div>
+        )}
+        <style>{`
+          @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(60px); }
+            to { opacity: 1; transform: translateX(0); }
+          }
+        `}</style>
         <form className="admin-login-box" onSubmit={handleLoginSubmit}>
           <h2 className="admin-login-title">Admin Login</h2>
           <div className="admin-login-group">
@@ -207,12 +245,36 @@ const Admin = () => {
           </div>
           <div className="admin-login-group">
             <label>Password</label>
-            <input 
-              type="password" 
-              value={loginForm.password} 
-              onChange={e => setLoginForm({...loginForm, password: e.target.value})} 
-              required
-            />
+            <div style={{ position: 'relative' }}>
+              <input 
+                type={showPassword ? 'text' : 'password'}
+                value={loginForm.password} 
+                onChange={e => setLoginForm({...loginForm, password: e.target.value})} 
+                required
+                style={{ paddingRight: '44px' }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#64748B',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '4px'
+                }}
+                tabIndex={-1}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
           <button 
             type="submit" 
@@ -274,6 +336,36 @@ const Admin = () => {
 
   return (
     <div className="admin-dashboard-wrapper">
+      {/* Toast Notification */}
+      {toast && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          zIndex: 9999,
+          background: toast.type === 'success' ? '#10B981' : '#EF4444',
+          color: 'white',
+          padding: '14px 22px',
+          borderRadius: '12px',
+          boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
+          fontWeight: '600',
+          fontSize: '0.95rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          animation: 'slideInRight 0.3s ease',
+          maxWidth: '320px',
+          lineHeight: '1.4'
+        }}>
+          {toast.message}
+        </div>
+      )}
+      <style>{`
+        @keyframes slideInRight {
+          from { opacity: 0; transform: translateX(60px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+      `}</style>
       
       {/* Mobile Top Header (Fixed) */}
       <div className="admin-mobile-header desktop-hidden">
@@ -285,7 +377,7 @@ const Admin = () => {
         </div>
         <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
           <button onClick={() => setIsFormOpen(true)} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}><Plus size={24}/></button>
-          <button onClick={() => setIsAuthenticated(false)} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}><LogOut size={20}/></button>
+          <button onClick={() => { showToast('👋 Logged out successfully!', 'success'); setTimeout(() => setIsAuthenticated(false), 1000); }} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}><LogOut size={20}/></button>
         </div>
       </div>
 
@@ -347,7 +439,7 @@ const Admin = () => {
             <button className="btn-add-model" onClick={() => setIsFormOpen(true)}>
               + Add New Card
             </button>
-            <button className="sidebar-logout" style={{ margin: 0, padding: '10px 20px' }} onClick={() => setIsAuthenticated(false)}>
+            <button className="sidebar-logout" style={{ margin: 0, padding: '10px 20px' }} onClick={() => { showToast('👋 Logged out successfully!', 'success'); setTimeout(() => setIsAuthenticated(false), 1000); }}>
               <LogOut size={16} /> Logout
             </button>
           </div>

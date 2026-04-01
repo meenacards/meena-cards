@@ -68,6 +68,45 @@ const Home = () => {
       />
       {/* HERO SLIDER SECTION */}
       <style>{`
+        @media (max-width: 1000px) {
+          .hero-slider {
+            /* No fixed height — let content size dictate */
+          }
+
+          .slide-subtitle {
+            font-size: 3rem;
+          }
+
+          .slide-tagline {
+            font-size: 1.5rem;
+          }
+        }
+
+        /* Slide image wrapper — fixed aspect ratio, no blank whitespace */
+        .slide-img-wrapper {
+          width: 100%;
+          aspect-ratio: 16 / 7;
+          overflow: hidden;
+          display: block;
+          line-height: 0;
+        }
+
+        .slide-banner-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          object-position: center;
+          display: block;
+          pointer-events: none;
+          user-select: none;
+        }
+
+        /* On small mobile screens, use a taller ratio so content stays visible */
+        @media (max-width: 600px) {
+          .slide-img-wrapper {
+            aspect-ratio: 4 / 3;
+          }
+        }
         @media (max-width: 768px) {
           .intro-content {
             text-align: center !important;
@@ -107,13 +146,15 @@ const Home = () => {
               }}
             >
               {slide.image ? (
-                // Image slide: use <img> tag so image shows 100% without any cropping
-                <img
-                  src={slide.image}
-                  alt="Wedding Banner"
-                  draggable={false}
-                  style={{ width: '100%', height: 'auto', display: 'block', pointerEvents: 'none' }}
-                />
+                // Image slide: fixed-height container + object-fit cover = no blank space
+                <div className="slide-img-wrapper">
+                  <img
+                    src={slide.image}
+                    alt="Wedding Banner"
+                    draggable={false}
+                    className="slide-banner-img"
+                  />
+                </div>
               ) : (
                 // Text slide (first slide)
                 <div style={{ background: 'rgba(255,255,255,0.4)', minHeight: '420px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>

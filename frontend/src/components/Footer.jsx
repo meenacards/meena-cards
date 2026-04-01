@@ -21,8 +21,7 @@ const Footer = () => {
         {/* Left - Vertical Links */}
         <div className="footer-col-nav">
           <a href="/" className="footer-nav-link">Home</a>
-          <a href="/collections" className="footer-nav-link">Collections</a>
-          <a href="/about" className="footer-nav-link">Who We Are</a>
+          <a href="/invitation" className="footer-nav-link">Collections</a>
           <a href="/contact" className="footer-nav-link">Contact Us</a>
         </div>
 
