@@ -68,45 +68,6 @@ const Home = () => {
       />
       {/* HERO SLIDER SECTION */}
       <style>{`
-        @media (max-width: 1000px) {
-          .hero-slider {
-            /* No fixed height — let content size dictate */
-          }
-
-          .slide-subtitle {
-            font-size: 3rem;
-          }
-
-          .slide-tagline {
-            font-size: 1.5rem;
-          }
-        }
-
-        /* Slide image wrapper — fixed aspect ratio, no blank whitespace */
-        .slide-img-wrapper {
-          width: 100%;
-          aspect-ratio: 16 / 7;
-          overflow: hidden;
-          display: block;
-          line-height: 0;
-        }
-
-        .slide-banner-img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          object-position: center;
-          display: block;
-          pointer-events: none;
-          user-select: none;
-        }
-
-        /* On small mobile screens, use a taller ratio so content stays visible */
-        @media (max-width: 600px) {
-          .slide-img-wrapper {
-            aspect-ratio: 4 / 3;
-          }
-        }
         @media (max-width: 768px) {
           .intro-content {
             text-align: center !important;
@@ -119,7 +80,7 @@ const Home = () => {
           .slide-title { font-size: 1.1rem !important; margin-bottom: 8px !important; letter-spacing: 4px !important; }
           .slide-subtitle { font-size: 1.6rem !important; margin-bottom: 8px !important; line-height: 1.1 !important; }
           .slide-tagline { font-size: 0.9rem !important; margin: 0 auto !important; max-width: 90% !important; }
-          .slide-image { display: none !important; } /* Hide right logo entirely on mobile to prevent stretching the box height */
+          .slide-image { display: none !important; }
         }
       `}</style>
       <section
@@ -130,23 +91,36 @@ const Home = () => {
         onMouseDown={handleTouchStart}
         onMouseUp={handleTouchEnd}
       >
-        <div
-          className="slider-container"
-          style={{ transform: `translateX(-${currentSlide * 100}%)`, padding: 0, margin: 0, display: 'flex', transition: 'transform 0.7s cubic-bezier(0.16,1,0.3,1)' }}
-        >
+        <style>{`
+          .slider-fade-track {
+            position: relative;
+            width: 100%;
+          }
+          .slider-fade-slide {
+            width: 100%;
+            transition: opacity 0.7s ease;
+          }
+          .slider-fade-slide.inactive {
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            pointer-events: none;
+          }
+          .slider-fade-slide.active {
+            position: relative;
+            opacity: 1;
+          }
+        `}</style>
+
+        <div className="slider-fade-track">
           {slides.map((slide, index) => (
             <div
               key={index}
-              style={{
-                minWidth: '100vw',
-                width: '100vw',
-                backgroundColor: slide.type === 'text' ? slide.bgColor : 'transparent',
-                flexShrink: 0,
-                userSelect: 'none'
-              }}
+              className={`slider-fade-slide ${index === currentSlide ? 'active' : 'inactive'}`}
+              style={{ userSelect: 'none', backgroundColor: slide.type === 'text' ? slide.bgColor : 'transparent' }}
             >
               {slide.image ? (
-                // Image slide: fixed-height container + object-fit cover = no blank space
                 <div className="slide-img-wrapper">
                   <img
                     src={slide.image}

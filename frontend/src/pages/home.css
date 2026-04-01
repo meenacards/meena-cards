@@ -287,30 +287,20 @@
   }
 }
 
-/* Slide image wrapper — fixed aspect ratio, no blank whitespace */
+/* Slide image wrapper — natural aspect ratio, no cropping, no blank whitespace */
 .slide-img-wrapper {
   width: 100%;
-  aspect-ratio: 16 / 7;
-  overflow: hidden;
   display: block;
   line-height: 0;
+  overflow: hidden;
 }
 
 .slide-banner-img {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
+  height: auto;
   display: block;
   pointer-events: none;
   user-select: none;
-}
-
-/* On small mobile screens use a taller ratio so content stays visible */
-@media (max-width: 600px) {
-  .slide-img-wrapper {
-    aspect-ratio: 4 / 3;
-  }
 }
 
 /* --- RELIGION SECTION --- */
