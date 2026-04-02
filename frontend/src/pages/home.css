@@ -303,20 +303,64 @@
   user-select: none;
 }
 
-/* ── Actual mobile view only (≤768px) ──────────────────────────────────────
-   Mobile desktop mode uses ~980px viewport so this block NEVER fires there.
-   On a real phone (390-768px wide), show images at natural aspect ratio.    */
+/* ── Real mobile (≤768px): all slides same consistent height ─────────────── */
 @media (max-width: 768px) {
+  /* Image slides */
   .slide-img-wrapper {
     width: 100%;
-    height: auto;        /* natural height — no forced cropping */
-    overflow: visible;
+    aspect-ratio: 3576 / 1184;   /* Matches exactly the intrinsic aspect ratio of the banners */
+    height: auto;
+    overflow: hidden;
   }
   .slide-banner-img {
     width: 100%;
-    height: auto;        /* full image, perfectly aligned, no crop */
-    object-fit: unset;
+    height: 100%;
+    object-fit: contain;         /* guarantees NO cropping */
+    object-position: center center;
     display: block;
+  }
+  /* Text slide — same height as image slides */
+  .text-slide-wrapper {
+    min-height: unset !important;
+    height: auto;
+    aspect-ratio: 3576 / 1184;   /* Locks text slide height exactly to the image slide height */
+    padding: 10px !important;
+    box-sizing: border-box;
+  }
+  /* Hide the logo box on small mobile so text fits neatly */
+  .text-slide-wrapper .slide-image {
+    display: none !important;
+  }
+  .text-slide-wrapper .intro-content {
+    text-align: center !important;
+    padding: 0 !important;
+    flex: unset !important;
+  }
+}
+
+/* ── Desktop mobile emulation (~769px–1000px): all slides same height ────── */
+@media (min-width: 769px) and (max-width: 1000px) {
+  /* Image slides */
+  .slide-img-wrapper {
+    width: 100%;
+    aspect-ratio: 3576 / 1184;
+    height: auto;
+    overflow: hidden;
+  }
+  .slide-banner-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center center;
+    display: block;
+  }
+  /* Text slide — same height as image slides */
+  .text-slide-wrapper {
+    min-height: unset !important;
+    height: auto;
+    aspect-ratio: 3576 / 1184;
+    padding: 24px !important;
+    box-sizing: border-box;
   }
 }
 

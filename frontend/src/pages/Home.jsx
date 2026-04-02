@@ -131,7 +131,7 @@ const Home = () => {
                 </div>
               ) : (
                 // Text slide (first slide)
-                <div style={{ background: 'rgba(255,255,255,0.4)', minHeight: '420px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
+                <div className="text-slide-wrapper" style={{ background: 'rgba(255,255,255,0.4)', minHeight: '420px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
                   <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexDirection: 'row', gap: '40px', flexWrap: 'wrap', width: '100%' }}>
                     <div className="intro-content animate-fade-in" style={{ flex: '1 1 300px', position: 'relative', zIndex: 2, padding: '20px 0', textAlign: 'left' }}>
                       <h2 className="slide-title" style={{ color: 'var(--primary-color)', letterSpacing: '8px', fontSize: '2rem' }}>{slide.title}</h2>
