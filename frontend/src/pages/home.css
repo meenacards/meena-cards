@@ -303,6 +303,23 @@
   user-select: none;
 }
 
+/* ── Actual mobile view only (≤768px) ──────────────────────────────────────
+   Mobile desktop mode uses ~980px viewport so this block NEVER fires there.
+   On a real phone (390-768px wide), show images at natural aspect ratio.    */
+@media (max-width: 768px) {
+  .slide-img-wrapper {
+    width: 100%;
+    height: auto;        /* natural height — no forced cropping */
+    overflow: visible;
+  }
+  .slide-banner-img {
+    width: 100%;
+    height: auto;        /* full image, perfectly aligned, no crop */
+    object-fit: unset;
+    display: block;
+  }
+}
+
 /* --- RELIGION SECTION --- */
 .religion-section {
   padding: 100px 0;
@@ -405,14 +422,6 @@
   .slide:not(.text-slide) {
     background-size: 100% 100% !important;
     background-position: center !important;
-  }
-
-
-
-
-  .religion-grid {
-    grid-template-columns: 1fr;
-    gap: 60px;
   }
 
   .card-grid {
@@ -582,9 +591,30 @@
     gap: 30px;
   }
 
+  .religion-card {
+    align-items: center;
+    text-align: center;
+    padding: 0 20px 20px;
+  }
+
   .religion-img-wrapper {
-    width: 220px;
-    height: 220px;
+    width: 200px;
+    height: 200px;
+    margin: 0 auto 24px;
+  }
+
+  .religion-card h3 {
+    font-size: 1.5rem;
+  }
+
+  .religion-card p {
+    padding: 0;
+    font-size: 1rem;
+    margin-bottom: 20px;
+  }
+
+  .btn-secondary {
+    margin-top: 4px;
   }
 }
 

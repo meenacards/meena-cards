@@ -53,6 +53,7 @@ function App() {
           <Route path="/admin" element={<Admin />} />
           <Route path="/latest-arrivals" element={<LatestArrivals />} />
           <Route path="/invitation" element={<Invitation />} />
+          <Route path="/invitation/:category" element={<Invitation />} />
           <Route path="/celebration-boutique" element={<CelebrationBoutique />} />
           <Route path="/product/:id" element={<ProductDetails />} />
         </Routes>

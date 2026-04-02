@@ -1,5 +1,6 @@
 import { Layers } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import SEO from '../components/SEO';
 import './home.css';
@@ -7,11 +8,22 @@ import './home.css';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const Invitation = () => {
+  const { category } = useParams();
   const [cards, setCards] = useState([]);
   const [filteredCards, setFilteredCards] = useState([]);
-  const [activeTradition, setActiveTradition] = useState('All');
+  const [activeTradition, setActiveTradition] = useState(category || 'All');
   const [loading, setLoading] = useState(true);
   const traditions = ['All', 'Hindu', 'Muslim', 'Christian', 'Ear piercing', 'Puberty', 'House warming', 'Friends Card', 'Luxe'];
+
+  // Sync active tradition when URL param changes
+  useEffect(() => {
+    if (category && traditions.includes(category)) {
+      setActiveTradition(category);
+    } else {
+      setActiveTradition('All');
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [category]);
 
   // All categories that belong on the Invitation page
   const invitationAllowlist = [

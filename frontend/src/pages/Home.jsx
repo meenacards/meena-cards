@@ -175,7 +175,7 @@ const Home = () => {
               </div>
               <h3>Hindu Traditions</h3>
               <p>Featuring traditional motifs, vibrant hues, and auspicious symbolism.</p>
-              <Link to="/invitation" className="btn-secondary">View Hindu Cards</Link>
+              <Link to="/invitation/Hindu" className="btn-secondary">View Hindu Cards</Link>
             </div>
 
             <div className="religion-card">
@@ -184,7 +184,7 @@ const Home = () => {
               </div>
               <h3>Muslim Traditions</h3>
               <p>With refined calligraphy, Islamic patterns, and graceful detailing.</p>
-              <Link to="/invitation" className="btn-secondary">View Muslim Cards</Link>
+              <Link to="/invitation/Muslim" className="btn-secondary">View Muslim Cards</Link>
             </div>
 
             <div className="religion-card">
@@ -193,7 +193,7 @@ const Home = () => {
               </div>
               <h3>Christian Traditions</h3>
               <p>Blending sophistication with spiritual charm and timeless elegance.</p>
-              <Link to="/invitation" className="btn-secondary">View Christian Cards</Link>
+              <Link to="/invitation/Christian" className="btn-secondary">View Christian Cards</Link>
             </div>
           </div>
         </div>
