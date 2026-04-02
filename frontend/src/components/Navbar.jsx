@@ -1,11 +1,22 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, ShoppingBag } from 'lucide-react';
 import './navbar.css';
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery(''); // clear after search if desired
+      setMobileMenuOpen(false);
+    }
+  };
 
   return (
     <>
@@ -37,9 +48,14 @@ const Navbar = () => {
 
           <div className="nav-actions">
             {!mobileMenuOpen && (
-              <div className="nav-search">
-                <input type="text" placeholder="Search cards..." />
-              </div>
+              <form className="nav-search" onSubmit={handleSearch}>
+                <input 
+                  type="text" 
+                  placeholder="Search cards..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </form>
             )}
           </div>
         </div>

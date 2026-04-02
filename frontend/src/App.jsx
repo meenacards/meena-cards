@@ -9,6 +9,7 @@ import ProductDetails from './pages/ProductDetails';
 import LatestArrivals from './pages/LatestArrivals';
 import Invitation from './pages/Invitation';
 import CelebrationBoutique from './pages/CelebrationBoutique';
+import Search from './pages/Search';
 import Footer from './components/Footer';
 import './App.css';
 
@@ -55,6 +56,7 @@ function App() {
           <Route path="/invitation" element={<Invitation />} />
           <Route path="/invitation/:category" element={<Invitation />} />
           <Route path="/celebration-boutique" element={<CelebrationBoutique />} />
+          <Route path="/search" element={<Search />} />
           <Route path="/product/:id" element={<ProductDetails />} />
         </Routes>
       </AppLayout>
