@@ -136,10 +136,44 @@
   max-width: 1200px;
   margin: 20px auto 0;
   border-top: 1px solid #1e293b;
-  padding-top: 10px;
-  text-align: center;
+  padding-top: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   color: #64748b;
   font-size: 0.8rem;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.copyright-text {
+  margin: 0;
+}
+
+.developer-credits {
+  font-family: inherit; /* Matches website's primary font (Outfit) */
+  font-size: 0.85rem;
+  color: #cbd5e1; /* Slate color to match footer paragraph */
+  letter-spacing: 0.5px;
+}
+
+.developer-credits .dev-brand {
+  color: #D4AF37; /* The exact gold color used in the site */
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+
+.developer-credits .dev-phone {
+  color: #D4AF37; /* Gold color */
+  text-decoration: none;
+  font-weight: 600;
+  padding-left: 2px;
+  transition: opacity 0.3s ease;
+}
+
+.developer-credits .dev-phone:hover {
+  opacity: 0.8;
+  text-decoration: none;
 }
 
 /* Mobile Responsiveness */
@@ -180,5 +214,8 @@
   .footer-bottom {
     margin-top: 24px;
     font-size: 0.75rem;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
   }
 }

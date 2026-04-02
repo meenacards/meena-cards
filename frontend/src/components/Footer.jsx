@@ -42,7 +42,10 @@ const Footer = () => {
       </div>
 
       <div className="footer-bottom">
-        <p>© <span id="dynamic-auto-year">{currentYear}</span> Meena Cards. All Rights Reserved.</p>
+        <p className="copyright-text">© <span id="dynamic-auto-year">{currentYear}</span> Meena Cards. All Rights Reserved.</p>
+        <div className="developer-credits">
+          Designed by <span className="dev-brand">Zentrix Technologies</span> | <a href="tel:+917806893533" className="dev-phone">+91 78068 93533</a>
+        </div>
       </div>
     </footer>
   );
