@@ -7,8 +7,31 @@ const Contact = () => {
   return (
     <div className="home-page animate-fade-in">
       <SEO
-        title="Contact Us & Showroom"
-        description="Visit the Meena Cards flagship luxury studio in Madurai. Contact us for premium handcrafted wedding invitations, business hours, and location."
+        title="Contact Meena Cards | Wedding Invitation Shop in Madurai"
+        description="Visit our wedding card showroom in Madurai or order via WhatsApp (+91 9965125250). We deliver bespoke wedding invitations across all of India."
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "LocalBusiness",
+          "name": "Meena Cards",
+          "image": "https://meenacards.com/logo1.png",
+          "@id": "https://meenacards.com",
+          "url": "https://meenacards.com",
+          "telephone": "+919965125250",
+          "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "62/1, Manjanakara Street",
+            "addressLocality": "Madurai",
+            "addressRegion": "TN",
+            "postalCode": "625001",
+            "addressCountry": "IN"
+          },
+          "openingHoursSpecification": {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+            "opens": "10:00",
+            "closes": "21:00"
+          }
+        }}
       />
 
       {/* About Section in Contact Page */}

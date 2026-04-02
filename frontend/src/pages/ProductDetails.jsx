@@ -59,8 +59,34 @@ const ProductDetails = () => {
   return (
     <div className="product-details-page animate-fade-in" style={{ padding: '100px 20px', maxWidth: '1200px', margin: '0 auto', flex: 1 }}>
       <SEO 
-        title={`${product.name} | Exquisite ${Array.isArray(product.category) ? product.category[0] : product.category} Cards`}
+        title={`${product.name} | Meena Cards Madurai`}
         description={`Order the stunning ${product.name} wedding card from our ${Array.isArray(product.category) ? product.category.join(", ") : product.category} collection at Meena Cards directly through WhatsApp!`}
+        jsonLd={{
+          "@context": "https://schema.org/",
+          "@type": "Product",
+          "name": product.name,
+          "image": [
+            product.image_url
+          ],
+          "description": `Handcrafted premium ${product.name} wedding invitation by Meena Cards Madurai.`,
+          "sku": product.id || "MC-001",
+          "brand": {
+            "@type": "Brand",
+            "name": "Meena Cards"
+          },
+          "offers": {
+            "@type": "Offer",
+            "url": window.location.href,
+            "priceCurrency": "INR",
+            "price": product.price || "150.00",
+            "itemCondition": "https://schema.org/NewCondition",
+            "availability": "https://schema.org/InStock",
+            "seller": {
+              "@type": "Organization",
+              "name": "Meena Cards"
+            }
+          }
+        }}
       />
       <button 
         onClick={() => navigate(-1)} 

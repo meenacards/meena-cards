@@ -152,8 +152,8 @@ const Collections = ({ filterCategory }) => {
   return (
     <div className="home-page animate-fade-in" style={{ padding: '60px 0' }}>
       <SEO 
-        title="Exquisite Wedding Collections" 
-        description="Browse the complete catalog of Meena Cards. Discover thousands of luxurious, handcrafted, and custom wedding invitations, from traditional to contemporary."
+        title="Luxury Wedding Card Collections | Gold Foil, 3D & Scroll Cards" 
+        description="Browse our exclusive collections of laser-cut, 3D, and metallic wedding cards. Find the perfect box set or pouch set for your special day at Meena Cards."
       />
       <section className="catalog container">
         <div className="section-header">

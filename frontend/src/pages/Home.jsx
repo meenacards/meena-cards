@@ -63,8 +63,31 @@ const Home = () => {
   return (
     <div className="home-page">
       <SEO
-        title="Home"
-        description="Meena Cards specializes in exquisite handcrafted wedding invitations in Madurai. Discover timeless elegance and tradition in our premium card collections."
+        title="Premium Wedding Invitations in Madurai"
+        description="India's finest handcrafted wedding invitations. Explore 1000+ premium designs including gold foil & laser-cut. Order via WhatsApp from Madurai, Tamil Nadu."
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "LocalBusiness",
+          "name": "Meena Cards",
+          "image": "https://meenacards.com/logo1.png",
+          "@id": "https://meenacards.com",
+          "url": "https://meenacards.com",
+          "telephone": "+919965125250",
+          "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "62/1, Manjanakara Street",
+            "addressLocality": "Madurai",
+            "addressRegion": "TN",
+            "postalCode": "625001",
+            "addressCountry": "IN"
+          },
+          "openingHoursSpecification": {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+            "opens": "10:00",
+            "closes": "21:00"
+          }
+        }}
       />
       {/* HERO SLIDER SECTION */}
       <style>{`

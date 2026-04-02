@@ -36,6 +36,10 @@ const LatestArrivals = () => {
 
   return (
     <div className="home-page animate-fade-in" style={{ minHeight: '80vh' }}>
+      <SEO 
+        title="New Wedding Invitation Designs 2025 | Latest Arrivals"
+        description="Discover the freshest trends in Indian wedding invitations. View our latest arrivals featuring unique 3D designs, scroll cards, and luxury finishes."
+      />
       {/* Dynamic Hero Section from Home Page Design */}
       <section className="latest-arrivals-hero" style={{ height: '500px' }}>
         <div className="latest-hero-bg" style={{ backgroundImage: "url('/latest_bg.png')" }}></div>

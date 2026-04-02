@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-const SEO = ({ title, description, keywords }) => {
+const SEO = ({ title, description, keywords, jsonLd }) => {
   useEffect(() => {
     // Set Title
     if (title) {
@@ -29,13 +29,43 @@ const SEO = ({ title, description, keywords }) => {
 
     // OG Title
     let ogTitle = document.querySelector('meta[property="og:title"]');
-    if (ogTitle) ogTitle.content = title ? `${title} | Meena Cards` : 'Meena Cards | Premium Wedding Invitations in Madurai';
+    if (!ogTitle) {
+      ogTitle = document.createElement('meta');
+      ogTitle.setAttribute('property', 'og:title');
+      document.head.appendChild(ogTitle);
+    }
+    ogTitle.content = title ? `${title} | Meena Cards` : 'Meena Cards | Premium Wedding Invitations in Madurai';
 
     // OG Description
     let ogDesc = document.querySelector('meta[property="og:description"]');
-    if (ogDesc) ogDesc.content = description || 'Meena Cards specializes in exquisite handcrafted wedding invitations in Madurai.';
+    if (!ogDesc) {
+      ogDesc = document.createElement('meta');
+      ogDesc.setAttribute('property', 'og:description');
+      document.head.appendChild(ogDesc);
+    }
+    ogDesc.content = description || 'Meena Cards specializes in exquisite handcrafted wedding invitations in Madurai.';
 
-  }, [title, description, keywords]);
+    // JSON-LD Structured Data
+    if (jsonLd) {
+      let script = document.querySelector('script[type="application/ld+json"]');
+      if (!script) {
+        script = document.createElement('script');
+        script.type = 'application/ld+json';
+        document.head.appendChild(script);
+      }
+      script.innerHTML = JSON.stringify(jsonLd);
+    }
+
+    return () => {
+      // Cleanup json-ld on unmount if needed, though usually we replace it
+      if (jsonLd) {
+        let script = document.querySelector('script[type="application/ld+json"]');
+        if (script) {
+          script.remove();
+        }
+      }
+    };
+  }, [title, description, keywords, jsonLd]);
 
   return null;
 };

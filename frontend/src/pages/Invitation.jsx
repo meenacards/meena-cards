@@ -98,14 +98,37 @@ const Invitation = () => {
       return cardCats.includes(trad);
     }).length;
   };
+  const getSeoData = () => {
+    switch (activeTradition) {
+      case 'Hindu':
+        return {
+          title: "Traditional Hindu Wedding Cards | Meena Cards Madurai",
+          description: "Discover elegant Hindu wedding invitation cards featuring traditional motifs, Ganesha designs, and premium finishings. Handcrafted with love in Madurai."
+        };
+      case 'Muslim':
+        return {
+          title: "Premium Muslim Nikah Invitation Cards | Islamic Wedding Cards",
+          description: "Celebrate your Nikah with our exclusive collection of Islamic wedding invitations. Custom handmade designs available. Order online from Meena Cards."
+        };
+      case 'Christian':
+        return {
+          title: "Elegant Christian Wedding Invitations | Meena Cards",
+          description: "Beautifully crafted Christian wedding cards. Explore pristine white, floral, and gold-foiled holy matrimony designs delivered across India."
+        };
+      default:
+        return {
+          title: `Divine Traditions Portfolio - ${activeTradition}`,
+          description: `Browse our specialized wedding invitation portfolio for ${activeTradition}. From rich traditions to elegant templates, Meena Cards offers flawless designs.`
+        };
+    }
+  };
 
-
-
+  const seoData = getSeoData();
   return (
     <div className="home-page" style={{ padding: '60px 0', minHeight: '80vh' }}>
       <SEO 
-        title="Divine Traditions Portolio" 
-        description="Browse our specialized wedding invitation portfolio. From rich Hindu and Muslim traditions to elegant Christian templates, Meena Cards offers flawless designs."
+        title={seoData.title} 
+        description={seoData.description}
       />
       <section className="catalog container">
         <div className="section-header" style={{ marginBottom: '40px' }}>

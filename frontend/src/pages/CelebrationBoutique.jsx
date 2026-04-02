@@ -55,8 +55,8 @@ const CelebrationBoutique = () => {
   return (
     <div className="home-page" style={{ padding: '60px 0', minHeight: '80vh' }}>
       <SEO 
-        title="Boutique & Accessories" 
-        description="Find the perfect complementary pieces for your divine celebrations. Explore Meena Cards boutique collection of calendars, thambulam bags, and more."
+        title="Celebration Boutique | Designer Wedding Stationery Madurai" 
+        description="Elevate your celebration with premium boutique creations. Unique invite boxes, luxury pouches, and handcrafted stationery sets by Meena Cards."
       />
       <section className="catalog container">
         <div className="section-header" style={{ marginBottom: '40px' }}>
