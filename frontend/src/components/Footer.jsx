@@ -17,7 +17,7 @@ const Footer = () => {
   return (
     <footer className="new-footer">
       <div className="footer-layout">
-        
+
         {/* Left - Vertical Links */}
         <div className="footer-col-nav">
           <a href="/" className="footer-nav-link">Home</a>
@@ -44,7 +44,7 @@ const Footer = () => {
       <div className="footer-bottom">
         <p className="copyright-text">© <span id="dynamic-auto-year">{currentYear}</span> Meena Cards. All Rights Reserved.</p>
         <div className="developer-credits">
-          Designed by <span className="dev-brand">Zentrix Technologies</span> | <a href="tel:+917806893533" className="dev-phone">+91 78068 93533</a>
+          Designed by <span className="dev-brand">Zyntrix Technologies</span> | <a href="tel:+917806893533" className="dev-phone">+91 78068 93533</a>
         </div>
       </div>
     </footer>
