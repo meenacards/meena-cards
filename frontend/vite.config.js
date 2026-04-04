@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import prerender from '@prerenderer/rollup-plugin'
-import PuppeteerRenderer from '@prerenderer/renderer-puppeteer'
+import JSDOMRenderer from '@prerenderer/renderer-jsdom'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -18,7 +18,7 @@ export default defineConfig({
         '/celebration-boutique', 
         '/contact'
       ],
-      renderer: new PuppeteerRenderer()
+      renderer: new JSDOMRenderer()
     })
   ],
   server: {
