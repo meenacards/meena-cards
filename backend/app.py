@@ -14,10 +14,17 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Restrict CORS to the configured frontend origin in production.
-# Falls back to allow all origins if FRONTEND_URL is not set (local dev).
+# Restrict CORS to known app origins in production.
+# Keep desktop and local development origins enabled for Electron billing app.
 _frontend_url = os.getenv("FRONTEND_URL")
-CORS(app, origins=[_frontend_url] if _frontend_url else "*")
+_allowed_origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "null",  # Electron file:// origin appears as null
+]
+if _frontend_url:
+    _allowed_origins.insert(0, _frontend_url)
+CORS(app, origins="*" if not _frontend_url else _allowed_origins)
 
 # MongoDB setup
 MONGODB_URI = os.getenv("MONGODB_URI")
