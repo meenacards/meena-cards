@@ -459,26 +459,21 @@ const Admin = () => {
                   <th>CATEGORIES</th>
                   <th>FLAGS</th>
                   <th>ACTIONS</th>
-                 </tr>
+                </tr>
               </thead>
               <tbody>
-                {/* Group cards by each category they belong to, or by offer status for 'Offer' */}
-                {(() => {
-                  const grouped = {};
-                  cards.forEach(card => {
-                    const cardCats = Array.isArray(card.category) ? card.category : [card.category];
-                    cardCats.forEach(cat => {
-                      if (!grouped[cat]) grouped[cat] = [];
-                      grouped[cat].push(card);
-                    });
-                    if (card.is_offer === true || card.is_offer === "true") {
-                      if (!grouped['Offer']) grouped['Offer'] = [];
-                      grouped['Offer'].push(card);
-                    }
+                {Object.entries(cards.reduce((acc, card) => {
+                  const cardCats = Array.isArray(card.category) ? card.category : [card.category];
+                  cardCats.forEach(cat => {
+                    if (!acc[cat]) acc[cat] = [];
+                    acc[cat].push(card);
                   });
-                  return Object.entries(grouped);
-                })().sort(([a], [b]) => a.localeCompare(b)).map(([groupName, groupCards]) => (
-
+                  if (card.is_offer === true || card.is_offer === "true") {
+                    if (!acc['Offer']) acc['Offer'] = [];
+                    acc['Offer'].push(card);
+                  }
+                  return acc;
+                }, {})).sort(([a], [b]) => a[0].localeCompare(b[0])).map(([groupName, groupCards]) => (
                   <React.Fragment key={groupName}>
                     <tr id={`group-${groupName.replace(/\s+/g, '-').toLowerCase()}`} style={{ background: '#f1f5f9', borderTop: '2px solid #e2e8f0' }}>
                       <td colSpan="5" style={{ padding: '12px 24px', fontWeight: 'bold', color: '#1e293b', fontSize: '1rem' }}>
