@@ -7,6 +7,7 @@ import cloudinary.uploader
 from pymongo import MongoClient
 from bson import ObjectId
 from bson.errors import InvalidId
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # Load env variables
 load_dotenv()
@@ -29,8 +30,10 @@ if MONGODB_URI:
         db = client.card_shop
         
     cards_collection = db["cards"]
+    customers_collection = db["customers"]
 else:
     cards_collection = None
+    customers_collection = None
     print("WARNING: MONGODB_URI not set")
 
 # Cloudinary setup
@@ -62,7 +65,9 @@ def format_card(card):
         "image_url": card.get("image_url"),
         "description": card.get("description", ""),
         "is_latest": card.get("is_latest", False),
-        "is_offer": card.get("is_offer", False)
+        "is_offer": card.get("is_offer", False),
+        "price": card.get("price", 0.0),
+        "stock": card.get("stock", 0)
     }
 
 @app.route("/", methods=["GET"])
@@ -149,7 +154,9 @@ def add_card():
             "image_url": image_url,
             "description": description,
             "is_latest": request.form.get("is_latest") == 'true',
-            "is_offer": request.form.get("is_offer") == 'true'
+            "is_offer": request.form.get("is_offer") == 'true',
+            "price": float(request.form.get("price", 0.0)),
+            "stock": int(request.form.get("stock", 0))
         }
 
         result = cards_collection.insert_one(new_card)
@@ -184,6 +191,8 @@ def update_card(card_id):
         if "description" in request.form: update_data["description"] = request.form["description"]
         if "is_latest" in request.form: update_data["is_latest"] = request.form["is_latest"] == 'true'
         if "is_offer" in request.form: update_data["is_offer"] = request.form["is_offer"] == 'true'
+        if "price" in request.form: update_data["price"] = float(request.form["price"])
+        if "stock" in request.form: update_data["stock"] = int(request.form["stock"])
         image = request.files.get("image")
     else:
         data = request.get_json() or {}
@@ -192,6 +201,8 @@ def update_card(card_id):
         if "description" in data: update_data["description"] = data["description"]
         if "is_latest" in data: update_data["is_latest"] = bool(data["is_latest"])
         if "is_offer" in data: update_data["is_offer"] = bool(data["is_offer"])
+        if "price" in data: update_data["price"] = float(data["price"])
+        if "stock" in data: update_data["stock"] = int(data["stock"])
         image = None
 
     try:
@@ -229,6 +240,104 @@ def delete_card(card_id):
         return jsonify({"error": "Card not found"}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+# --- Customer Authentication & Approval ---
+
+@app.route("/register", methods=["POST"])
+def register_customer():
+    if customers_collection is None:
+        return jsonify({"error": "Database not configured"}), 500
+    
+    data = request.get_json()
+    print(f"DEBUG: Received registration request: {data}")
+    
+    name = data.get("name")
+    email = data.get("email", "").strip()
+    phone = data.get("phone", "").strip()
+    password = data.get("password")
+
+    if not all([name, email, phone, password]):
+        print(f"DEBUG: Registration failed - Missing fields: name={name}, email={email}, phone={phone}")
+        return jsonify({"error": "Missing fields"}), 400
+
+    existing_user = customers_collection.find_one({"email": email})
+    if existing_user:
+        print(f"DEBUG: Registration failed - Email '{email}' already registered")
+        return jsonify({"error": "Email already registered"}), 400
+
+    new_customer = {
+        "name": name,
+        "email": email,
+        "phone": phone,
+        "password": generate_password_hash(password),
+        "is_approved": False, # Approval system
+        "created_at": ObjectId().generation_time
+    }
+
+    customers_collection.insert_one(new_customer)
+    return jsonify({"message": "Registration successful. Please contact Admin for approval."}), 201
+
+@app.route("/login/customer", methods=["POST"])
+def login_customer():
+    if customers_collection is None:
+        return jsonify({"error": "Database not configured"}), 500
+    
+    data = request.get_json()
+    email = data.get("email")
+    password = data.get("password")
+
+    user = customers_collection.find_one({"email": email})
+    if not user:
+        return jsonify({"error": "Account not found"}), 404
+
+    if not check_password_hash(user["password"], password):
+        return jsonify({"error": "Incorrect password"}), 401
+
+    if not user.get("is_approved", False):
+        return jsonify({"error": "Account pending approval. Please contact Admin via WhatsApp."}), 403
+
+    return jsonify({
+        "id": str(user["_id"]),
+        "name": user["name"],
+        "email": user["email"],
+        "is_approved": True
+    }), 200
+
+@app.route("/admin/customers", methods=["GET"])
+def get_customers():
+    if customers_collection is None:
+        return jsonify({"error": "Database not configured"}), 500
+    
+    customers = list(customers_collection.find())
+    for c in customers:
+        c["id"] = str(c.pop("_id"))
+        c.pop("password", None)
+    return jsonify(customers), 200
+
+@app.route("/admin/customers/<cust_id>/approve", methods=["PUT"])
+def approve_customer(cust_id):
+    if customers_collection is None:
+        return jsonify({"error": "Database not configured"}), 500
+    
+    oid = parse_object_id(cust_id)
+    if not oid: return jsonify({"error": "Invalid ID"}), 400
+
+    result = customers_collection.update_one({"_id": oid}, {"$set": {"is_approved": True}})
+    if result.matched_count == 0:
+        return jsonify({"error": "Customer not found"}), 404
+    
+    return jsonify({"message": "Customer approved successfully"}), 200
+
+@app.route("/admin/customers/<cust_id>", methods=["DELETE"])
+def delete_customer(cust_id):
+    if customers_collection is None:
+        return jsonify({"error": "Database not configured"}), 500
+    
+    oid = parse_object_id(cust_id)
+    if not oid: return jsonify({"error": "Invalid ID"}), 400
+
+    customers_collection.delete_one({"_id": oid})
+    return jsonify({"message": "Customer removed"}), 200
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
