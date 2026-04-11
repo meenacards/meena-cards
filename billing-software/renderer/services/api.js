@@ -1,76 +1,28 @@
 const API_BASE_URL = 'http://localhost:8080';
 
-let useMockBackend = false;
-let mockProducts = [
-  {
-    id: '1',
-    name: 'Sample Coffee',
-    category: ['Beverage'],
-    image_url: '',
-    description: 'Hot brewed coffee',
-    price: 50,
-    stock: 100,
-  },
-  {
-    id: '2',
-    name: 'Cheese Sandwich',
-    category: ['Food'],
-    image_url: '',
-    description: 'Grilled sandwich with cheese',
-    price: 120,
-    stock: 50,
-  },
-  {
-    id: '3',
-    name: 'Cold Drink',
-    category: ['Beverage'],
-    image_url: '',
-    description: 'Chilled soft drink',
-    price: 40,
-    stock: 80,
-  },
-];
+function normalizeCard(card) {
+  const category = Array.isArray(card.category)
+    ? card.category
+    : (typeof card.category === 'string' && card.category.trim())
+      ? card.category.split(',').map((cat) => cat.trim()).filter(Boolean)
+      : [];
+
+  return {
+    id: card.id,
+    name: card.name || 'Unnamed card',
+    category,
+    image_url: card.image_url || '',
+    description: card.description || '',
+    is_latest: Boolean(card.is_latest),
+    is_offer: Boolean(card.is_offer),
+    price: Number(card.price || 0),
+    stock: Number(card.stock || 0),
+  };
+}
 
 async function apiRequest(path, options = {}) {
-  if (useMockBackend) {
-    // Simulated in-memory backend
-    if (path === '/cards' && (!options.method || options.method === 'GET')) {
-      return JSON.parse(JSON.stringify(mockProducts));
-    }
-    if (path.startsWith('/cards/') && (!options.method || options.method === 'GET')) {
-      const id = path.split('/')[2];
-      const found = mockProducts.find(p => p.id === id);
-      if (!found) throw new Error('Not found');
-      return JSON.parse(JSON.stringify(found));
-    }
-    if (path === '/cards' && options.method === 'POST') {
-      const body = JSON.parse(options.body || '{}');
-      const id = String(Date.now());
-      const created = { id, ...body };
-      mockProducts.push(created);
-      return JSON.parse(JSON.stringify(created));
-    }
-    if (path.startsWith('/cards/') && options.method === 'PUT') {
-      const id = path.split('/')[2];
-      const body = JSON.parse(options.body || '{}');
-      const idx = mockProducts.findIndex(p => p.id === id);
-      if (idx === -1) throw new Error('Not found');
-      mockProducts[idx] = { ...mockProducts[idx], ...body };
-      return JSON.parse(JSON.stringify(mockProducts[idx]));
-    }
-    if (path.startsWith('/cards/') && options.method === 'DELETE') {
-      const id = path.split('/')[2];
-      mockProducts = mockProducts.filter(p => p.id !== id);
-      return null;
-    }
-    throw new Error('Mock route not implemented');
-  }
-
   const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
+    headers: options.headers || {},
     ...options,
   });
 
@@ -84,24 +36,57 @@ async function apiRequest(path, options = {}) {
 }
 
 async function fetchProducts() {
-  return apiRequest('/cards');
+  const cards = await apiRequest('/cards');
+  return (cards || []).map(normalizeCard);
 }
 
 async function fetchProductById(id) {
-  return apiRequest(`/cards/${id}`);
+  const card = await apiRequest(`/cards/${id}`);
+  return normalizeCard(card);
 }
 
 async function createProduct(data) {
+  const form = new FormData();
+  form.append('name', data.name || '');
+  (data.category || []).forEach((cat) => {
+    form.append('category', cat);
+  });
+  form.append('description', data.description || '');
+  form.append('is_latest', data.is_latest ? 'true' : 'false');
+  form.append('is_offer', data.is_offer ? 'true' : 'false');
+  form.append('price', String(Number(data.price || 0)));
+  form.append('stock', String(Number(data.stock || 0)));
+  if (data.image instanceof File) {
+    form.append('image', data.image);
+  }
+
   return apiRequest('/cards', {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: form,
   });
 }
 
 async function updateProduct(id, data) {
+  const form = new FormData();
+
+  if (typeof data.name === 'string') form.append('name', data.name);
+  if (Array.isArray(data.category)) {
+    data.category.forEach((cat) => {
+      form.append('category', cat);
+    });
+  }
+  if (typeof data.description === 'string') form.append('description', data.description);
+  if (typeof data.is_latest === 'boolean') form.append('is_latest', data.is_latest ? 'true' : 'false');
+  if (typeof data.is_offer === 'boolean') form.append('is_offer', data.is_offer ? 'true' : 'false');
+  if (typeof data.price !== 'undefined') form.append('price', String(Number(data.price || 0)));
+  if (typeof data.stock !== 'undefined') form.append('stock', String(Number(data.stock || 0)));
+  if (data.image instanceof File) {
+    form.append('image', data.image);
+  }
+
   return apiRequest(`/cards/${id}` , {
     method: 'PUT',
-    body: JSON.stringify(data),
+    body: form,
   });
 }
 
@@ -117,6 +102,33 @@ window.ApiService = {
   createProduct,
   updateProduct,
   deleteProduct,
-  enableMock() { useMockBackend = true; },
-  disableMock() { useMockBackend = false; },
+  async getDashboardStats() {
+    const cards = await fetchProducts();
+    const categoriesCount = {};
+    let totalStock = 0;
+    let lowStockCount = 0;
+
+    cards.forEach((card) => {
+      totalStock += Number(card.stock || 0);
+      if (Number(card.stock || 0) <= 5) {
+        lowStockCount += 1;
+      }
+
+      const categories = Array.isArray(card.category) ? card.category : [];
+      if (!categories.length) {
+        categoriesCount['Uncategorized'] = (categoriesCount['Uncategorized'] || 0) + 1;
+      } else {
+        categories.forEach((cat) => {
+          categoriesCount[cat] = (categoriesCount[cat] || 0) + 1;
+        });
+      }
+    });
+
+    return {
+      totalCards: cards.length,
+      totalStock,
+      lowStockCount,
+      categoriesCount,
+    };
+  },
 };

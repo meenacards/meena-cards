@@ -11,9 +11,9 @@
       btn.classList.toggle('active', btn.dataset.view === view);
     });
 
-    if (view === 'products') {
-      viewTitle.textContent = 'Products';
-      window.ProductsView.render(viewContainer);
+    if (view === 'admin') {
+      viewTitle.textContent = 'Admin';
+      window.AdminView.render(viewContainer);
       return;
     }
 
@@ -44,19 +44,11 @@
   async function bootstrap() {
     showLoading();
     try {
-      // Try real backend first
       const products = await window.ApiService.fetchProducts();
       window.BillingActions.setProducts(products);
     } catch (err) {
-      console.error('Failed to load products from backend, switching to mock data', err);
-      if (window.ApiService && typeof window.ApiService.enableMock === 'function') {
-        window.ApiService.enableMock();
-        const mockProducts = await window.ApiService.fetchProducts();
-        window.BillingActions.setProducts(mockProducts);
-        console.info('Backend not available. Using temporary in-memory sample products.');
-      } else {
-        console.error('Failed to load products and mock backend not available.');
-      }
+      console.error('Failed to load products from backend.', err);
+      alert('Unable to connect to backend API at http://localhost:8080. Start backend and refresh app.');
     }
 
     try {
