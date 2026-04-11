@@ -1,4 +1,8 @@
-const API_BASE_URL = 'http://localhost:8080';
+function sanitizeBaseUrl(url) {
+  return String(url || '').trim().replace(/\/+$/, '');
+}
+
+const API_BASE_URL = sanitizeBaseUrl(window.billingApp && window.billingApp.backendUrl) || 'http://localhost:8080';
 
 function normalizeCard(card) {
   const category = Array.isArray(card.category)
@@ -97,6 +101,9 @@ async function deleteProduct(id) {
 }
 
 window.ApiService = {
+  getBaseUrl() {
+    return API_BASE_URL;
+  },
   fetchProducts,
   fetchProductById,
   createProduct,

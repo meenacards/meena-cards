@@ -1,7 +1,53 @@
 const { app, BrowserWindow, Menu, ipcMain } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
 let mainWindow = null;
+
+function loadEnvFromFile() {
+	// Try multiple locations: dev directory, then app resources (production build)
+	const possiblePaths = [
+		path.join(__dirname, '.env'),  // Dev environment
+		path.join(app.getAppPath(), '.env'),  // Built app in resources
+	];
+
+	let envPath;
+	for (const p of possiblePaths) {
+		if (fs.existsSync(p)) {
+			envPath = p;
+			break;
+		}
+	}
+
+	if (!envPath) {
+		console.warn('No .env file found in dev or app resources');
+		return;
+	}
+
+	try {
+		const content = fs.readFileSync(envPath, 'utf8');
+		content.split(/\r?\n/).forEach((line) => {
+			const trimmed = line.trim();
+			if (!trimmed || trimmed.startsWith('#')) return;
+
+			const eqIndex = trimmed.indexOf('=');
+			if (eqIndex <= 0) return;
+
+			const key = trimmed.slice(0, eqIndex).trim();
+			let value = trimmed.slice(eqIndex + 1).trim();
+
+			if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+				value = value.slice(1, -1);
+			}
+
+			if (!process.env[key]) {
+				process.env[key] = value;
+			}
+		});
+	} catch (error) {
+		console.warn('Failed to read .env file:', error.message || error);
+	}
+}
 
 function escapeHtml(value) {
 	return String(value)
@@ -118,6 +164,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+	loadEnvFromFile();  // Load .env after app is ready
 	app.setAppUserModelId('com.meenacards.billing');
 
 	ipcMain.handle('app:refresh', () => {

@@ -26,7 +26,8 @@
       "preload.js",
       "renderer/**/*",
       "public/**/*",
-      "package.json"
+      "package.json",
+      ".env"
     ],
     "extraResources": [
       {

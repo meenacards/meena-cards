@@ -48,7 +48,10 @@
       window.BillingActions.setProducts(products);
     } catch (err) {
       console.error('Failed to load products from backend.', err);
-      alert('Unable to connect to backend API at http://localhost:8080. Start backend and refresh app.');
+      const baseUrl = (window.ApiService && typeof window.ApiService.getBaseUrl === 'function')
+        ? window.ApiService.getBaseUrl()
+        : 'configured backend URL';
+      alert(`Unable to connect to backend API at ${baseUrl}. Check deployed URL and refresh app.`);
     }
 
     try {
