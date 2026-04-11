@@ -1,0 +1,66 @@
+{
+  "name": "billing-software",
+  "version": "1.0.0",
+  "description": "Meena Cards billing desktop app built with Electron",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "make:icon": "electron-icon-builder --input=public/logo.png --output=public --flatten",
+    "pack:win": "electron-builder --dir --win --x64",
+    "build:win": "electron-builder --win --x64",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.33.0",
+  "build": {
+    "appId": "com.meenacards.billing",
+    "productName": "Meena Cards Billing",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "public/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "public/icons/icon.ico",
+        "to": "icon.ico"
+      }
+    ],
+    "win": {
+      "signAndEditExecutable": false,
+      "icon": "public/icons/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Meena Cards Billing",
+      "installerIcon": "public/icons/icon.ico",
+      "uninstallerIcon": "public/icons/icon.ico",
+      "installerHeaderIcon": "public/icons/icon.ico",
+      "include": "build/installer.nsh"
+    }
+  },
+  "devDependencies": {
+    "electron": "41.2.0",
+    "electron-builder": "^26.8.1",
+    "electron-icon-builder": "^2.0.1",
+    "png-to-ico": "^3.0.1"
+  }
+}

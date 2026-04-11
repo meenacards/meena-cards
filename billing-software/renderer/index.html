@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Meena Cards Billing</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="../public/logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="loading-screen" class="loading-screen">
+    <img src="../public/logo.png" alt="Meena Cards" class="loading-logo" />
+    <div class="loading-title">Meena Cards</div>
+    <div class="loading-subtitle">Preparing Billing Experience</div>
+    <div class="loading-spinner" aria-hidden="true"></div>
+  </div>
+
+  <div id="app-root" class="app-root">
+    <aside class="sidebar">
+      <div class="brand-block">
+        <img src="../public/logo.png" alt="Meena Cards" class="brand-logo" />
+        <div class="brand-title">Meena Cards</div>
+        <div class="brand-subtitle">Luxury Wedding Billing</div>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="nav-item active" type="button" data-view="billing">Billing</button>
+        <button class="nav-item" type="button" data-view="products">Products</button>
+        <button class="nav-item" type="button" data-view="invoices">Invoices</button>
+      </nav>
+      <div class="sidebar-actions">
+        <button class="nav-item nav-action" type="button" id="refresh-app-btn">Refresh App</button>
+        <button class="nav-item nav-action nav-action-danger" type="button" id="exit-app-btn">Exit App</button>
+      </div>
+    </aside>
+    <main class="main">
+      <header class="main-header">
+        <h1 id="view-title">Billing Counter</h1>
+        <div class="header-meta">Premium Wedding POS</div>
+      </header>
+      <section id="view-container" class="view-container">
+        <!-- Billing view will be rendered here by renderer.js -->
+      </section>
+    </main>
+  </div>
+  <script src="services/api.js"></script>
+  <script src="state.js"></script>
+  <script src="components/productsView.js"></script>
+  <script src="components/billingView.js"></script>
+  <script src="components/invoicesView.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>
