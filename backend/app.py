@@ -38,9 +38,11 @@ if MONGODB_URI:
         
     cards_collection = db["cards"]
     customers_collection = db["customers"]
+    invoices_collection = db["invoices"]
 else:
     cards_collection = None
     customers_collection = None
+    invoices_collection = None
     print("WARNING: MONGODB_URI not set")
 
 # Cloudinary setup
@@ -245,6 +247,110 @@ def delete_card(card_id):
         if result.deleted_count > 0:
             return jsonify({"message": "Card deleted successfully"}), 200
         return jsonify({"error": "Card not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# --- Invoice Management ---
+
+@app.route("/invoices", methods=["POST"])
+def create_invoice():
+    if invoices_collection is None or cards_collection is None:
+        return jsonify({"error": "Database not configured"}), 500
+    
+    data = request.get_json()
+    items = data.get("items", [])
+    subtotal = data.get("subtotal", 0)
+    tax = data.get("tax", 0)
+    total_amount = data.get("total_amount", 0)
+    
+    if not items:
+        return jsonify({"error": "Invoice must contain items"}), 400
+    
+    try:
+        # Get the next invoice number
+        last_invoice = invoices_collection.find_one(sort=[("invoice_number", -1)])
+        invoice_number = (last_invoice.get("invoice_number", 0) if last_invoice else 0) + 1
+        
+        # Create invoice document
+        invoice_doc = {
+            "invoice_number": invoice_number,
+            "items": items,
+            "subtotal": float(subtotal),
+            "tax": float(tax),
+            "total_amount": float(total_amount),
+            "created_at": ObjectId().generation_time,
+        }
+        
+        result = invoices_collection.insert_one(invoice_doc)
+        invoice_doc["_id"] = str(result.inserted_id)
+        
+        # Update product stocks for each item in the invoice
+        for item in items:
+            card_id = item.get("id")
+            quantity = int(item.get("quantity", 0))
+            
+            if card_id and quantity > 0:
+                oid = parse_object_id(card_id)
+                if oid:
+                    # Decrease stock by quantity
+                    cards_collection.update_one(
+                        {"_id": oid},
+                        {"$inc": {"stock": -quantity}}
+                    )
+        
+        return jsonify({
+            "invoice_number": invoice_number,
+            "id": invoice_doc["_id"],
+            "message": "Invoice created successfully"
+        }), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/invoices", methods=["GET"])
+def get_invoices():
+    if invoices_collection is None:
+        return jsonify({"error": "Database not configured"}), 500
+    
+    try:
+        invoices = list(invoices_collection.find().sort("invoice_number", -1))
+        result = []
+        for inv in invoices:
+            result.append({
+                "id": str(inv["_id"]),
+                "invoice_number": inv.get("invoice_number"),
+                "items": inv.get("items", []),
+                "subtotal": inv.get("subtotal", 0),
+                "tax": inv.get("tax", 0),
+                "total_amount": inv.get("total_amount", 0),
+                "created_at": inv.get("created_at").isoformat() if inv.get("created_at") else None,
+            })
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/invoices/<invoice_id>", methods=["GET"])
+def get_invoice(invoice_id):
+    if invoices_collection is None:
+        return jsonify({"error": "Database not configured"}), 500
+    
+    oid = parse_object_id(invoice_id)
+    if oid is None:
+        return jsonify({"error": "Invalid invoice ID format"}), 400
+    
+    try:
+        invoice = invoices_collection.find_one({"_id": oid})
+        if not invoice:
+            return jsonify({"error": "Invoice not found"}), 404
+        
+        return jsonify({
+            "id": str(invoice["_id"]),
+            "invoice_number": invoice.get("invoice_number"),
+            "items": invoice.get("items", []),
+            "subtotal": invoice.get("subtotal", 0),
+            "tax": invoice.get("tax", 0),
+            "total_amount": invoice.get("total_amount", 0),
+            "created_at": invoice.get("created_at").isoformat() if invoice.get("created_at") else None,
+        }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

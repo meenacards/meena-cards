@@ -1,29 +1,11 @@
-// Simple in-memory + localStorage-backed state management
+// Simple in-memory state management with database backing
 
 const TAX_PERCENT_DEFAULT = 10; // configurable
-
-function loadInvoicesFromStorage() {
-  try {
-    const raw = localStorage.getItem('billing_invoices');
-    return raw ? JSON.parse(raw) : [];
-  } catch (e) {
-    console.error('Failed to parse invoices from storage', e);
-    return [];
-  }
-}
-
-function saveInvoicesToStorage(list) {
-  try {
-    localStorage.setItem('billing_invoices', JSON.stringify(list));
-  } catch (e) {
-    console.error('Failed to save invoices to storage', e);
-  }
-}
 
 window.BillingState = {
   products: [],
   cart: [],
-  invoices: loadInvoicesFromStorage(),
+  invoices: [],
   taxPercent: TAX_PERCENT_DEFAULT,
 };
 
@@ -79,17 +61,38 @@ window.BillingActions = {
 
   createInvoice() {
     const { subtotal, tax, total } = this.computeTotals();
-    const invoice = {
-      invoice_id: `INV-${Date.now()}`,
-      items: window.BillingState.cart.map(c => ({ ...c })),
+    const invoiceData = {
+      items: window.BillingState.cart.map(c => ({ 
+        id: c.id,
+        name: c.name,
+        price: c.price,
+        quantity: c.quantity 
+      })),
       subtotal,
       tax,
       total_amount: total,
-      created_at: new Date().toISOString(),
     };
-    window.BillingState.invoices.unshift(invoice);
-    saveInvoicesToStorage(window.BillingState.invoices);
-    this.clearCart();
-    return invoice;
+    
+    // Send to backend and update local state
+    return window.ApiService.createInvoice(invoiceData).then(response => {
+      if (response) {
+        const invoice = {
+          id: response.id,
+          invoice_number: response.invoice_number,
+          items: invoiceData.items,
+          subtotal: invoiceData.subtotal,
+          tax: invoiceData.tax,
+          total_amount: invoiceData.total_amount,
+          created_at: new Date().toISOString(),
+        };
+        window.BillingState.invoices.unshift(invoice);
+        this.clearCart();
+        return invoice;
+      }
+      return null;
+    }).catch(error => {
+      console.error('Failed to create invoice:', error);
+      throw error;
+    });
   },
 };

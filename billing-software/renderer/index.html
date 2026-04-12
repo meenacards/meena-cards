@@ -12,7 +12,7 @@
 </head>
 <body>
   <div id="loading-screen" class="loading-screen">
-    <img src="../public/logo.png" alt="Meena Cards" class="loading-logo" />
+    <img id="loading-logo" src="" alt="Meena Cards" class="loading-logo" />
     <div class="loading-title">Meena Cards</div>
     <div class="loading-subtitle">Preparing Billing Experience</div>
     <div class="loading-spinner" aria-hidden="true"></div>
@@ -21,7 +21,7 @@
   <div id="app-root" class="app-root">
     <aside class="sidebar">
       <div class="brand-block">
-        <img src="../public/logo.png" alt="Meena Cards" class="brand-logo" />
+        <img id="brand-logo-img" src="" alt="Meena Cards" class="brand-logo" />
         <div class="brand-title">Meena Cards</div>
         <div class="brand-subtitle">Luxury Wedding Billing</div>
       </div>
@@ -51,6 +51,16 @@
   <script src="components/billingView.js"></script>
   <script src="components/adminView.js"></script>
   <script src="components/invoicesView.js"></script>
+  <script>
+    // Set logo paths from preload bridge
+    window.addEventListener('DOMContentLoaded', () => {
+      const logoPath = window.billingApp && window.billingApp.logoPath ? window.billingApp.logoPath : '../public/logo.png';
+      const loadingLogo = document.getElementById('loading-logo');
+      const brandLogo = document.getElementById('brand-logo-img');
+      if (loadingLogo) loadingLogo.src = logoPath;
+      if (brandLogo) brandLogo.src = logoPath;
+    });
+  </script>
   <script src="renderer.js"></script>
 </body>
 </html>

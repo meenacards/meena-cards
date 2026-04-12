@@ -34,4 +34,5 @@ Thumbs.db
 
 # Electron build artifacts
 dist_electron/
+sample/
 electron-builder-effective-config.json

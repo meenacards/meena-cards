@@ -138,4 +138,17 @@ window.ApiService = {
       categoriesCount,
     };
   },
+  async createInvoice(invoiceData) {
+    return apiRequest('/invoices', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(invoiceData),
+    });
+  },
+  async fetchInvoices() {
+    return apiRequest('/invoices');
+  },
+  async fetchInvoiceById(id) {
+    return apiRequest(`/invoices/${id}`);
+  },
 };

@@ -1,20 +1,20 @@
 (function () {
   async function printInvoiceDirect(invoice) {
     if (!window.billingApp || typeof window.billingApp.printInvoice !== 'function') {
-      alert('Printing service is not available.');
-      return;
+      return { ok: false, error: 'Printing service is not available.' };
     }
 
     const result = await window.billingApp.printInvoice(invoice, {
       silent: true,
-      // 80mm thermal receipt style size in microns
-      pageSize: { width: 80000, height: 200000 },
+      pageSize: 'A5',
       margins: { marginType: 'none' },
     });
 
     if (!result || !result.ok) {
-      alert('Direct print failed. Please ensure a printer (or Microsoft Print to PDF) is available.');
+      return { ok: false, error: (result && result.error) || 'Direct print failed. Please ensure a printer (or Microsoft Print to PDF) is available.' };
     }
+
+    return { ok: true };
   }
 
   function renderBillingView(container) {
@@ -244,15 +244,40 @@
       }
     });
 
-    createInvoiceBtn.onclick = () => {
+    createInvoiceBtn.onclick = async () => {
       if (!window.BillingState.cart.length) {
         alert('Cart is empty');
         return;
       }
-      const invoice = window.BillingActions.createInvoice();
-      renderCartRows();
-      renderTotals();
-      printInvoiceDirect(invoice);
+      createInvoiceBtn.disabled = true;
+      createInvoiceBtn.textContent = 'Generating...';
+      try {
+        const invoice = await window.BillingActions.createInvoice();
+        renderCartRows();
+        renderTotals();
+        if (invoice) {
+          // Format invoice for printing with correct keys
+          const printData = {
+            invoice_number: invoice.invoice_number,
+            items: invoice.items,
+            subtotal: invoice.subtotal,
+            tax: invoice.tax,
+            total_amount: invoice.total_amount,
+            created_at: invoice.created_at,
+          };
+          const printResult = await printInvoiceDirect(printData);
+          if (printResult && printResult.ok) {
+            alert(`Invoice #${invoice.invoice_number} saved and printed successfully.`);
+          } else {
+            alert(`Invoice #${invoice.invoice_number} saved successfully, but printing failed.${printResult && printResult.error ? ` ${printResult.error}` : ''}`);
+          }
+        }
+      } catch (error) {
+        alert(`Failed to create invoice: ${error.message}`);
+      } finally {
+        createInvoiceBtn.disabled = false;
+        createInvoiceBtn.textContent = 'Generate Invoice';
+      }
     };
 
     renderCartRows();
