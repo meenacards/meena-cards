@@ -39,10 +39,12 @@ if MONGODB_URI:
     cards_collection = db["cards"]
     customers_collection = db["customers"]
     invoices_collection = db["invoices"]
+    presses_collection = db["presses"]
 else:
     cards_collection = None
     customers_collection = None
     invoices_collection = None
+    presses_collection = None
     print("WARNING: MONGODB_URI not set")
 
 # Cloudinary setup
@@ -78,6 +80,15 @@ def format_card(card):
         "price": card.get("price", 0.0),
         "stock": card.get("stock", 0)
     }
+
+def format_press(press):
+    return {
+        "id": str(press["_id"]),
+        "name": press.get("name"),
+        "address": press.get("address"),
+        "ph_no": press.get("ph_no", "")
+    }
+
 
 @app.route("/", methods=["GET"])
 def index():
@@ -451,6 +462,100 @@ def delete_customer(cust_id):
 
     customers_collection.delete_one({"_id": oid})
     return jsonify({"message": "Customer removed"}), 200
+
+# --- Press Management (CRUD) ---
+
+@app.route("/presses", methods=["GET"])
+def get_presses():
+    if presses_collection is None:
+        return jsonify({"error": "Database not configured"}), 500
+    try:
+        presses = list(presses_collection.find().sort('name', 1))
+        return jsonify([format_press(p) for p in presses]), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/presses/<press_id>", methods=["GET"])
+def get_press(press_id):
+    if presses_collection is None:
+        return jsonify({"error": "Database not configured"}), 500
+    oid = parse_object_id(press_id)
+    if oid is None:
+        return jsonify({"error": "Invalid press ID format"}), 400
+    try:
+        press = presses_collection.find_one({"_id": oid})
+        if press:
+            return jsonify(format_press(press)), 200
+        return jsonify({"error": "Press not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/presses", methods=["POST"])
+def add_press():
+    if presses_collection is None:
+        return jsonify({"error": "Database not configured"}), 500
+    
+    data = request.get_json()
+    name = data.get("name")
+    address = data.get("address")
+    ph_no = data.get("ph_no", "")
+
+    if not name or not address:
+        return jsonify({"error": "Name and address are required"}), 400
+
+    try:
+        new_press = {
+            "name": name,
+            "address": address,
+            "ph_no": ph_no
+        }
+        result = presses_collection.insert_one(new_press)
+        new_press["_id"] = result.inserted_id
+        return jsonify(format_press(new_press)), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/presses/<press_id>", methods=["PUT"])
+def update_press(press_id):
+    if presses_collection is None:
+        return jsonify({"error": "Database not configured"}), 500
+    oid = parse_object_id(press_id)
+    if oid is None:
+        return jsonify({"error": "Invalid press ID format"}), 400
+
+    data = request.get_json()
+    update_data = {}
+    if "name" in data: update_data["name"] = data["name"]
+    if "address" in data: update_data["address"] = data["address"]
+    if "ph_no" in data: update_data["ph_no"] = data["ph_no"]
+
+    if not update_data:
+        return jsonify({"error": "No data provided to update"}), 400
+
+    try:
+        result = presses_collection.update_one({"_id": oid}, {"$set": update_data})
+        if result.matched_count == 0:
+            return jsonify({"error": "Press not found"}), 404
+        
+        updated_press = presses_collection.find_one({"_id": oid})
+        return jsonify(format_press(updated_press)), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/presses/<press_id>", methods=["DELETE"])
+def delete_press(press_id):
+    if presses_collection is None:
+        return jsonify({"error": "Database not configured"}), 500
+    oid = parse_object_id(press_id)
+    if oid is None:
+        return jsonify({"error": "Invalid press ID format"}), 400
+    try:
+        result = presses_collection.delete_one({"_id": oid})
+        if result.deleted_count > 0:
+            return jsonify({"message": "Press deleted successfully"}), 200
+        return jsonify({"error": "Press not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))

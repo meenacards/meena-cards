@@ -31,6 +31,13 @@ const Admin = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Press management states
+  const [presses, setPresses] = useState([]);
+  const [isPressFormOpen, setIsPressFormOpen] = useState(false);
+  const [editingPress, setEditingPress] = useState(null);
+  const [pressFormData, setPressFormData] = useState({ name: '', address: '', ph_no: '' });
+  const [pressLoading, setPressLoading] = useState(false);
+
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3500);
@@ -38,9 +45,13 @@ const Admin = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchCards();
+      if (activeTab === 'dashboard') {
+        fetchCards();
+      } else if (activeTab === 'presses') {
+        fetchPresses();
+      }
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, activeTab]);
 
   const fetchCards = async () => {
     setFetchError(null);
@@ -170,6 +181,75 @@ const Admin = () => {
       console.error('Error saving data', error);
       const errorMessage = error.response?.data?.error || error.message || 'Error saving data';
       alert(`Error saving data: ${errorMessage}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // --- Press Management Functions ---
+  const fetchPresses = async () => {
+    setPressLoading(true);
+    try {
+      const response = await axios.get(`${API_URL}/presses`);
+      setPresses(response.data);
+    } catch (error) {
+      console.error('Error fetching presses', error);
+      showToast('❌ Failed to load presses', 'error');
+    } finally {
+      setPressLoading(false);
+    }
+  };
+
+  const handlePressInputChange = (e) => {
+    const { name, value } = e.target;
+    setPressFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const resetPressForm = () => {
+    setPressFormData({ name: '', address: '', ph_no: '' });
+    setEditingPress(null);
+    setIsPressFormOpen(false);
+  };
+
+  const editPress = (press) => {
+    setEditingPress(press);
+    setPressFormData({
+      name: press.name,
+      address: press.address,
+      ph_no: press.ph_no || ''
+    });
+    setIsPressFormOpen(true);
+  };
+
+  const deletePress = async (id) => {
+    if (window.confirm('Are you sure you want to delete this press record?')) {
+      try {
+        await axios.delete(`${API_URL}/presses/${id}`);
+        showToast('✅ Press deleted successfully');
+        fetchPresses();
+      } catch (error) {
+        console.error('Error deleting press', error);
+        showToast('❌ Failed to delete press', 'error');
+      }
+    }
+  };
+
+  const handlePressSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      if (editingPress) {
+        await axios.put(`${API_URL}/presses/${editingPress.id}`, pressFormData);
+        showToast('✅ Press updated successfully');
+      } else {
+        await axios.post(`${API_URL}/presses`, pressFormData);
+        showToast('✅ Press added successfully');
+      }
+      fetchPresses();
+      resetPressForm();
+    } catch (error) {
+      console.error('Error saving press', error);
+      showToast('❌ Error saving press', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -399,10 +479,16 @@ const Admin = () => {
             <span className="sidebar-icon">📦</span> Dashboard
           </button>
           <button 
-            className="sidebar-link desktop-only" 
-            onClick={() => setIsFormOpen(true)}
+            className={`sidebar-link ${activeTab === 'presses' ? 'active' : ''}`}
+            onClick={() => setActiveTab('presses')}
           >
-            <Plus size={18} /> Add Card
+            <span className="sidebar-icon">🏢</span> Presses
+          </button>
+          <button 
+            className="sidebar-link desktop-only" 
+            onClick={() => activeTab === 'presses' ? setIsPressFormOpen(true) : setIsFormOpen(true)}
+          >
+            <Plus size={18} /> Add {activeTab === 'presses' ? 'Press' : 'Card'}
           </button>
           
           <div className="sidebar-categories-nav">
@@ -434,10 +520,10 @@ const Admin = () => {
 
       <main className="admin-main-panel">
         <div className="admin-panel-header">
-          <h2>Products Management</h2>
+          <h2>{activeTab === 'dashboard' ? 'Products Management' : 'Presses Management'}</h2>
           <div style={{ display: 'flex', gap: '10px', marginLeft: 'auto' }}>
-            <button className="btn-add-model" onClick={() => setIsFormOpen(true)}>
-              + Add New Card
+            <button className="btn-add-model" onClick={() => activeTab === 'presses' ? setIsPressFormOpen(true) : setIsFormOpen(true)}>
+              + New {activeTab === 'presses' ? 'Press' : 'Card'}
             </button>
             <button className="sidebar-logout" style={{ margin: 0, padding: '10px 20px' }} onClick={() => { showToast('👋 Logged out successfully!', 'success'); setTimeout(() => setIsAuthenticated(false), 1000); }}>
               <LogOut size={16} /> Logout
@@ -446,72 +532,124 @@ const Admin = () => {
         </div>
 
         <div className="admin-table-container">
-          {loading ? (
-            <div style={{ padding: '40px', textAlign: 'center' }}>Loading products...</div>
-          ) : fetchError ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#dc2626' }}>{fetchError}</div>
-          ) : (
-            <table className="custom-admin-table">
-              <thead>
-                <tr>
-                  <th>THUMBNAIL</th>
-                  <th>NAME</th>
-                  <th>CATEGORIES</th>
-                  <th>FLAGS</th>
-                  <th>ACTIONS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(cards.reduce((acc, card) => {
-                  const cardCats = Array.isArray(card.category) ? card.category : [card.category];
-                  cardCats.forEach(cat => {
-                    if (!acc[cat]) acc[cat] = [];
-                    acc[cat].push(card);
-                  });
-                  if (card.is_offer === true || card.is_offer === "true") {
-                    if (!acc['Offer']) acc['Offer'] = [];
-                    acc['Offer'].push(card);
-                  }
-                  return acc;
-                }, {})).sort(([a], [b]) => a[0].localeCompare(b[0])).map(([groupName, groupCards]) => (
-                  <React.Fragment key={groupName}>
-                    <tr id={`group-${groupName.replace(/\s+/g, '-').toLowerCase()}`} style={{ background: '#f1f5f9', borderTop: '2px solid #e2e8f0' }}>
-                      <td colSpan="5" style={{ padding: '12px 24px', fontWeight: 'bold', color: '#1e293b', fontSize: '1rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span>{groupName.toUpperCase()}</span>
-                          <span style={{ fontSize: '0.8rem', background: '#3b82f6', color: 'white', padding: '2px 10px', borderRadius: '20px' }}>
-                            {groupCards.length} Cards
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                    {groupCards.sort((a,b) => a.name.localeCompare(b.name)).map(card => (
-                      <tr key={card.id}>
-                        <td>
-                          <img src={card.image_url} alt={card.name} className="admin-thumb" />
-                        </td>
-                        <td className="admin-item-name">{card.name}</td>
-                        <td className="admin-item-cat">
-                          {Array.isArray(card.category) ? card.category.join(", ") : card.category}
-                        </td>
-                        <td className="admin-item-flags" style={{ verticalAlign: 'middle' }}>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                            {card.is_latest && <span style={{ background: '#D4AF37', color: '#1E3A8A', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>LATEST</span>}
-                            {card.is_offer && <span style={{ background: '#ff4757', color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>OFFER</span>}
-                          </div>
-                        </td>
-                        <td>
-                          <div className="action-buttons-flex">
-                            <button className="pill-btn-edit" onClick={() => editCard(card)}>Edit</button>
-                            <button className="pill-btn-del" onClick={() => deleteCard(card.id)}>Delete</button>
+          {activeTab === 'dashboard' ? (
+            loading ? (
+              <div style={{ padding: '40px', textAlign: 'center' }}>Loading products...</div>
+            ) : fetchError ? (
+              <div style={{ padding: '40px', textAlign: 'center', color: '#dc2626' }}>{fetchError}</div>
+            ) : (
+              <table className="custom-admin-table">
+                <thead>
+                  <tr>
+                    <th>THUMBNAIL</th>
+                    <th>NAME</th>
+                    <th>CATEGORIES</th>
+                    <th>FLAGS</th>
+                    <th>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(cards.reduce((acc, card) => {
+                    const cardCats = Array.isArray(card.category) ? card.category : [card.category];
+                    cardCats.forEach(cat => {
+                      if (!acc[cat]) acc[cat] = [];
+                      acc[cat].push(card);
+                    });
+                    if (card.is_offer === true || card.is_offer === "true") {
+                      if (!acc['Offer']) acc['Offer'] = [];
+                      acc['Offer'].push(card);
+                    }
+                    return acc;
+                  }, {})).sort(([a], [b]) => a[0].localeCompare(b[0])).map(([groupName, groupCards]) => (
+                    <React.Fragment key={groupName}>
+                      <tr id={`group-${groupName.replace(/\s+/g, '-').toLowerCase()}`} style={{ background: '#f1f5f9', borderTop: '2px solid #e2e8f0' }}>
+                        <td colSpan="5" style={{ padding: '12px 24px', fontWeight: 'bold', color: '#1e293b', fontSize: '1rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span>{groupName.toUpperCase()}</span>
+                            <span style={{ fontSize: '0.8rem', background: '#3b82f6', color: 'white', padding: '2px 10px', borderRadius: '20px' }}>
+                              {groupCards.length} Cards
+                            </span>
                           </div>
                         </td>
                       </tr>
-                    ))}
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
+                      {groupCards.sort((a,b) => a.name.localeCompare(b.name)).map(card => (
+                        <tr key={card.id}>
+                          <td>
+                            <img src={card.image_url} alt={card.name} className="admin-thumb" />
+                          </td>
+                          <td className="admin-item-name">{card.name}</td>
+                          <td className="admin-item-cat">
+                            {Array.isArray(card.category) ? card.category.join(", ") : card.category}
+                          </td>
+                          <td className="admin-item-flags" style={{ verticalAlign: 'middle' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                              {card.is_latest && <span style={{ background: '#D4AF37', color: '#1E3A8A', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>LATEST</span>}
+                              {card.is_offer && <span style={{ background: '#ff4757', color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>OFFER</span>}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="action-buttons-flex">
+                              <button className="pill-btn-edit" onClick={() => editCard(card)}>Edit</button>
+                              <button className="pill-btn-del" onClick={() => deleteCard(card.id)}>Delete</button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
+            )
+          ) : (
+            // Presses View
+            pressLoading ? (
+              <div style={{ padding: '40px', textAlign: 'center' }}>Loading presses...</div>
+            ) : (
+              <table className="custom-admin-table">
+                <thead>
+                  <tr>
+                    <th>NAME</th>
+                    <th>ADDRESS</th>
+                    <th>PHONE NO</th>
+                    <th>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(presses.reduce((acc, press) => {
+                    const addr = press.address || 'Other';
+                    if (!acc[addr]) acc[addr] = [];
+                    acc[addr].push(press);
+                    return acc;
+                  }, {})).sort(([a], [b]) => a.localeCompare(b)).map(([groupAddr, groupPresses]) => (
+                    <React.Fragment key={groupAddr}>
+                      <tr style={{ background: '#f1f5f9', borderTop: '2px solid #e2e8f0' }}>
+                        <td colSpan="4" style={{ padding: '10px 24px', fontWeight: 'bold', color: '#1e293b' }}>
+                          {groupAddr.toUpperCase()} ({groupPresses.length})
+                        </td>
+                      </tr>
+                      {groupPresses.map(press => (
+                        <tr key={press.id}>
+                          <td className="admin-item-name">{press.name}</td>
+                          <td className="admin-item-cat">{press.address}</td>
+                          <td>{press.ph_no || <em style={{color: '#94a3b8'}}>Not set</em>}</td>
+                          <td>
+                            <div className="action-buttons-flex">
+                              <button className="pill-btn-edit" onClick={() => editPress(press)}>Edit</button>
+                              <button className="pill-btn-del" onClick={() => deletePress(press.id)}>Delete</button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </React.Fragment>
+                  ))}
+                  {presses.length === 0 && (
+                    <tr>
+                      <td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>No presses found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )
           )}
         </div>
       </main>
@@ -653,6 +791,60 @@ const Admin = () => {
                 <button type="button" className="btn-outline" onClick={resetForm}>Cancel</button>
                 <button type="submit" className="btn-primary flex-align" disabled={isSubmitting}>
                   <Save size={18} /> {isSubmitting ? 'Saving...' : 'Save Product'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {isPressFormOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content glass-panel" style={{ width: '500px', maxWidth: '95%' }}>
+            <div className="modal-header">
+              <h3>{editingPress ? 'Edit Press' : 'Add New Press'}</h3>
+              <button className="close-btn" onClick={resetPressForm}><X size={24} /></button>
+            </div>
+            
+            <form onSubmit={handlePressSubmit} className="admin-form">
+              <div className="form-group">
+                <label>Press Name</label>
+                <input 
+                  type="text" 
+                  name="name" 
+                  value={pressFormData.name} 
+                  onChange={handlePressInputChange} 
+                  required 
+                  placeholder="e.g. Jayachitra Press"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Address / Location</label>
+                <input 
+                  type="text" 
+                  name="address" 
+                  value={pressFormData.address} 
+                  onChange={handlePressInputChange} 
+                  required 
+                  placeholder="e.g. Abhiramam"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Phone Number (Optional)</label>
+                <input 
+                  type="text" 
+                  name="ph_no" 
+                  value={pressFormData.ph_no} 
+                  onChange={handlePressInputChange} 
+                  placeholder="e.g. 9876543210"
+                />
+              </div>
+
+              <div className="form-actions">
+                <button type="button" className="btn-outline" onClick={resetPressForm}>Cancel</button>
+                <button type="submit" className="btn-primary flex-align" disabled={isSubmitting}>
+                  <Save size={18} /> {isSubmitting ? 'Saving...' : 'Save Press Record'}
                 </button>
               </div>
             </form>
