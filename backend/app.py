@@ -273,6 +273,10 @@ def create_invoice():
     subtotal = data.get("subtotal", 0)
     tax = data.get("tax", 0)
     total_amount = data.get("total_amount", 0)
+    to_name = str(data.get("to_name", "")).strip()
+    to_address = str(data.get("to_address", "")).strip()
+    to_phone = str(data.get("to_phone", "")).strip()
+    gstin = str(data.get("gstin", "")).strip()
     
     if not items:
         return jsonify({"error": "Invoice must contain items"}), 400
@@ -289,6 +293,10 @@ def create_invoice():
             "subtotal": float(subtotal),
             "tax": float(tax),
             "total_amount": float(total_amount),
+            "to_name": to_name,
+            "to_address": to_address,
+            "to_phone": to_phone,
+            "gstin": gstin,
             "created_at": ObjectId().generation_time,
         }
         
@@ -333,6 +341,10 @@ def get_invoices():
                 "subtotal": inv.get("subtotal", 0),
                 "tax": inv.get("tax", 0),
                 "total_amount": inv.get("total_amount", 0),
+                "to_name": inv.get("to_name", ""),
+                "to_address": inv.get("to_address", ""),
+                "to_phone": inv.get("to_phone", ""),
+                "gstin": inv.get("gstin", ""),
                 "created_at": inv.get("created_at").isoformat() if inv.get("created_at") else None,
             })
         return jsonify(result), 200
@@ -360,6 +372,10 @@ def get_invoice(invoice_id):
             "subtotal": invoice.get("subtotal", 0),
             "tax": invoice.get("tax", 0),
             "total_amount": invoice.get("total_amount", 0),
+            "to_name": invoice.get("to_name", ""),
+            "to_address": invoice.get("to_address", ""),
+            "to_phone": invoice.get("to_phone", ""),
+            "gstin": invoice.get("gstin", ""),
             "created_at": invoice.get("created_at").isoformat() if invoice.get("created_at") else None,
         }), 200
     except Exception as e:
