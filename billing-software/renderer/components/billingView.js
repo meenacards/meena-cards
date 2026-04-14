@@ -28,7 +28,66 @@
     const right = document.createElement('div');
     right.className = 'billing-right';
 
-    // Search input + suggestions
+    const pressPanel = document.createElement('div');
+    pressPanel.className = 'cart-summary';
+
+    const pressSearchLabel = document.createElement('div');
+    pressSearchLabel.className = 'field-label';
+    pressSearchLabel.textContent = 'Press (search by name or address)';
+
+    const pressSearchInput = document.createElement('input');
+    pressSearchInput.placeholder = 'Type name or address';
+    pressSearchInput.className = 'input';
+
+    const pressSuggestions = document.createElement('div');
+    pressSuggestions.className = 'products-list-simple';
+
+    const toLabel = document.createElement('div');
+    toLabel.className = 'field-label';
+    toLabel.textContent = 'To';
+    const toInput = document.createElement('input');
+    toInput.className = 'input';
+    toInput.placeholder = 'Press name';
+    toInput.readOnly = true;
+
+    const addressLabel = document.createElement('div');
+    addressLabel.className = 'field-label';
+    addressLabel.textContent = 'Address';
+    const addressInput = document.createElement('input');
+    addressInput.className = 'input';
+    addressInput.placeholder = 'Press address';
+    addressInput.readOnly = true;
+
+    const phoneLabel = document.createElement('div');
+    phoneLabel.className = 'field-label';
+    phoneLabel.textContent = 'Phone Number';
+    const phoneInput = document.createElement('input');
+    phoneInput.className = 'input';
+    phoneInput.placeholder = 'Press phone number';
+    phoneInput.readOnly = true;
+
+    const gstLabel = document.createElement('div');
+    gstLabel.className = 'field-label';
+    gstLabel.textContent = 'GSTIN';
+    const gstInput = document.createElement('input');
+    gstInput.className = 'input';
+    gstInput.placeholder = 'Enter GSTIN manually';
+
+    pressPanel.appendChild(pressSearchLabel);
+    pressPanel.appendChild(pressSearchInput);
+    pressPanel.appendChild(pressSuggestions);
+    pressPanel.appendChild(toLabel);
+    pressPanel.appendChild(toInput);
+    pressPanel.appendChild(addressLabel);
+    pressPanel.appendChild(addressInput);
+    pressPanel.appendChild(phoneLabel);
+    pressPanel.appendChild(phoneInput);
+    pressPanel.appendChild(gstLabel);
+    pressPanel.appendChild(gstInput);
+
+    left.appendChild(pressPanel);
+
+    // Product search input + suggestions
     const searchInput = document.createElement('input');
     searchInput.placeholder = 'Search product by name';
     searchInput.className = 'input';
@@ -92,6 +151,63 @@
     layout.appendChild(left);
     layout.appendChild(right);
     container.appendChild(layout);
+
+    let presses = [];
+    let selectedPress = null;
+
+    function applySelectedPress(press) {
+      selectedPress = press || null;
+      toInput.value = press ? (press.name || '') : '';
+      addressInput.value = press ? (press.address || '') : '';
+      phoneInput.value = press ? (press.ph_no || '') : '';
+      if (press) {
+        pressSearchInput.value = `${press.name || ''} - ${press.address || ''}`.trim();
+      }
+      pressSuggestions.innerHTML = '';
+    }
+
+    function renderPressSuggestions(term) {
+      const t = (term || '').trim().toLowerCase();
+      pressSuggestions.innerHTML = '';
+
+      if (!t) return;
+
+      const filtered = presses.filter((press) => {
+        const n = String(press.name || '').toLowerCase();
+        const a = String(press.address || '').toLowerCase();
+        return n.includes(t) || a.includes(t);
+      });
+
+      filtered.forEach((press) => {
+        const row = document.createElement('div');
+        row.className = 'product-row-simple';
+        row.textContent = `${press.name || ''} - ${press.address || ''}`;
+        row.onclick = () => applySelectedPress(press);
+        pressSuggestions.appendChild(row);
+      });
+    }
+
+    window.ApiService.fetchPresses()
+      .then((list) => {
+        presses = Array.isArray(list) ? list : [];
+      })
+      .catch((error) => {
+        console.error('Failed to load presses:', error);
+      });
+
+    pressSearchInput.addEventListener('input', () => {
+      selectedPress = null;
+      toInput.value = '';
+      addressInput.value = '';
+      phoneInput.value = '';
+      renderPressSuggestions(pressSearchInput.value);
+    });
+
+    pressSearchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        renderPressSuggestions(pressSearchInput.value);
+      }
+    });
 
     function renderCartRows() {
       tbody.innerHTML = '';
@@ -252,7 +368,17 @@
       createInvoiceBtn.disabled = true;
       createInvoiceBtn.textContent = 'Generating...';
       try {
-        const invoice = await window.BillingActions.createInvoice();
+        if (!selectedPress) {
+          alert('Please select a press from suggestions before generating invoice.');
+          return;
+        }
+
+        const invoice = await window.BillingActions.createInvoice({
+          to_name: selectedPress.name || '',
+          to_address: selectedPress.address || '',
+          to_phone: selectedPress.ph_no || '',
+          gstin: gstInput.value.trim(),
+        });
         renderCartRows();
         renderTotals();
         if (invoice) {
@@ -263,6 +389,10 @@
             subtotal: invoice.subtotal,
             tax: invoice.tax,
             total_amount: invoice.total_amount,
+            to_name: invoice.to_name,
+            to_address: invoice.to_address,
+            to_phone: invoice.to_phone,
+            gstin: invoice.gstin,
             created_at: invoice.created_at,
           };
           const printResult = await printInvoiceDirect(printData);

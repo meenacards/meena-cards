@@ -319,9 +319,15 @@
     addProductBtn.className = 'admin-tab-btn';
     addProductBtn.textContent = 'Add Product';
 
+    const pressesBtn = document.createElement('button');
+    pressesBtn.type = 'button';
+    pressesBtn.className = 'admin-tab-btn';
+    pressesBtn.textContent = 'Presses';
+
     tabs.appendChild(dashboardBtn);
     tabs.appendChild(productsBtn);
     tabs.appendChild(addProductBtn);
+    tabs.appendChild(pressesBtn);
 
     const dashboardPanel = document.createElement('section');
     dashboardPanel.className = 'admin-panel';
@@ -332,23 +338,104 @@
     const addPanel = document.createElement('section');
     addPanel.className = 'admin-panel hidden';
 
+    const pressesPanel = document.createElement('section');
+    pressesPanel.className = 'admin-panel hidden';
+
     root.appendChild(tabs);
     root.appendChild(dashboardPanel);
     root.appendChild(productsPanel);
     root.appendChild(addPanel);
+    root.appendChild(pressesPanel);
     container.appendChild(root);
 
     function setTab(tab) {
       const isDashboard = tab === 'dashboard';
       const isProducts = tab === 'products';
       const isAddProduct = tab === 'add-product';
+      const isPresses = tab === 'presses';
 
       dashboardBtn.classList.toggle('active', isDashboard);
       productsBtn.classList.toggle('active', isProducts);
       addProductBtn.classList.toggle('active', isAddProduct);
+      pressesBtn.classList.toggle('active', isPresses);
       dashboardPanel.classList.toggle('hidden', !isDashboard);
       productsPanel.classList.toggle('hidden', !isProducts);
       addPanel.classList.toggle('hidden', !isAddProduct);
+      pressesPanel.classList.toggle('hidden', !isPresses);
+    }
+
+    function renderPressesPanel() {
+      pressesPanel.innerHTML = '';
+
+      const title = document.createElement('h3');
+      title.className = 'admin-section-title';
+      title.textContent = 'Presses';
+
+      const search = document.createElement('input');
+      search.className = 'input';
+      search.placeholder = 'Search press by name, address, or mobile number';
+
+      const info = document.createElement('div');
+      info.className = 'products-info-bar';
+
+      const grid = document.createElement('div');
+      grid.className = 'presses-grid';
+
+      pressesPanel.appendChild(title);
+      pressesPanel.appendChild(search);
+      pressesPanel.appendChild(info);
+      pressesPanel.appendChild(grid);
+
+      let allPresses = [];
+
+      function renderList() {
+        const term = String(search.value || '').trim().toLowerCase();
+        const filtered = allPresses.filter((press) => {
+          const name = String(press.name || '').toLowerCase();
+          const address = String(press.address || '').toLowerCase();
+          const phone = String(press.ph_no || '').toLowerCase();
+          if (!term) return true;
+          return name.includes(term) || address.includes(term) || phone.includes(term);
+        });
+
+        info.textContent = `Showing ${filtered.length} press(es)`;
+        grid.innerHTML = '';
+
+        if (!filtered.length) {
+          const empty = document.createElement('div');
+          empty.className = 'empty-products-state';
+          empty.textContent = 'No presses found for this search.';
+          grid.appendChild(empty);
+          return;
+        }
+
+        filtered.forEach((press) => {
+          const card = document.createElement('article');
+          card.className = 'press-card';
+          card.innerHTML = `
+            <h4>${press.name || 'Unnamed Press'}</h4>
+            <div class="press-line"><span>Address</span><strong>${press.address || '-'}</strong></div>
+            <div class="press-line"><span>Mobile</span><strong>${press.ph_no || '-'}</strong></div>
+          `;
+          grid.appendChild(card);
+        });
+      }
+
+      search.addEventListener('input', renderList);
+
+      window.ApiService.fetchPresses()
+        .then((presses) => {
+          allPresses = Array.isArray(presses) ? presses : [];
+          renderList();
+        })
+        .catch((error) => {
+          info.textContent = 'Failed to load presses.';
+          grid.innerHTML = '';
+          const err = document.createElement('div');
+          err.className = 'empty-products-state';
+          err.textContent = `Error: ${error.message || 'Unknown error'}`;
+          grid.appendChild(err);
+        });
     }
 
     function renderDashboard() {
@@ -834,10 +921,15 @@
     dashboardBtn.addEventListener('click', () => setTab('dashboard'));
     productsBtn.addEventListener('click', () => setTab('products'));
     addProductBtn.addEventListener('click', () => setTab('add-product'));
+    pressesBtn.addEventListener('click', () => {
+      setTab('presses');
+      renderPressesPanel();
+    });
 
     renderDashboard();
     renderProductsPanel();
     renderAddProduct();
+    renderPressesPanel();
   }
 
   window.AdminView = { render: renderAdminView };

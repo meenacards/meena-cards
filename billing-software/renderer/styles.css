@@ -850,6 +850,39 @@ button {
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
 }
 
+.presses-grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.press-card {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 8px 24px rgba(91, 18, 37, 0.05);
+}
+
+.press-card h4 {
+  margin: 0 0 8px;
+  color: var(--brand-maroon);
+  font-size: 18px;
+}
+
+.press-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  padding: 4px 0;
+}
+
+.press-line span {
+  color: var(--text-secondary);
+}
+
 .admin-product-card {
   cursor: default;
 }

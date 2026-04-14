@@ -100,12 +100,22 @@ async function deleteProduct(id) {
   });
 }
 
+async function fetchPresses() {
+  return apiRequest('/presses');
+}
+
+async function fetchPressById(id) {
+  return apiRequest(`/presses/${id}`);
+}
+
 window.ApiService = {
   getBaseUrl() {
     return API_BASE_URL;
   },
   fetchProducts,
   fetchProductById,
+  fetchPresses,
+  fetchPressById,
   createProduct,
   updateProduct,
   deleteProduct,

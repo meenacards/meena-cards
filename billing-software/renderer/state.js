@@ -59,7 +59,7 @@ window.BillingActions = {
     return { subtotal, tax, total };
   },
 
-  createInvoice() {
+  createInvoice(meta = {}) {
     const { subtotal, tax, total } = this.computeTotals();
     const invoiceData = {
       items: window.BillingState.cart.map(c => ({ 
@@ -71,6 +71,10 @@ window.BillingActions = {
       subtotal,
       tax,
       total_amount: total,
+      to_name: meta.to_name || '',
+      to_address: meta.to_address || '',
+      to_phone: meta.to_phone || '',
+      gstin: meta.gstin || '',
     };
     
     // Send to backend and update local state
@@ -83,6 +87,10 @@ window.BillingActions = {
           subtotal: invoiceData.subtotal,
           tax: invoiceData.tax,
           total_amount: invoiceData.total_amount,
+          to_name: invoiceData.to_name,
+          to_address: invoiceData.to_address,
+          to_phone: invoiceData.to_phone,
+          gstin: invoiceData.gstin,
           created_at: new Date().toISOString(),
         };
         window.BillingState.invoices.unshift(invoice);
