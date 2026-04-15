@@ -17,6 +17,23 @@ function getLogoDataUri() {
 }
 
 const LOGO_DATA_URI = getLogoDataUri();
+const WATERMARK_DATA_URI = (() => {
+  try {
+    const watermarkPath = path.join(__dirname, 'public', 'watermark.jpeg');
+    if (!fs.existsSync(watermarkPath)) return '';
+    return `data:image/jpeg;base64,${fs.readFileSync(watermarkPath).toString('base64')}`;
+  } catch (_error) {
+    return '';
+  }
+})();
+
+function svgIconDataUri(pathData) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${pathData}"/></svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
+const ADDRESS_ICON = svgIconDataUri('M12 21s6-5.2 6-11a6 6 0 1 0-12 0c0 5.8 6 11 6 11z M12 10.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z');
+const PHONE_ICON = svgIconDataUri('M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.92.33 1.82.61 2.67a2 2 0 0 1-.45 2.11L8 9a16 16 0 0 0 7 7l.5-.27a2 2 0 0 1 2.11-.45c.85.28 1.75.49 2.67.61A2 2 0 0 1 22 16.92z');
 
 function createTempHtmlFile(html) {
   const tempDir = app.getPath('temp');
@@ -129,11 +146,12 @@ function buildInvoicePrintHtml(invoice) {
         <meta charset="utf-8" />
         <title>Tax Invoice ${escapeHtml(invoice.invoice_number || '')}</title>
         <style>
+          @page { size: A5; margin: 0; }
           body { font-family: Arial, sans-serif; margin: 0; color: #222; }
           .page {
             position: relative;
             min-height: 100%;
-            padding: 6mm;
+            padding: 5mm;
             overflow: hidden;
           }
           .watermark {
@@ -144,13 +162,13 @@ function buildInvoicePrintHtml(invoice) {
             display: flex;
             align-items: center;
             justify-content: center;
-            opacity: 0.10;
+            opacity: 0.12;
             z-index: 1;
             pointer-events: none;
           }
           .watermark img {
-            width: 260px;
-            height: 260px;
+            width: 420px;
+            height: 420px;
             object-fit: contain;
           }
           .content {
@@ -160,27 +178,35 @@ function buildInvoicePrintHtml(invoice) {
           .title {
             text-align: center;
             font-weight: 700;
-            font-size: 22px;
-            margin: 0 0 10px;
+            font-size: 21px;
+            margin: 0 0 8px;
             letter-spacing: 0.04em;
           }
           .header {
             display: flex;
             justify-content: space-between;
             gap: 16px;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
           }
-          .brand-left { width: 44%; }
+          .brand-left { width: 43%; }
           .brand-logo {
-            width: 110px;
-            height: 60px;
+            width: 100%;
+            max-width: 220px;
+            height: auto;
+            max-height: 95px;
             object-fit: contain;
             display: block;
           }
           .brand-name {
             margin-top: 4px;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 700;
+          }
+          .brand-website {
+            margin-top: 3px;
+            font-size: 11px;
+            color: #444;
+            word-break: break-word;
           }
           .brand-right {
             width: 56%;
@@ -191,22 +217,26 @@ function buildInvoicePrintHtml(invoice) {
             display: flex;
             align-items: flex-start;
             gap: 6px;
+            margin-bottom: 2px;
           }
-          .icon {
-            width: 14px;
-            text-align: center;
+          .contact-icon {
+            width: 13px;
+            height: 13px;
+            flex: 0 0 13px;
+            margin-top: 2px;
+            object-fit: contain;
           }
           .row-two-col {
             display: flex;
             justify-content: space-between;
             gap: 14px;
-            margin-top: 8px;
+            margin-top: 6px;
           }
           .box {
             flex: 1;
             border: 1px solid #ccc;
             border-radius: 6px;
-            padding: 8px;
+            padding: 7px 8px;
             font-size: 12px;
           }
           .line { margin: 4px 0; }
@@ -214,7 +244,7 @@ function buildInvoicePrintHtml(invoice) {
           table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            margin-top: 8px;
           }
           th, td {
             border: 1px solid #d0d0d0;
@@ -231,7 +261,7 @@ function buildInvoicePrintHtml(invoice) {
             margin-top: 8px;
           }
           .totals {
-            width: 42%;
+            width: 44%;
             min-width: 220px;
           }
           .totals-row {
@@ -249,17 +279,18 @@ function buildInvoicePrintHtml(invoice) {
           }
           .footer-note {
             border-top: 1px solid #999;
-            margin-top: 12px;
-            padding-top: 8px;
+            margin-top: 10px;
+            padding-top: 7px;
             text-align: center;
             font-size: 12px;
             line-height: 1.6;
           }
+          .right-label { font-weight: 700; }
         </style>
       </head>
       <body>
         <div class="page">
-          <div class="watermark">${LOGO_DATA_URI ? `<img src="${LOGO_DATA_URI}" alt="Meena Cards"/>` : ''}</div>
+          <div class="watermark">${WATERMARK_DATA_URI ? `<img src="${WATERMARK_DATA_URI}" alt="Watermark"/>` : ''}</div>
           <div class="content">
             <div class="title">Tax Invoice</div>
 
@@ -267,12 +298,12 @@ function buildInvoicePrintHtml(invoice) {
               <div class="brand-left">
                 ${LOGO_DATA_URI ? `<img class="brand-logo" src="${LOGO_DATA_URI}" alt="Meena Cards"/>` : ''}
                 <div class="brand-name">Meena Cards</div>
+                <div class="brand-website">https://www.meenacards.com/</div>
               </div>
               <div class="brand-right">
-                <div class="contact-line"><span class="icon">??</span><span>62/1, Manjanakara Street, Madurai - 1.</span></div>
-                <div class="contact-line"><span class="icon">?</span><span>8248723726</span></div>
-                <div class="contact-line"><span class="icon">??</span><span>https://www.meenacards.com/</span></div>
-                <div class="contact-line"><span class="icon">??</span><span>33AIPPJ2536H1ZA</span></div>
+                <div class="contact-line"><img class="contact-icon" src="${ADDRESS_ICON}" alt="Address"/><span>62/1, Manjanakara Street, Madurai - 1.</span></div>
+                <div class="contact-line"><img class="contact-icon" src="${PHONE_ICON}" alt="Phone"/><span>8248723726</span></div>
+                <div class="contact-line"><span class="right-label">GSTIN</span><span>33AIPPJ2536H1ZA</span></div>
               </div>
             </div>
 
@@ -312,8 +343,8 @@ function buildInvoicePrintHtml(invoice) {
             <div class="totals-wrap">
               <div class="totals">
                 <div class="totals-row"><span>Subtotal</span><span>Rs. ${Number(invoice.subtotal || 0).toFixed(2)}</span></div>
-                <div class="totals-row"><span>CGST</span><span>Rs. ${cgst.toFixed(2)}</span></div>
-                <div class="totals-row"><span>SGST</span><span>Rs. ${sgst.toFixed(2)}</span></div>
+                <div class="totals-row"><span>CGST (9%)</span><span>Rs. ${cgst.toFixed(2)}</span></div>
+                <div class="totals-row"><span>SGST (9%)</span><span>Rs. ${sgst.toFixed(2)}</span></div>
                 <div class="totals-row grand"><span>Total</span><span>Rs. ${Number(invoice.total_amount || 0).toFixed(2)}</span></div>
               </div>
             </div>

@@ -5,7 +5,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "make:icon": "electron-icon-builder --input=public/logo.png --output=public --flatten",
+    "make:icon": "electron-icon-builder --input=public/app-face.jpeg --output=public --flatten",
     "pack:win": "electron-builder --dir --win --x64",
     "build:win": "electron-builder --win --x64",
     "test": "echo \"Error: no test specified\" && exit 1"

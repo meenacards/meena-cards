@@ -122,25 +122,12 @@
     const summary = document.createElement('div');
     summary.className = 'cart-summary';
 
-    const taxLabel = document.createElement('div');
-    taxLabel.className = 'field-label';
-    taxLabel.textContent = 'Tax %';
-
-    const taxInput = document.createElement('input');
-    taxInput.type = 'number';
-    taxInput.min = '0';
-    taxInput.max = '50';
-    taxInput.value = window.BillingState.taxPercent;
-    taxInput.className = 'input';
-
     const totalsEl = document.createElement('div');
 
     const createInvoiceBtn = document.createElement('button');
     createInvoiceBtn.textContent = 'Generate Invoice';
     createInvoiceBtn.className = 'btn-primary';
 
-    summary.appendChild(taxLabel);
-    summary.appendChild(taxInput);
     summary.appendChild(document.createElement('hr'));
     summary.appendChild(totalsEl);
     summary.appendChild(document.createElement('hr'));
@@ -287,7 +274,7 @@
     }
 
     function renderTotals() {
-      const { subtotal, tax, total } = window.BillingActions.computeTotals();
+      const { subtotal, cgst, sgst, total } = window.BillingActions.computeTotals();
       totalsEl.innerHTML = '';
 
       function row(label, value, isTotal) {
@@ -303,7 +290,8 @@
       }
 
       totalsEl.appendChild(row('Subtotal', subtotal));
-      totalsEl.appendChild(row('Tax', tax));
+      totalsEl.appendChild(row('CGST (9%)', cgst));
+      totalsEl.appendChild(row('SGST (9%)', sgst));
       totalsEl.appendChild(row('Grand Total', total, true));
     }
 
@@ -344,12 +332,6 @@
         suggestions.appendChild(row);
       });
     }
-
-    taxInput.addEventListener('change', () => {
-      const v = parseFloat(taxInput.value) || 0;
-      window.BillingActions.setTaxPercent(v);
-      renderTotals();
-    });
 
     searchInput.addEventListener('input', () => {
       renderSuggestions(searchInput.value);

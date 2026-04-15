@@ -1,12 +1,9 @@
 // Simple in-memory state management with database backing
 
-const TAX_PERCENT_DEFAULT = 10; // configurable
-
 window.BillingState = {
   products: [],
   cart: [],
   invoices: [],
-  taxPercent: TAX_PERCENT_DEFAULT,
 };
 
 window.BillingActions = {
@@ -48,15 +45,13 @@ window.BillingActions = {
     window.BillingState.cart = [];
   },
 
-  setTaxPercent(value) {
-    window.BillingState.taxPercent = value;
-  },
-
   computeTotals() {
     const subtotal = window.BillingState.cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const tax = subtotal * (window.BillingState.taxPercent / 100);
+    const cgst = subtotal * 0.09;
+    const sgst = subtotal * 0.09;
+    const tax = cgst + sgst;
     const total = subtotal + tax;
-    return { subtotal, tax, total };
+    return { subtotal, cgst, sgst, tax, total };
   },
 
   createInvoice(meta = {}) {
