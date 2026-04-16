@@ -7,10 +7,10 @@ let mainWindow = null;
 
 function getLogoDataUri() {
   try {
-    const logoPath = path.join(__dirname, 'public', 'logo.png');
+    const logoPath = path.join(__dirname, 'public', 'app-face.jpeg');
     if (!fs.existsSync(logoPath)) return '';
     const base64 = fs.readFileSync(logoPath).toString('base64');
-    return `data:image/png;base64,${base64}`;
+    return `data:image/jpeg;base64,${base64}`;
   } catch (_error) {
     return '';
   }
@@ -360,6 +360,46 @@ function buildInvoicePrintHtml(invoice) {
   `;
 }
 
+function extractStyleBlock(html) {
+  const match = String(html || '').match(/<style>([\s\S]*?)<\/style>/i);
+  return match ? match[1] : '';
+}
+
+function extractBodyBlock(html) {
+  return String(html || '')
+    .replace(/^[\s\S]*<body>/i, '')
+    .replace(/<\/body>[\s\S]*$/i, '');
+}
+
+function buildMonthlyInvoicesHtml(invoices) {
+  const safeInvoices = Array.isArray(invoices) ? invoices.filter(Boolean) : [];
+  if (!safeInvoices.length) {
+    return '<!doctype html><html><head><meta charset="utf-8" /></head><body><div>No invoices to export.</div></body></html>';
+  }
+
+  const sample = buildInvoicePrintHtml(safeInvoices[0]);
+  const style = extractStyleBlock(sample);
+  const pages = safeInvoices
+    .map((inv) => `<section class="month-page">${extractBodyBlock(buildInvoicePrintHtml(inv))}</section>`)
+    .join('');
+
+  return `
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>Monthly Invoices</title>
+        <style>
+          ${style}
+          .month-page { page-break-after: always; }
+          .month-page:last-child { page-break-after: auto; }
+        </style>
+      </head>
+      <body>${pages}</body>
+    </html>
+  `;
+}
+
 function printInvoice(invoice, options = {}) {
   return new Promise((resolve) => {
     const hiddenWin = new BrowserWindow({
@@ -456,6 +496,59 @@ function saveInvoicePdf(invoice, filename) {
   });
 }
 
+function saveMonthlyInvoicesPdf(invoices, filename) {
+  return new Promise((resolve) => {
+    const hiddenWin = new BrowserWindow({
+      width: 820,
+      height: 1160,
+      show: false,
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+    });
+
+    const tempHtmlPath = createTempHtmlFile(buildMonthlyInvoicesHtml(invoices));
+
+    hiddenWin.webContents.once('did-finish-load', async () => {
+      try {
+        await hiddenWin.webContents.executeJavaScript('document.fonts ? document.fonts.ready.then(() => true) : Promise.resolve(true)');
+        await hiddenWin.webContents.executeJavaScript('new Promise((resolve) => requestAnimationFrame(() => resolve(true)))');
+
+        const pdfData = await hiddenWin.webContents.printToPDF({
+          pageSize: 'A5',
+          preferCSSPageSize: false,
+          printBackground: true,
+          margins: { top: 0, bottom: 0, left: 0, right: 0 },
+        });
+
+        const downloadsPath = path.join(os.homedir(), 'Downloads');
+        const filepath = path.join(downloadsPath, filename);
+
+        fs.writeFile(filepath, pdfData, (err) => {
+          hiddenWin.close();
+          safeDeleteFile(tempHtmlPath);
+          if (err) {
+            resolve({ ok: false, error: 'Failed to save PDF' });
+          } else {
+            resolve({ ok: true, path: filepath });
+          }
+        });
+      } catch (err) {
+        hiddenWin.close();
+        safeDeleteFile(tempHtmlPath);
+        resolve({ ok: false, error: err.message || 'Failed to convert to PDF' });
+      }
+    });
+
+    hiddenWin.loadFile(tempHtmlPath).catch((error) => {
+      hiddenWin.close();
+      safeDeleteFile(tempHtmlPath);
+      resolve({ ok: false, error: error.message || 'Failed to load monthly invoice PDF template' });
+    });
+  });
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -502,6 +595,14 @@ app.whenReady().then(() => {
       return await saveInvoicePdf(payload.invoice, payload.filename);
     } catch (error) {
       return { ok: false, error: error.message || 'PDF save error' };
+    }
+  });
+
+  ipcMain.handle('pdf:download-month', async (_event, payload) => {
+    try {
+      return await saveMonthlyInvoicesPdf(payload.invoices || [], payload.filename || 'Monthly_Invoices.pdf');
+    } catch (error) {
+      return { ok: false, error: error.message || 'Monthly PDF save error' };
     }
   });
 

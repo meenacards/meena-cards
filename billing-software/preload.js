@@ -15,6 +15,7 @@ const billingBridge = {
   exitApp: () => ipcRenderer.invoke('app:exit'),
   printInvoice: (invoice, options) => ipcRenderer.invoke('print:invoice', { invoice, options }),
   downloadPdf: (invoice, filename, options) => ipcRenderer.invoke('pdf:download', { invoice, filename, options }),
+  downloadMonthlyPdf: (invoices, filename, options) => ipcRenderer.invoke('pdf:download-month', { invoices, filename, options }),
 };
 
 contextBridge.exposeInMainWorld('billingApp', billingBridge);

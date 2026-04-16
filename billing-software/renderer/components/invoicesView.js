@@ -217,23 +217,99 @@
     document.body.appendChild(modal);
   }
 
+  function getMonthKey(dateValue) {
+    const d = new Date(dateValue || Date.now());
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}`;
+  }
+
+  function getMonthLabel(monthKey) {
+    const [y, m] = String(monthKey).split('-').map(Number);
+    const d = new Date(y, (m || 1) - 1, 1);
+    return d.toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+  }
+
+  async function downloadMonthlyPdf(monthKey, monthInvoices) {
+    if (!window.billingApp || typeof window.billingApp.downloadMonthlyPdf !== 'function') {
+      alert('Monthly PDF download service is not available. Please restart the app.');
+      return;
+    }
+
+    const filename = `Invoices_${monthKey}.pdf`;
+    const result = await window.billingApp.downloadMonthlyPdf(monthInvoices, filename, {
+      pageSize: 'A5',
+      margins: { marginType: 'none' },
+    });
+
+    if (result && result.ok) {
+      alert(`Monthly PDF saved: ${result.path || filename}`);
+    } else {
+      alert(`Failed to save monthly PDF.${result && result.error ? ` ${result.error}` : ''}`);
+    }
+  }
+
   async function renderInvoicesView(container) {
     container.innerHTML = '';
     await loadInvoices();
 
-    const list = document.createElement('div');
-    list.className = 'invoice-list';
+    const root = document.createElement('div');
+    root.className = 'invoice-list';
 
     if (!window.BillingState.invoices.length) {
       const empty = document.createElement('div');
       empty.className = 'text-muted';
       empty.textContent = 'No invoices yet.';
-      list.appendChild(empty);
-      container.appendChild(list);
+      root.appendChild(empty);
+      container.appendChild(root);
       return;
     }
 
-    window.BillingState.invoices.forEach((inv) => {
+    const groups = {};
+    (window.BillingState.invoices || []).forEach((inv) => {
+      const key = getMonthKey(inv.created_at);
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(inv);
+    });
+
+    const monthKeys = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+
+    monthKeys.forEach((monthKey) => {
+      const monthInvoices = groups[monthKey]
+        .slice()
+        .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+      const monthSection = document.createElement('section');
+      monthSection.className = 'invoice-month-section';
+
+      const monthHeader = document.createElement('div');
+      monthHeader.className = 'invoice-month-header';
+
+      const monthTitle = document.createElement('h3');
+      monthTitle.className = 'invoice-month-title';
+      monthTitle.textContent = `${getMonthLabel(monthKey)} (${monthInvoices.length})`;
+
+      const monthDownloadBtn = document.createElement('button');
+      monthDownloadBtn.className = 'btn-primary';
+      monthDownloadBtn.textContent = 'Download Month PDF';
+      monthDownloadBtn.onclick = async () => {
+        monthDownloadBtn.disabled = true;
+        monthDownloadBtn.textContent = 'Preparing...';
+        try {
+          await downloadMonthlyPdf(monthKey, monthInvoices);
+        } finally {
+          monthDownloadBtn.disabled = false;
+          monthDownloadBtn.textContent = 'Download Month PDF';
+        }
+      };
+
+      monthHeader.appendChild(monthTitle);
+      monthHeader.appendChild(monthDownloadBtn);
+
+      const monthList = document.createElement('div');
+      monthList.className = 'invoice-month-list';
+
+      monthInvoices.forEach((inv) => {
       const card = document.createElement('article');
       card.className = 'invoice-card';
       card.style.cursor = 'pointer';
@@ -288,10 +364,15 @@
       card.appendChild(stats);
 
       card.onclick = () => openInvoiceDetail(inv);
-      list.appendChild(card);
+      monthList.appendChild(card);
     });
 
-    container.appendChild(list);
+      monthSection.appendChild(monthHeader);
+      monthSection.appendChild(monthList);
+      root.appendChild(monthSection);
+    });
+
+    container.appendChild(root);
   }
 
   window.InvoicesView = { render: renderInvoicesView };
