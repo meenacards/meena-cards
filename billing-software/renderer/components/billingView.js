@@ -6,7 +6,7 @@
 
     const result = await window.billingApp.printInvoice(invoice, {
       silent: true,
-      pageSize: 'A5',
+      pageSize: 'A4',
       margins: { marginType: 'none' },
     });
 
@@ -48,7 +48,6 @@
     const toInput = document.createElement('input');
     toInput.className = 'input';
     toInput.placeholder = 'Press name';
-    toInput.readOnly = true;
 
     const addressLabel = document.createElement('div');
     addressLabel.className = 'field-label';
@@ -56,7 +55,6 @@
     const addressInput = document.createElement('input');
     addressInput.className = 'input';
     addressInput.placeholder = 'Press address';
-    addressInput.readOnly = true;
 
     const phoneLabel = document.createElement('div');
     phoneLabel.className = 'field-label';
@@ -64,7 +62,6 @@
     const phoneInput = document.createElement('input');
     phoneInput.className = 'input';
     phoneInput.placeholder = 'Press phone number';
-    phoneInput.readOnly = true;
 
     const gstLabel = document.createElement('div');
     gstLabel.className = 'field-label';
@@ -72,6 +69,38 @@
     const gstInput = document.createElement('input');
     gstInput.className = 'input';
     gstInput.placeholder = 'Enter GSTIN manually';
+
+    const taxInputs = document.createElement('div');
+    taxInputs.className = 'tax-input-grid';
+
+    const cgstWrap = document.createElement('div');
+    const cgstLabel = document.createElement('div');
+    cgstLabel.className = 'field-label';
+    cgstLabel.textContent = 'CGST %';
+    const cgstPercentInput = document.createElement('input');
+    cgstPercentInput.type = 'number';
+    cgstPercentInput.min = '0';
+    cgstPercentInput.step = '0.01';
+    cgstPercentInput.className = 'input';
+    cgstPercentInput.value = String(window.BillingState.cgstPercent ?? 9);
+    cgstWrap.appendChild(cgstLabel);
+    cgstWrap.appendChild(cgstPercentInput);
+
+    const sgstWrap = document.createElement('div');
+    const sgstLabel = document.createElement('div');
+    sgstLabel.className = 'field-label';
+    sgstLabel.textContent = 'SGST %';
+    const sgstPercentInput = document.createElement('input');
+    sgstPercentInput.type = 'number';
+    sgstPercentInput.min = '0';
+    sgstPercentInput.step = '0.01';
+    sgstPercentInput.className = 'input';
+    sgstPercentInput.value = String(window.BillingState.sgstPercent ?? 9);
+    sgstWrap.appendChild(sgstLabel);
+    sgstWrap.appendChild(sgstPercentInput);
+
+    taxInputs.appendChild(cgstWrap);
+    taxInputs.appendChild(sgstWrap);
 
     pressPanel.appendChild(pressSearchLabel);
     pressPanel.appendChild(pressSearchInput);
@@ -124,11 +153,75 @@
 
     const totalsEl = document.createElement('div');
 
+    const transportControls = document.createElement('div');
+    transportControls.className = 'transport-controls';
+
+    const transportLabel = document.createElement('div');
+    transportLabel.className = 'field-label';
+    transportLabel.textContent = 'Transportation Charges';
+
+    const transportToggleRow = document.createElement('div');
+    transportToggleRow.style.display = 'flex';
+    transportToggleRow.style.gap = '8px';
+    transportToggleRow.style.marginBottom = '8px';
+
+    const transportYesBtn = document.createElement('button');
+    transportYesBtn.type = 'button';
+    transportYesBtn.className = 'btn-secondary';
+    transportYesBtn.textContent = 'Yes';
+
+    const transportNoBtn = document.createElement('button');
+    transportNoBtn.type = 'button';
+    transportNoBtn.className = 'btn-secondary';
+    transportNoBtn.textContent = 'No';
+
+    const transportAmountInput = document.createElement('input');
+    transportAmountInput.type = 'number';
+    transportAmountInput.min = '0';
+    transportAmountInput.step = '0.01';
+    transportAmountInput.className = 'input';
+    transportAmountInput.placeholder = 'Enter transportation charge';
+    transportAmountInput.style.display = 'none';
+
+    const termsControls = document.createElement('div');
+    termsControls.className = 'transport-controls';
+
+    const termsLabel = document.createElement('div');
+    termsLabel.className = 'field-label';
+    termsLabel.textContent = 'Apply Terms and Conditions';
+
+    const termsToggleRow = document.createElement('div');
+    termsToggleRow.style.display = 'flex';
+    termsToggleRow.style.gap = '8px';
+    termsToggleRow.style.marginBottom = '8px';
+
+    const termsYesBtn = document.createElement('button');
+    termsYesBtn.type = 'button';
+    termsYesBtn.className = 'btn-secondary';
+    termsYesBtn.textContent = 'Yes';
+
+    const termsNoBtn = document.createElement('button');
+    termsNoBtn.type = 'button';
+    termsNoBtn.className = 'btn-secondary';
+    termsNoBtn.textContent = 'No';
+
     const createInvoiceBtn = document.createElement('button');
     createInvoiceBtn.textContent = 'Generate Invoice';
     createInvoiceBtn.className = 'btn-primary';
 
     summary.appendChild(document.createElement('hr'));
+    summary.appendChild(taxInputs);
+    transportToggleRow.appendChild(transportYesBtn);
+    transportToggleRow.appendChild(transportNoBtn);
+    transportControls.appendChild(transportLabel);
+    transportControls.appendChild(transportToggleRow);
+    transportControls.appendChild(transportAmountInput);
+    summary.appendChild(transportControls);
+    termsToggleRow.appendChild(termsYesBtn);
+    termsToggleRow.appendChild(termsNoBtn);
+    termsControls.appendChild(termsLabel);
+    termsControls.appendChild(termsToggleRow);
+    summary.appendChild(termsControls);
     summary.appendChild(totalsEl);
     summary.appendChild(document.createElement('hr'));
     summary.appendChild(createInvoiceBtn);
@@ -141,6 +234,27 @@
 
     let presses = [];
     let selectedPress = null;
+    let isTransportationEnabled = false;
+    let isTermsEnabled = false;
+
+    function setTransportationMode(enabled) {
+      isTransportationEnabled = Boolean(enabled);
+      transportAmountInput.style.display = isTransportationEnabled ? 'block' : 'none';
+
+      if (!isTransportationEnabled) {
+        transportAmountInput.value = '';
+      }
+
+      transportYesBtn.style.background = isTransportationEnabled ? 'rgba(91, 18, 37, 0.14)' : 'transparent';
+      transportNoBtn.style.background = !isTransportationEnabled ? 'rgba(91, 18, 37, 0.14)' : 'transparent';
+      renderTotals();
+    }
+
+    function setTermsMode(enabled) {
+      isTermsEnabled = Boolean(enabled);
+      termsYesBtn.style.background = isTermsEnabled ? 'rgba(91, 18, 37, 0.14)' : 'transparent';
+      termsNoBtn.style.background = !isTermsEnabled ? 'rgba(91, 18, 37, 0.14)' : 'transparent';
+    }
 
     function applySelectedPress(press) {
       selectedPress = press || null;
@@ -184,9 +298,6 @@
 
     pressSearchInput.addEventListener('input', () => {
       selectedPress = null;
-      toInput.value = '';
-      addressInput.value = '';
-      phoneInput.value = '';
       renderPressSuggestions(pressSearchInput.value);
     });
 
@@ -229,7 +340,10 @@
         qtyInput.onchange = () => {
           const parsed = parseInt(qtyInput.value, 10);
           const val = isNaN(parsed) ? 1 : Math.max(1, parsed);
-          window.BillingActions.updateQuantity(item.id, val);
+          const updateResult = window.BillingActions.updateQuantity(item.id, val);
+          if (updateResult && updateResult.ok === false && Number.isFinite(Number(updateResult.stock))) {
+            alert(`Quantity adjusted to available stock (${updateResult.stock}).`);
+          }
           renderCartRows();
           renderTotals();
         };
@@ -239,7 +353,10 @@
         plusBtn.className = 'btn-qty';
         plusBtn.onclick = () => {
           const newVal = item.quantity + 1;
-          window.BillingActions.updateQuantity(item.id, newVal);
+          const updateResult = window.BillingActions.updateQuantity(item.id, newVal);
+          if (updateResult && updateResult.ok === false && Number.isFinite(Number(updateResult.stock))) {
+            alert(`Cannot exceed stock. Available stock: ${updateResult.stock}.`);
+          }
           renderCartRows();
           renderTotals();
         };
@@ -274,7 +391,11 @@
     }
 
     function renderTotals() {
-      const { subtotal, cgst, sgst, total } = window.BillingActions.computeTotals();
+      const taxConfig = getTaxConfig();
+      const { subtotal, cgst, sgst, total, cgstPercent, sgstPercent, transportationCharge } = window.BillingActions.computeTotals(
+        taxConfig,
+        { transportationCharge: getTransportationChargeAmount() }
+      );
       totalsEl.innerHTML = '';
 
       function row(label, value, isTotal) {
@@ -290,9 +411,51 @@
       }
 
       totalsEl.appendChild(row('Subtotal', subtotal));
-      totalsEl.appendChild(row('CGST (9%)', cgst));
-      totalsEl.appendChild(row('SGST (9%)', sgst));
+      totalsEl.appendChild(row(`CGST (${cgstPercent}%)`, cgst));
+      totalsEl.appendChild(row(`SGST (${sgstPercent}%)`, sgst));
+      if (transportationCharge > 0) {
+        totalsEl.appendChild(row('Transportation Charge', transportationCharge));
+      }
       totalsEl.appendChild(row('Grand Total', total, true));
+    }
+
+    function getTransportationChargeAmount() {
+      if (!isTransportationEnabled) return 0;
+      const parsed = parseFloat(transportAmountInput.value);
+      return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+    }
+
+    function getTaxConfig() {
+      const parsedCgst = parseFloat(cgstPercentInput.value);
+      const parsedSgst = parseFloat(sgstPercentInput.value);
+      return {
+        cgstPercent: Number.isFinite(parsedCgst) ? Math.max(0, parsedCgst) : 0,
+        sgstPercent: Number.isFinite(parsedSgst) ? Math.max(0, parsedSgst) : 0,
+      };
+    }
+
+    function syncTaxState() {
+      const taxConfig = getTaxConfig();
+      window.BillingActions.setTaxPercentages(taxConfig);
+      return taxConfig;
+    }
+
+    function resetBillingForm() {
+      selectedPress = null;
+      pressSearchInput.value = '';
+      pressSuggestions.innerHTML = '';
+      toInput.value = '';
+      addressInput.value = '';
+      phoneInput.value = '';
+      gstInput.value = '';
+      searchInput.value = '';
+      suggestions.innerHTML = '';
+      cgstPercentInput.value = '9';
+      sgstPercentInput.value = '9';
+      setTransportationMode(false);
+      setTermsMode(false);
+      syncTaxState();
+      renderTotals();
     }
 
     function renderSuggestions(term) {
@@ -322,7 +485,12 @@
         row.appendChild(priceEl);
 
         row.onclick = () => {
-          window.BillingActions.addToCart(product);
+          const addResult = window.BillingActions.addToCart(product);
+          if (!addResult || !addResult.ok) {
+            const stockText = Number.isFinite(Number(addResult && addResult.stock)) ? ` Available stock: ${addResult.stock}.` : '';
+            alert(`Cannot add more quantity for this product.${stockText}`);
+            return;
+          }
           searchInput.value = '';
           suggestions.innerHTML = '';
           renderCartRows();
@@ -342,6 +510,36 @@
       }
     });
 
+    cgstPercentInput.addEventListener('input', () => {
+      syncTaxState();
+      renderTotals();
+    });
+
+    sgstPercentInput.addEventListener('input', () => {
+      syncTaxState();
+      renderTotals();
+    });
+
+    transportAmountInput.addEventListener('input', () => {
+      renderTotals();
+    });
+
+    transportYesBtn.addEventListener('click', () => {
+      setTransportationMode(true);
+    });
+
+    transportNoBtn.addEventListener('click', () => {
+      setTransportationMode(false);
+    });
+
+    termsYesBtn.addEventListener('click', () => {
+      setTermsMode(true);
+    });
+
+    termsNoBtn.addEventListener('click', () => {
+      setTermsMode(false);
+    });
+
     createInvoiceBtn.onclick = async () => {
       if (!window.BillingState.cart.length) {
         alert('Cart is empty');
@@ -351,15 +549,35 @@
       createInvoiceBtn.textContent = 'Generating...';
       try {
         if (!selectedPress) {
-          alert('Please select a press from suggestions before generating invoice.');
+          selectedPress = null;
+        }
+
+        const customerName = toInput.value.trim();
+        const customerAddress = addressInput.value.trim();
+        const customerPhone = phoneInput.value.trim();
+
+        if (!customerName) {
+          alert('Please enter customer/press name before generating invoice.');
+          return;
+        }
+
+        const taxConfig = syncTaxState();
+        const transportationCharge = getTransportationChargeAmount();
+
+        if (isTransportationEnabled && transportationCharge <= 0) {
+          alert('Please enter transportation charge amount.');
           return;
         }
 
         const invoice = await window.BillingActions.createInvoice({
-          to_name: selectedPress.name || '',
-          to_address: selectedPress.address || '',
-          to_phone: selectedPress.ph_no || '',
+          to_name: customerName,
+          to_address: customerAddress,
+          to_phone: customerPhone,
           gstin: gstInput.value.trim(),
+          apply_terms_conditions: isTermsEnabled,
+        }, {
+          ...taxConfig,
+          transportationCharge,
         });
         renderCartRows();
         renderTotals();
@@ -371,6 +589,10 @@
             subtotal: invoice.subtotal,
             tax: invoice.tax,
             total_amount: invoice.total_amount,
+            cgst_percent: invoice.cgst_percent,
+            sgst_percent: invoice.sgst_percent,
+            transportation_charge: invoice.transportation_charge,
+            apply_terms_conditions: invoice.apply_terms_conditions,
             to_name: invoice.to_name,
             to_address: invoice.to_address,
             to_phone: invoice.to_phone,
@@ -380,6 +602,7 @@
           const printResult = await printInvoiceDirect(printData);
           if (printResult && printResult.ok) {
             alert(`Invoice #${invoice.invoice_number} saved and printed successfully.`);
+            resetBillingForm();
           } else {
             alert(`Invoice #${invoice.invoice_number} saved successfully, but printing failed.${printResult && printResult.error ? ` ${printResult.error}` : ''}`);
           }
@@ -393,6 +616,8 @@
     };
 
     renderCartRows();
+    setTransportationMode(false);
+    setTermsMode(false);
     renderTotals();
 
     // Auto-focus the search box so the caret is visible immediately

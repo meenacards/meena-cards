@@ -7,10 +7,10 @@ let mainWindow = null;
 
 function getLogoDataUri() {
   try {
-    const logoPath = path.join(__dirname, 'public', 'app-face.jpeg');
+    const logoPath = path.join(__dirname, 'public', 'bill-logo.png');
     if (!fs.existsSync(logoPath)) return '';
     const base64 = fs.readFileSync(logoPath).toString('base64');
-    return `data:image/jpeg;base64,${base64}`;
+    return `data:image/png;base64,${base64}`;
   } catch (_error) {
     return '';
   }
@@ -19,9 +19,9 @@ function getLogoDataUri() {
 const LOGO_DATA_URI = getLogoDataUri();
 const WATERMARK_DATA_URI = (() => {
   try {
-    const watermarkPath = path.join(__dirname, 'public', 'watermark.jpeg');
+    const watermarkPath = path.join(__dirname, 'public', 'watermark.png');
     if (!fs.existsSync(watermarkPath)) return '';
-    return `data:image/jpeg;base64,${fs.readFileSync(watermarkPath).toString('base64')}`;
+    return `data:image/png;base64,${fs.readFileSync(watermarkPath).toString('base64')}`;
   } catch (_error) {
     return '';
   }
@@ -33,6 +33,8 @@ function svgIconDataUri(pathData) {
 }
 
 const ADDRESS_ICON = svgIconDataUri('M12 21s6-5.2 6-11a6 6 0 1 0-12 0c0 5.8 6 11 6 11z M12 10.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z');
+const EMAIL_ICON = svgIconDataUri('M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z M22 7l-10 7L2 7');
+const WEBSITE_ICON = svgIconDataUri('M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M2 12h20 M12 2a15 15 0 0 1 0 20 M12 2a15 15 0 0 0 0 20');
 const PHONE_ICON = svgIconDataUri('M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.92.33 1.82.61 2.67a2 2 0 0 1-.45 2.11L8 9a16 16 0 0 0 7 7l.5-.27a2 2 0 0 1 2.11-.45c.85.28 1.75.49 2.67.61A2 2 0 0 1 22 16.92z');
 
 function createTempHtmlFile(html) {
@@ -122,36 +124,224 @@ function formatTime12Hour(dateValue) {
   return `${String(hours).padStart(2, '0')}:${mins}:${secs} ${period}`;
 }
 
-function buildInvoicePrintHtml(invoice) {
-  const rows = (invoice.items || [])
-    .map((item) => `
-      <tr>
-        <td>${escapeHtml(item.name)}</td>
-        <td style="text-align:right;">${Number(item.quantity || 0)}</td>
-        <td style="text-align:right;">Rs. ${Number(item.price || 0).toFixed(2)}</td>
-        <td style="text-align:right;">Rs. ${(Number(item.price || 0) * Number(item.quantity || 0)).toFixed(2)}</td>
-      </tr>
-    `)
+function buildReportPrintHtml(report) {
+  const summaryCards = [
+    { label: 'Total Bills', value: Number(report.totalBills || 0) },
+    { label: 'Stocks Sold', value: Number(report.stocksSold || 0) },
+    { label: 'Revenue', value: `Rs. ${Number(report.revenue || 0).toFixed(2)}` },
+    { label: 'Tax', value: `Rs. ${Number(report.tax || 0).toFixed(2)}` },
+    { label: 'Transportation', value: `Rs. ${Number(report.transport || 0).toFixed(2)}` },
+    { label: 'Average Bill', value: `Rs. ${Number(report.averageBill || 0).toFixed(2)}` },
+  ];
+
+  const rows = (report.invoices || [])
+    .map((invoice) => {
+      const stocksSold = (invoice.items || []).reduce((sum, item) => {
+        if (item && item.is_transportation) return sum;
+        return sum + Number(item.quantity || 0);
+      }, 0);
+
+      return `
+        <tr>
+          <td>${escapeHtml(invoice.invoice_number || '')}</td>
+          <td>${formatDateDDMMYYYY(invoice.created_at)}</td>
+          <td style="text-align:right;">${stocksSold}</td>
+          <td style="text-align:right;">Rs. ${Number(invoice.total_amount || 0).toFixed(2)}</td>
+          <td style="text-align:right;">Rs. ${Number(invoice.tax || 0).toFixed(2)}</td>
+        </tr>
+      `;
+    })
     .join('');
 
-  const taxValue = Number(invoice.tax || 0);
-  const cgst = taxValue / 2;
-  const sgst = taxValue / 2;
-  const createdAt = invoice.created_at || Date.now();
+  const generatedAt = report.generatedAt || Date.now();
 
   return `
     <!doctype html>
     <html>
       <head>
         <meta charset="utf-8" />
-        <title>Tax Invoice ${escapeHtml(invoice.invoice_number || '')}</title>
+        <title>Report ${escapeHtml(report.title || '')}</title>
         <style>
-          @page { size: A5; margin: 0; }
+          @page { size: A4; margin: 0; }
+          body { margin: 0; font-family: Arial, sans-serif; color: #222; }
+          .page {
+            width: 210mm;
+            min-height: 297mm;
+            box-sizing: border-box;
+            padding: 8mm;
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #5b1225;
+            padding-bottom: 10px;
+            margin-bottom: 12px;
+          }
+          .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+          }
+          .brand img { max-width: 92px; max-height: 70px; object-fit: contain; }
+          .brand-name {
+            font-size: 30px;
+            font-weight: 800;
+            color: #5b1225;
+          }
+          .report-title {
+            text-align: right;
+            font-size: 18px;
+            color: #5b1225;
+            font-weight: 700;
+          }
+          .report-subtitle {
+            text-align: right;
+            font-size: 11px;
+            color: #666;
+            margin-top: 2px;
+          }
+          .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 14px;
+          }
+          .summary-card {
+            border: 1px solid #ddcfba;
+            background: #fffdf9;
+            border-radius: 12px;
+            padding: 12px;
+          }
+          .summary-label { font-size: 11px; color: #4b3a34; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
+          .summary-value { margin-top: 6px; font-size: 22px; font-weight: 700; color: #5b1225; }
+          .summary-note { margin-top: 5px; font-size: 11px; color: #6d5f4c; }
+          table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+          th, td { border: 1px solid #ddd; padding: 7px; font-size: 12px; }
+          th { background: #f8eef1; color: #5b1225; text-align: left; }
+          .footer {
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #5b1225;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="page">
+          <div class="header">
+            <div class="brand">
+              ${LOGO_DATA_URI ? `<img src="${LOGO_DATA_URI}" alt="Meena Cards"/>` : ''}
+              <div class="brand-name">MEENA CARDS</div>
+            </div>
+            <div>
+              <div class="report-title">${escapeHtml(report.title || 'Report')}</div>
+              <div class="report-subtitle">Generated on ${formatDateDDMMYYYY(generatedAt)}</div>
+            </div>
+          </div>
+
+          <div class="summary-grid">
+            ${summaryCards.map((card) => `
+              <div class="summary-card">
+                <div class="summary-label">${escapeHtml(card.label)}</div>
+                <div class="summary-value">${escapeHtml(String(card.value))}</div>
+                <div class="summary-note">${escapeHtml(report.title || '')}</div>
+              </div>
+            `).join('')}
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Invoice No.</th>
+                <th>Date</th>
+                <th style="text-align:right;">Stocks Sold</th>
+                <th style="text-align:right;">Revenue</th>
+                <th style="text-align:right;">Tax</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows || '<tr><td colspan="5">No invoices found for this report.</td></tr>'}
+            </tbody>
+          </table>
+
+          <div class="footer">
+            <div>No Refund | No Exchange</div>
+            <div>Thank you for shopping with Meena Cards</div>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+}
+
+function buildInvoicesBundleHtml(invoices, title) {
+  const safeInvoices = Array.isArray(invoices) ? invoices.filter(Boolean) : [];
+  if (!safeInvoices.length) {
+    return '<!doctype html><html><head><meta charset="utf-8" /></head><body><div>No invoices to export.</div></body></html>';
+  }
+
+  const sample = buildInvoicePrintHtml(safeInvoices[0]);
+  const style = extractStyleBlock(sample);
+  const pages = safeInvoices
+    .map((inv) => `<section class="month-page">${extractBodyBlock(buildInvoicePrintHtml(inv))}</section>`)
+    .join('');
+
+  return `
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>${escapeHtml(title || 'Invoices')}</title>
+        <style>
+          ${style}
+          .month-page { page-break-after: always; }
+          .month-page:last-child { page-break-after: auto; }
+        </style>
+      </head>
+      <body>${pages}</body>
+    </html>
+  `;
+}
+
+function buildInvoicePrintHtml(invoice) {
+  const rows = (invoice.items || [])
+    .map((item, idx) => `
+      <tr>
+        <td style="text-align:center;">${idx + 1}</td>
+        <td>${escapeHtml(item.name)}</td>
+        <td style="text-align:center;">${item.is_transportation ? '-' : Number(item.quantity || 0)}</td>
+        <td style="text-align:right;">${item.is_transportation ? '-' : `Rs. ${Number(item.price || 0).toFixed(2)}`}</td>
+        <td style="text-align:right;">Rs. ${Number(item.line_total ?? (Number(item.price || 0) * Number(item.quantity || 0))).toFixed(2)}</td>
+      </tr>
+    `)
+    .join('');
+
+  const subtotal = Number(invoice.subtotal || 0);
+  const cgstPercent = Number.isFinite(Number(invoice.cgst_percent)) ? Math.max(0, Number(invoice.cgst_percent)) : 9;
+  const sgstPercent = Number.isFinite(Number(invoice.sgst_percent)) ? Math.max(0, Number(invoice.sgst_percent)) : 9;
+  const cgst = subtotal * (cgstPercent / 100);
+  const sgst = subtotal * (sgstPercent / 100);
+  const total = Number(invoice.total_amount || 0);
+  const createdAt = invoice.created_at || Date.now();
+  const termsHtml = invoice.apply_terms_conditions ? '<div class="terms-line">Terms and Conditions</div>' : '';
+
+  return `
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>Invoice ${escapeHtml(invoice.invoice_number || '')}</title>
+        <style>
+          @page { size: A4; margin: 0; }
           body { font-family: Arial, sans-serif; margin: 0; color: #222; }
           .page {
             position: relative;
-            min-height: 100%;
-            padding: 5mm;
+            width: 210mm;
+            height: 297mm;
+            padding: 8mm;
+            box-sizing: border-box;
             overflow: hidden;
           }
           .watermark {
@@ -162,196 +352,345 @@ function buildInvoicePrintHtml(invoice) {
             display: flex;
             align-items: center;
             justify-content: center;
-            opacity: 0.12;
+            opacity: 0.08;
             z-index: 1;
             pointer-events: none;
           }
           .watermark img {
-            width: 420px;
-            height: 420px;
+            width: 500px;
+            height: 500px;
             object-fit: contain;
           }
           .content {
             position: relative;
             z-index: 2;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
           }
-          .title {
-            text-align: center;
-            font-weight: 700;
-            font-size: 21px;
-            margin: 0 0 8px;
-            letter-spacing: 0.04em;
+          .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
           }
-          .header {
+          .header-top {
             display: flex;
             justify-content: space-between;
-            gap: 16px;
-            margin-bottom: 8px;
+            align-items: center;
+            margin-bottom: 14px;
+            border-bottom: 2px solid #5b1225;
+            padding-bottom: 10px;
           }
-          .brand-left { width: 43%; }
-          .brand-logo {
-            width: 100%;
-            max-width: 220px;
+          .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 33%;
+          }
+          .logo-section img {
+            max-width: 120px;
             height: auto;
-            max-height: 95px;
-            object-fit: contain;
             display: block;
           }
-          .brand-name {
-            margin-top: 4px;
-            font-size: 15px;
-            font-weight: 700;
+          .company-name {
+            width: 34%;
+            text-align: center;
+            font-size: 30px;
+            font-weight: 800;
+            color: #5b1225;
+            letter-spacing: 0.03em;
           }
-          .brand-website {
-            margin-top: 3px;
-            font-size: 11px;
-            color: #444;
-            word-break: break-word;
-          }
-          .brand-right {
-            width: 56%;
+          .header-right {
+            width: 33%;
+            text-align: right;
             font-size: 12px;
-            line-height: 1.55;
+            color: #5b1225;
+            font-weight: 700;
+            line-height: 1.5;
           }
-          .contact-line {
+          .website-line {
             display: flex;
-            align-items: flex-start;
+            align-items: center;
+            justify-content: flex-end;
             gap: 6px;
-            margin-bottom: 2px;
           }
-          .contact-icon {
+          .website-icon {
             width: 13px;
             height: 13px;
-            flex: 0 0 13px;
-            margin-top: 2px;
             object-fit: contain;
           }
-          .row-two-col {
+          .company-detail {
+            font-weight: 700;
+            color: #5b1225;
+          }
+          .invoice-info {
             display: flex;
             justify-content: space-between;
-            gap: 14px;
-            margin-top: 6px;
+            margin-bottom: 14px;
+            font-size: 13px;
           }
-          .box {
-            flex: 1;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            padding: 7px 8px;
-            font-size: 12px;
+          .invoice-info-left {
+            width: 55%;
           }
-          .line { margin: 4px 0; }
-          .label { font-weight: 700; }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 8px;
-          }
-          th, td {
-            border: 1px solid #d0d0d0;
-            padding: 6px;
-            font-size: 12px;
-          }
-          th {
-            text-align: left;
-            background: #f7f7f7;
-          }
-          .totals-wrap {
+          .invoice-info-right {
+            width: 45%;
             display: flex;
             justify-content: flex-end;
-            margin-top: 8px;
           }
-          .totals {
-            width: 44%;
-            min-width: 220px;
+          .invoice-info-label {
+            font-weight: bold;
+            margin-bottom: 3px;
+          }
+          .invoice-info-content {
+            margin-bottom: 6px;
+            line-height: 1.4;
+          }
+          .meta-table {
+            border-collapse: collapse;
+            font-size: 13px;
+            width: 260px;
+            border: none !important;
+          }
+          .meta-table tr {
+            height: 28px;
+            border: none !important;
+          }
+          .meta-table td {
+            padding: 0;
+            vertical-align: middle;
+            border: none !important;
+          }
+          .meta-label {
+            font-weight: 700;
+            padding-right: 10px;
+            width: 86px;
+            text-align: left;
+            white-space: nowrap;
+            line-height: 1;
+          }
+          .meta-fill {
+            width: 170px;
+            padding-left: 8px;
+            text-align: left;
+            line-height: 1;
+            border: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+          }
+          .meta-value {
+            font-weight: 700;
+            text-align: left;
+            display: inline-block;
+            min-width: 1px;
+            line-height: 1;
+            text-decoration: none;
+          }
+          table.items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 12px;
+          }
+          .items-table th {
+            background: #f8eef1;
+            color: #5b1225;
+            padding: 8px;
+            text-align: left;
+            font-weight: bold;
+            border: 1px solid #ddd;
+          }
+          .items-table td {
+            border: 1px solid #ddd;
+            padding: 7px;
+          }
+          .items-table tr:nth-child(even) {
+            background: #f8eef1;
+          }
+          .totals-section {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            font-size: 12px;
+          }
+          .totals-left {
+            width: 50%;
+          }
+          .totals-right {
+            width: 50%;
+            text-align: right;
           }
           .totals-row {
             display: flex;
             justify-content: space-between;
-            margin: 4px 0;
-            font-size: 12px;
+            align-items: center;
+            margin: 3px 0;
+            line-height: 1.2;
           }
-          .grand {
+          .totals-row.grand-total {
             font-weight: bold;
-            font-size: 14px;
-            border-top: 1px solid #999;
-            padding-top: 6px;
-            margin-top: 6px;
+            font-size: 13px;
+            padding: 8px 0;
+            background: transparent;
+            color: #5b1225;
+            border-top: 1px solid #5b1225;
+            margin-top: 4px;
           }
-          .footer-note {
-            border-top: 1px solid #999;
-            margin-top: 10px;
-            padding-top: 7px;
-            text-align: center;
+          .terms-line {
+            margin-top: 8px;
             font-size: 12px;
-            line-height: 1.6;
+            font-weight: 700;
+            color: #5b1225;
+            text-align: center;
           }
-          .right-label { font-weight: 700; }
+          .bottom-stack {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+          }
+          .notes {
+            font-size: 12px;
+            color: #5b1225;
+            font-weight: 700;
+            line-height: 1.6;
+            text-align: left;
+          }
+          .signature-section {
+            display: flex;
+            justify-content: flex-end;
+            font-size: 12px;
+            font-weight: 700;
+            color: #5b1225;
+          }
+          .signature-line {
+            min-width: 220px;
+            text-align: center;
+            border-top: 1px solid #5b1225;
+            padding-top: 8px;
+          }
+          .footer-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 14px;
+            padding-top: 10px;
+            border-top: 2px solid #5b1225;
+            font-size: 12px;
+            color: #5b1225;
+            font-weight: 700;
+          }
+          .footer-contact {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+          }
+          .footer-contact img {
+            width: 14px;
+            height: 14px;
+          }
         </style>
       </head>
       <body>
         <div class="page">
           <div class="watermark">${WATERMARK_DATA_URI ? `<img src="${WATERMARK_DATA_URI}" alt="Watermark"/>` : ''}</div>
           <div class="content">
-            <div class="title">Tax Invoice</div>
-
-            <div class="header">
-              <div class="brand-left">
-                ${LOGO_DATA_URI ? `<img class="brand-logo" src="${LOGO_DATA_URI}" alt="Meena Cards"/>` : ''}
-                <div class="brand-name">Meena Cards</div>
-                <div class="brand-website">https://www.meenacards.com/</div>
+            <div class="main-content">
+              <div class="header-top">
+                <div class="header-left">
+                  <div class="logo-section">
+                    ${LOGO_DATA_URI ? `<img src="${LOGO_DATA_URI}" alt="Meena Cards"/>` : ''}
+                  </div>
+                </div>
+                <div class="company-name">MEENA CARDS</div>
+                <div class="header-right">
+                  <div class="website-line"><img class="website-icon" src="${WEBSITE_ICON}" alt="Website"/><span class="company-detail">https://www.meenacards.com</span></div>
+                  <div class="company-detail">GSTIN: 33AIPPJ2536H1ZA</div>
+                </div>
               </div>
-              <div class="brand-right">
-                <div class="contact-line"><img class="contact-icon" src="${ADDRESS_ICON}" alt="Address"/><span>62/1, Manjanakara Street, Madurai - 1.</span></div>
-                <div class="contact-line"><img class="contact-icon" src="${PHONE_ICON}" alt="Phone"/><span>8248723726</span></div>
-                <div class="contact-line"><span class="right-label">GSTIN</span><span>33AIPPJ2536H1ZA</span></div>
+
+              <div class="invoice-info">
+                <div class="invoice-info-left">
+                  <div class="invoice-info-label">Invoice to :</div>
+                  <div class="invoice-info-content">
+                    <strong>${escapeHtml(invoice.to_name || '')}</strong><br/>
+                    ${escapeHtml(invoice.to_phone || '')}<br/>
+                    <span>${escapeHtml(invoice.to_address || '')}</span><br/>
+                    <strong>GSTIN:</strong> ${escapeHtml(invoice.gstin || '')}
+                  </div>
+                </div>
+                <div class="invoice-info-right">
+                    <table class="meta-table">
+                      <tr>
+                      <td class="meta-label"><strong>Invoice No.</strong></td>
+                      <td class="meta-fill"><span class="meta-value">: ${escapeHtml(invoice.invoice_number || '')}</span></td>
+                      </tr>
+                      <tr>
+                      <td class="meta-label"><strong>Date</strong></td>
+                      <td class="meta-fill"><span class="meta-value">: ${formatDateDDMMYYYY(createdAt)}</span></td>
+                      </tr>
+                    </table>
+                </div>
+              </div>
+
+              <table class="items-table">
+                <thead>
+                  <tr>
+                    <th style="width: 8%;">NO</th>
+                    <th style="width: 40%;">DESCRIPTION</th>
+                    <th style="width: 15%;">QTY</th>
+                    <th style="width: 18%;">PRICE</th>
+                    <th style="width: 19%;">TOTAL</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rows}
+                </tbody>
+              </table>
+
+              <div class="totals-section">
+                <div class="totals-left"></div>
+                <div class="totals-right">
+                  <div class="totals-row">
+                    <span>Sub Total :</span>
+                    <span>Rs. ${subtotal.toFixed(2)}</span>
+                  </div>
+                  <div class="totals-row">
+                    <span>CGST (${cgstPercent}%) :</span>
+                    <span>Rs. ${cgst.toFixed(2)}</span>
+                  </div>
+                  <div class="totals-row">
+                    <span>SGST (${sgstPercent}%) :</span>
+                    <span>Rs. ${sgst.toFixed(2)}</span>
+                  </div>
+                  <div class="totals-row grand-total">
+                    <span>GRAND TOTAL :</span>
+                    <span>Rs. ${total.toFixed(2)}</span>
+                  </div>
+                  ${termsHtml}
+                </div>
+              </div>
+
+              <div class="bottom-stack">
+                <div class="signature-section">
+                  <div class="signature-line">Authorized Signature</div>
+                </div>
+                <div class="notes">
+                  <div>No Refund | No Exchange</div>
+                  <div>Thank you for shopping with Meena Cards</div>
+                </div>
               </div>
             </div>
 
-            <div class="row-two-col">
-              <div class="box">
-                <div class="line"><span class="label">INVOICE NO.:</span> ${escapeHtml(invoice.invoice_number || '')}</div>
+            <div class="footer-section">
+              <div class="footer-contact">
+                <img src="${PHONE_ICON}" alt="Phone"/><span class="company-detail">8248723726</span>
               </div>
-              <div class="box">
-                <div class="line"><span class="label">Date:</span> ${formatDateDDMMYYYY(createdAt)}</div>
-                <div class="line"><span class="label">Time:</span> ${formatTime12Hour(createdAt)}</div>
+              <div class="footer-contact">
+                <img src="${EMAIL_ICON}" alt="Email"/><span class="company-detail">meenacards.mdu@gmail.com</span>
               </div>
-            </div>
-
-            <div class="row-two-col">
-              <div class="box">
-                <div class="line"><span class="label">To:</span> ${escapeHtml(invoice.to_name || '')}</div>
-                <div class="line"><span class="label">Phone number:</span> ${escapeHtml(invoice.to_phone || '')}</div>
+              <div class="footer-contact">
+                <img src="${ADDRESS_ICON}" alt="Address"/><span class="company-detail">62/1, Manjanakara St., Madurai</span>
               </div>
-              <div class="box">
-                <div class="line"><span class="label">Address:</span> ${escapeHtml(invoice.to_address || '')}</div>
-                <div class="line"><span class="label">GST:</span> ${escapeHtml(invoice.gstin || '')}</div>
-              </div>
-            </div>
-
-            <table>
-              <thead>
-                <tr>
-                  <th>Particulars</th>
-                  <th style="text-align:right;">QTY</th>
-                  <th style="text-align:right;">Price</th>
-                  <th style="text-align:right;">Amount</th>
-                </tr>
-              </thead>
-              <tbody>${rows}</tbody>
-            </table>
-
-            <div class="totals-wrap">
-              <div class="totals">
-                <div class="totals-row"><span>Subtotal</span><span>Rs. ${Number(invoice.subtotal || 0).toFixed(2)}</span></div>
-                <div class="totals-row"><span>CGST (9%)</span><span>Rs. ${cgst.toFixed(2)}</span></div>
-                <div class="totals-row"><span>SGST (9%)</span><span>Rs. ${sgst.toFixed(2)}</span></div>
-                <div class="totals-row grand"><span>Total</span><span>Rs. ${Number(invoice.total_amount || 0).toFixed(2)}</span></div>
-              </div>
-            </div>
-
-            <div class="footer-note">
-              <div>NO EXCHANGE | NO REFUND</div>
-              <div>Thank you for shopping with Meena Cards</div>
             </div>
           </div>
         </div>
@@ -372,32 +711,7 @@ function extractBodyBlock(html) {
 }
 
 function buildMonthlyInvoicesHtml(invoices) {
-  const safeInvoices = Array.isArray(invoices) ? invoices.filter(Boolean) : [];
-  if (!safeInvoices.length) {
-    return '<!doctype html><html><head><meta charset="utf-8" /></head><body><div>No invoices to export.</div></body></html>';
-  }
-
-  const sample = buildInvoicePrintHtml(safeInvoices[0]);
-  const style = extractStyleBlock(sample);
-  const pages = safeInvoices
-    .map((inv) => `<section class="month-page">${extractBodyBlock(buildInvoicePrintHtml(inv))}</section>`)
-    .join('');
-
-  return `
-    <!doctype html>
-    <html>
-      <head>
-        <meta charset="utf-8" />
-        <title>Monthly Invoices</title>
-        <style>
-          ${style}
-          .month-page { page-break-after: always; }
-          .month-page:last-child { page-break-after: auto; }
-        </style>
-      </head>
-      <body>${pages}</body>
-    </html>
-  `;
+  return buildInvoicesBundleHtml(invoices, 'Monthly Invoices');
 }
 
 function printInvoice(invoice, options = {}) {
@@ -419,7 +733,7 @@ function printInvoice(invoice, options = {}) {
         {
           silent: options.silent !== false,
           printBackground: true,
-          pageSize: options.pageSize || 'A5',
+          pageSize: options.pageSize || 'A4',
           margins: options.margins || { marginType: 'none' },
           deviceName: options.deviceName || undefined,
         },
@@ -463,7 +777,7 @@ function saveInvoicePdf(invoice, filename) {
         await hiddenWin.webContents.executeJavaScript('new Promise((resolve) => requestAnimationFrame(() => resolve(true)))');
 
         const pdfData = await hiddenWin.webContents.printToPDF({
-          pageSize: 'A5',
+          pageSize: 'A4',
           preferCSSPageSize: false,
           printBackground: true,
           margins: { top: 0, bottom: 0, left: 0, right: 0 },
@@ -508,7 +822,7 @@ function saveMonthlyInvoicesPdf(invoices, filename) {
       },
     });
 
-    const tempHtmlPath = createTempHtmlFile(buildMonthlyInvoicesHtml(invoices));
+    const tempHtmlPath = createTempHtmlFile(buildInvoicesBundleHtml(invoices, 'Monthly Invoices'));
 
     hiddenWin.webContents.once('did-finish-load', async () => {
       try {
@@ -516,7 +830,7 @@ function saveMonthlyInvoicesPdf(invoices, filename) {
         await hiddenWin.webContents.executeJavaScript('new Promise((resolve) => requestAnimationFrame(() => resolve(true)))');
 
         const pdfData = await hiddenWin.webContents.printToPDF({
-          pageSize: 'A5',
+          pageSize: 'A4',
           preferCSSPageSize: false,
           printBackground: true,
           margins: { top: 0, bottom: 0, left: 0, right: 0 },
@@ -545,6 +859,112 @@ function saveMonthlyInvoicesPdf(invoices, filename) {
       hiddenWin.close();
       safeDeleteFile(tempHtmlPath);
       resolve({ ok: false, error: error.message || 'Failed to load monthly invoice PDF template' });
+    });
+  });
+}
+
+function saveInvoicesPdf(invoices, filename, title) {
+  return new Promise((resolve) => {
+    const hiddenWin = new BrowserWindow({
+      width: 820,
+      height: 1160,
+      show: false,
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+    });
+
+    const tempHtmlPath = createTempHtmlFile(buildInvoicesBundleHtml(invoices, title || 'Invoices'));
+
+    hiddenWin.webContents.once('did-finish-load', async () => {
+      try {
+        await hiddenWin.webContents.executeJavaScript('document.fonts ? document.fonts.ready.then(() => true) : Promise.resolve(true)');
+        await hiddenWin.webContents.executeJavaScript('new Promise((resolve) => requestAnimationFrame(() => resolve(true)))');
+
+        const pdfData = await hiddenWin.webContents.printToPDF({
+          pageSize: 'A4',
+          preferCSSPageSize: false,
+          printBackground: true,
+          margins: { top: 0, bottom: 0, left: 0, right: 0 },
+        });
+
+        const downloadsPath = path.join(os.homedir(), 'Downloads');
+        const filepath = path.join(downloadsPath, filename);
+
+        fs.writeFile(filepath, pdfData, (err) => {
+          hiddenWin.close();
+          safeDeleteFile(tempHtmlPath);
+          if (err) {
+            resolve({ ok: false, error: 'Failed to save PDF' });
+          } else {
+            resolve({ ok: true, path: filepath });
+          }
+        });
+      } catch (err) {
+        hiddenWin.close();
+        safeDeleteFile(tempHtmlPath);
+        resolve({ ok: false, error: err.message || 'Failed to convert invoices to PDF' });
+      }
+    });
+
+    hiddenWin.loadFile(tempHtmlPath).catch((error) => {
+      hiddenWin.close();
+      safeDeleteFile(tempHtmlPath);
+      resolve({ ok: false, error: error.message || 'Failed to load invoices PDF template' });
+    });
+  });
+}
+
+function saveReportPdf(report, filename) {
+  return new Promise((resolve) => {
+    const hiddenWin = new BrowserWindow({
+      width: 920,
+      height: 1280,
+      show: false,
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+    });
+
+    const tempHtmlPath = createTempHtmlFile(buildReportPrintHtml(report));
+
+    hiddenWin.webContents.once('did-finish-load', async () => {
+      try {
+        await hiddenWin.webContents.executeJavaScript('document.fonts ? document.fonts.ready.then(() => true) : Promise.resolve(true)');
+        await hiddenWin.webContents.executeJavaScript('new Promise((resolve) => requestAnimationFrame(() => resolve(true)))');
+
+        const pdfData = await hiddenWin.webContents.printToPDF({
+          pageSize: 'A4',
+          preferCSSPageSize: false,
+          printBackground: true,
+          margins: { top: 0, bottom: 0, left: 0, right: 0 },
+        });
+
+        const downloadsPath = path.join(os.homedir(), 'Downloads');
+        const filepath = path.join(downloadsPath, filename);
+
+        fs.writeFile(filepath, pdfData, (err) => {
+          hiddenWin.close();
+          safeDeleteFile(tempHtmlPath);
+          if (err) {
+            resolve({ ok: false, error: 'Failed to save PDF' });
+          } else {
+            resolve({ ok: true, path: filepath });
+          }
+        });
+      } catch (err) {
+        hiddenWin.close();
+        safeDeleteFile(tempHtmlPath);
+        resolve({ ok: false, error: err.message || 'Failed to convert report to PDF' });
+      }
+    });
+
+    hiddenWin.loadFile(tempHtmlPath).catch((error) => {
+      hiddenWin.close();
+      safeDeleteFile(tempHtmlPath);
+      resolve({ ok: false, error: error.message || 'Failed to load report PDF template' });
     });
   });
 }
@@ -603,6 +1023,23 @@ app.whenReady().then(() => {
       return await saveMonthlyInvoicesPdf(payload.invoices || [], payload.filename || 'Monthly_Invoices.pdf');
     } catch (error) {
       return { ok: false, error: error.message || 'Monthly PDF save error' };
+    }
+  });
+
+  ipcMain.handle('pdf:download-invoices', async (_event, payload) => {
+    try {
+      const title = payload.options && payload.options.title ? payload.options.title : 'Invoices';
+      return await saveInvoicesPdf(payload.invoices || [], payload.filename || 'Invoices.pdf', title);
+    } catch (error) {
+      return { ok: false, error: error.message || 'Invoices PDF save error' };
+    }
+  });
+
+  ipcMain.handle('pdf:download-report', async (_event, payload) => {
+    try {
+      return await saveReportPdf(payload.report || {}, payload.filename || 'Report.pdf');
+    } catch (error) {
+      return { ok: false, error: error.message || 'Report PDF save error' };
     }
   });
 
