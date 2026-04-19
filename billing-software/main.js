@@ -32,6 +32,7 @@ function svgIconDataUri(pathData) {
 }
 
 const ADDRESS_ICON = svgIconDataUri('M12 21s6-5.2 6-11a6 6 0 1 0-12 0c0 5.8 6 11 6 11z M12 10.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z');
+const LANE_ICON = svgIconDataUri('M12 2L4 7v12h16V7l-8-5z M12 6.5a3.5 3.5 0 1 1 0 7a3.5 3.5 0 0 1 0-7z');
 const EMAIL_ICON = svgIconDataUri('M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z M22 7l-10 7L2 7');
 const WEBSITE_ICON = svgIconDataUri('M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M2 12h20 M12 2a15 15 0 0 1 0 20 M12 2a15 15 0 0 0 0 20');
 const PHONE_ICON = svgIconDataUri('M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.92.33 1.82.61 2.67a2 2 0 0 1-.45 2.11L8 9a16 16 0 0 0 7 7l.5-.27a2 2 0 0 1 2.11-.45c.85.28 1.75.49 2.67.61A2 2 0 0 1 22 16.92z');
@@ -131,8 +132,13 @@ function buildPrintHeaderComponent() {
           ${LOGO_DATA_URI ? `<img src="${LOGO_DATA_URI}" alt="Meena Cards"/>` : ''}
         </div>
       </div>
-      <div class="company-name">MEENA CARDS</div>
+      <div class="company-center">
+        <div class="company-name">MEENA CARDS</div>
+        <div class="company-name-tamil">மீனா கார்ட்ஸ்</div>
+        <div class="company-address-tamil">62/1, மஞ்சனகரா தெரு., மதுரை - 625001</div>
+      </div>
       <div class="header-right">
+        <div class="website-line"><img class="website-icon" src="${LANE_ICON}" alt="Lane number"/><span class="company-detail">0452-7964782</span></div>
         <div class="website-line"><img class="website-icon" src="${WEBSITE_ICON}" alt="Website"/><span class="company-detail">https://www.meenacards.com</span></div>
         <div class="company-detail">GSTIN: 33AIPPJ2536H1ZA</div>
       </div>
@@ -144,7 +150,7 @@ function buildPrintFooterComponent() {
   return `
     <div class="print-footer">
       <div class="footer-contact">
-        <img src="${PHONE_ICON}" alt="Phone"/><span class="company-detail">9965125250</span>
+        <img src="${PHONE_ICON}" alt="Phone"/><span class="company-detail">8248723726</span>
       </div>
       <div class="footer-contact">
         <img src="${EMAIL_ICON}" alt="Email"/><span class="company-detail">meenacards.mdu@gmail.com</span>
@@ -211,9 +217,15 @@ function buildPrintBaseStyles(extraCss = '') {
       height: auto;
       display: block;
     }
-    .company-name {
+    .company-center {
       width: 34%;
       text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .company-name {
       font-size: 26px;
       font-weight: 800;
       color: #5b1225;
@@ -221,6 +233,19 @@ function buildPrintBaseStyles(extraCss = '') {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+    .company-name-tamil {
+      font-size: 18px;
+      font-weight: 700;
+      color: #5b1225;
+      line-height: 1.1;
+    }
+    .company-address-tamil {
+      font-size: 11px;
+      font-weight: 600;
+      color: #5b1225;
+      line-height: 1.2;
+      white-space: nowrap;
     }
     .header-right {
       width: 33%;
@@ -460,7 +485,8 @@ function buildInvoicePrintHtml(invoice) {
   const termsHtml = invoice.apply_terms_conditions ? '<div class="terms-full-width">Terms and Conditions</div>' : '';
   const bodyHtml = `
     <div class="invoice-main-content">
-      <div class="invoice-info">
+      <div class="bill-title">CASH/CREDIT BILL</div>
+        <div class="invoice-info" style="margin-bottom: 18px;">
         <div class="invoice-info-left">
           <div class="invoice-info-label">Invoice to :</div>
           <div class="invoice-info-content party-box">
@@ -537,11 +563,18 @@ function buildInvoicePrintHtml(invoice) {
         </div>
       </div>
 
-      ${termsHtml}
-
       <div class="bottom-stack">
-        <div class="signature-section">
-          <div class="signature-line">Authorized Signature</div>
+        <div class="terms-signature-row">
+          <div class="terms-block">
+            <div class="terms-title">Terms and Conditions</div>
+            <ol class="terms-list">
+              <li>Payment is due within 30 days from the date of invoice. Any delay beyond the due date will attract a late fee of 10% per month on the outstanding amount. The company reserves the right to suspend services or withhold further deliveries until all outstanding dues are cleared.</li>
+              <li>Goods once sold will not be taken back or exchanged. Cancellation of orders is not permitted once the invoice is generated, unless explicitly agreed upon in writing by the company.</li>
+            </ol>
+          </div>
+          <div class="signature-section">
+            <div class="signature-line">Authorized Signature</div>
+          </div>
         </div>
         <div class="notes">
           <div>No Refund | No Exchange</div>
@@ -659,6 +692,14 @@ function buildInvoicePrintHtml(invoice) {
       text-decoration: none;
       text-transform: uppercase;
     }
+    .bill-title {
+      margin: 0 0 18px;
+      text-align: center;
+      font-size: 21px;
+      font-weight: 800;
+      color: #5b1225;
+      letter-spacing: 0.08em;
+    }
     table.items-table {
       width: 100%;
       border-collapse: collapse;
@@ -727,6 +768,32 @@ function buildInvoicePrintHtml(invoice) {
       flex-direction: column;
       gap: 8px;
     }
+    .terms-signature-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+    }
+    .terms-block {
+      flex: 1;
+      font-size: 11px;
+      color: #5b1225;
+      line-height: 1.5;
+      font-weight: 600;
+    }
+    .terms-title {
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+    .terms-list {
+      margin: 0;
+      padding-left: 18px;
+    }
+    .terms-list li {
+      margin-bottom: 6px;
+    }
     .notes {
       font-size: 12px;
       color: #5b1225;
@@ -737,6 +804,7 @@ function buildInvoicePrintHtml(invoice) {
     .signature-section {
       display: flex;
       justify-content: flex-end;
+      min-width: 230px;
       font-size: 12px;
       font-weight: 700;
       color: #5b1225;
