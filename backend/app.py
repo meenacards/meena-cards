@@ -271,11 +271,41 @@ def create_invoice():
     subtotal = data.get("subtotal", 0)
     tax = data.get("tax", 0)
     total_amount = data.get("total_amount", 0)
+    cgst_percent = data.get("cgst_percent", 9)
+    sgst_percent = data.get("sgst_percent", 9)
+    to_name = str(data.get("to_name", "")).strip()
+    to_address = str(data.get("to_address", "")).strip()
+    to_phone = str(data.get("to_phone", "")).strip()
+    gstin = str(data.get("gstin", "")).strip()
+    apply_terms_conditions = bool(data.get("apply_terms_conditions", False))
     
     if not items:
         return jsonify({"error": "Invoice must contain items"}), 400
     
     try:
+        # Validate requested quantities before invoice creation.
+        for item in items:
+            card_id = item.get("id")
+            quantity = int(item.get("quantity", 0))
+
+            if not card_id or quantity <= 0:
+                # Skip non-stock lines such as transportation charge rows.
+                continue
+
+            oid = parse_object_id(card_id)
+            if oid is None:
+                return jsonify({"error": "Invalid product ID in invoice items"}), 400
+
+            card = cards_collection.find_one({"_id": oid}, {"name": 1, "stock": 1})
+            if not card:
+                return jsonify({"error": "One or more products were not found"}), 400
+
+            available_stock = int(card.get("stock", 0))
+            if quantity > available_stock:
+                return jsonify({
+                    "error": f"Insufficient stock for {card.get('name', 'product')}. Available: {available_stock}, requested: {quantity}"
+                }), 400
+
         # Get the next invoice number
         last_invoice = invoices_collection.find_one(sort=[("invoice_number", -1)])
         invoice_number = (last_invoice.get("invoice_number", 0) if last_invoice else 0) + 1
@@ -287,6 +317,13 @@ def create_invoice():
             "subtotal": float(subtotal),
             "tax": float(tax),
             "total_amount": float(total_amount),
+            "cgst_percent": float(cgst_percent),
+            "sgst_percent": float(sgst_percent),
+            "apply_terms_conditions": apply_terms_conditions,
+            "to_name": to_name,
+            "to_address": to_address,
+            "to_phone": to_phone,
+            "gstin": gstin,
             "created_at": ObjectId().generation_time,
         }
         
@@ -331,6 +368,12 @@ def get_invoices():
                 "subtotal": inv.get("subtotal", 0),
                 "tax": inv.get("tax", 0),
                 "total_amount": inv.get("total_amount", 0),
+                "cgst_percent": inv.get("cgst_percent", 9),
+                "sgst_percent": inv.get("sgst_percent", 9),
+                "to_name": inv.get("to_name", ""),
+                "to_address": inv.get("to_address", ""),
+                "to_phone": inv.get("to_phone", ""),
+                "gstin": inv.get("gstin", ""),
                 "created_at": inv.get("created_at").isoformat() if inv.get("created_at") else None,
             })
         return jsonify(result), 200
@@ -358,6 +401,12 @@ def get_invoice(invoice_id):
             "subtotal": invoice.get("subtotal", 0),
             "tax": invoice.get("tax", 0),
             "total_amount": invoice.get("total_amount", 0),
+            "cgst_percent": invoice.get("cgst_percent", 9),
+            "sgst_percent": invoice.get("sgst_percent", 9),
+            "to_name": invoice.get("to_name", ""),
+            "to_address": invoice.get("to_address", ""),
+            "to_phone": invoice.get("to_phone", ""),
+            "gstin": invoice.get("gstin", ""),
             "created_at": invoice.get("created_at").isoformat() if invoice.get("created_at") else None,
         }), 200
     except Exception as e:

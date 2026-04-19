@@ -256,10 +256,27 @@ button {
   font-size: 14px;
   background: var(--surface);
   color: var(--text-primary);
-  caret-color: var(--brand-maroon);
+  caret-color: var(--brand-maroon) !important;
   pointer-events: auto;
   user-select: text;
   -webkit-user-select: text;
+  cursor: text;
+  -webkit-text-fill-color: var(--text-primary);
+}
+
+.input-qty-text,
+input[type="text"],
+input[type="number"] {
+  caret-color: var(--brand-maroon) !important;
+  cursor: text;
+  -webkit-text-fill-color: var(--text-primary);
+}
+
+.input:not(:disabled):focus,
+.input-qty-text:not(:disabled):focus,
+input[type="text"]:not(:disabled):focus,
+input[type="number"]:not(:disabled):focus {
+  caret-color: var(--brand-maroon) !important;
 }
 
 .input::placeholder {
@@ -430,6 +447,34 @@ button {
 }
 
 .invoice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.invoice-month-section {
+  background: rgba(255, 251, 244, 0.55);
+  border: 1px solid rgba(201, 163, 91, 0.28);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.invoice-month-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.invoice-month-title {
+  margin: 0;
+  color: var(--brand-maroon);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 24px;
+}
+
+.invoice-month-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 14px;
@@ -850,6 +895,39 @@ button {
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
 }
 
+.presses-grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.press-card {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 8px 24px rgba(91, 18, 37, 0.05);
+}
+
+.press-card h4 {
+  margin: 0 0 8px;
+  color: var(--brand-maroon);
+  font-size: 18px;
+}
+
+.press-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  padding: 4px 0;
+}
+
+.press-line span {
+  color: var(--text-secondary);
+}
+
 .admin-product-card {
   cursor: default;
 }
@@ -1075,6 +1153,116 @@ button {
   margin-top: 14px;
   padding-top: 12px;
   border-top: 1px solid var(--border-soft);
+}
+
+.reports-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.report-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+
+.report-control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.report-control {
+  width: 100%;
+}
+
+.report-overview-grid,
+.report-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.report-metric-card {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 8px 18px rgba(91, 18, 37, 0.05);
+}
+
+.report-metric-title {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.report-metric-value {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px;
+  color: var(--brand-maroon);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.report-metric-subtitle {
+  margin-top: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.report-detail-card {
+  background: rgba(255, 251, 244, 0.7);
+  border: 1px solid rgba(201, 163, 91, 0.28);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.report-detail-heading {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px;
+  color: var(--brand-maroon);
+  font-weight: 700;
+}
+
+.report-detail-subheading {
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-top: 4px;
+  margin-bottom: 12px;
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.report-table th,
+.report-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--divider);
+  font-size: 13px;
+}
+
+.report-table th {
+  background: #f9f2e6;
+  color: var(--brand-maroon);
+  text-align: left;
+  font-weight: 700;
+}
+
+.report-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 @media (max-width: 1080px) {

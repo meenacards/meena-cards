@@ -73,7 +73,7 @@
       .replace(/'/g, '&#39;');
   }
 
-  async function downloadPdfA5(invoice) {
+  async function downloadPdfA4(invoice) {
     if (!window.billingApp) {
       alert('Desktop bridge is not available. Please restart the app and try again.');
       return;
@@ -83,7 +83,7 @@
 
     if (typeof window.billingApp.downloadPdf === 'function') {
       const result = await window.billingApp.downloadPdf(invoice, filename, {
-        pageSize: 'A5',
+        pageSize: 'A4',
         margins: { marginType: 'none' },
       });
 
@@ -93,11 +93,11 @@
       }
     }
 
-    // Fallback: open print dialog in A5 and let user choose "Save as PDF".
+    // Fallback: open print dialog in A4 and let user choose "Save as PDF".
     if (typeof window.billingApp.printInvoice === 'function') {
       const printResult = await window.billingApp.printInvoice(invoice, {
         silent: false,
-        pageSize: 'A5',
+        pageSize: 'A4',
         margins: { marginType: 'none' },
       });
 
@@ -193,9 +193,9 @@
 
     const downloadBtn = document.createElement('button');
     downloadBtn.className = 'btn-primary';
-    downloadBtn.textContent = 'Download PDF (A5)';
+    downloadBtn.textContent = 'Download PDF (A4)';
     downloadBtn.onclick = async () => {
-      await downloadPdfA5(invoice);
+      await downloadPdfA4(invoice);
     };
 
     const closeDetailBtn = document.createElement('button');
@@ -217,23 +217,273 @@
     document.body.appendChild(modal);
   }
 
+  function getMonthKey(dateValue) {
+    const d = new Date(dateValue || Date.now());
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}`;
+  }
+
+  function getMonthLabel(monthKey) {
+    const [y, m] = String(monthKey).split('-').map(Number);
+    const d = new Date(y, (m || 1) - 1, 1);
+    return d.toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+  }
+
+  function parseLocalDate(value, endOfDay = false) {
+    if (!value) return null;
+    const parts = String(value).split('-').map(Number);
+    if (parts.length !== 3 || parts.some((part) => Number.isNaN(part))) return null;
+
+    const [year, month, day] = parts;
+    const date = new Date(
+      year,
+      month - 1,
+      day,
+      endOfDay ? 23 : 0,
+      endOfDay ? 59 : 0,
+      endOfDay ? 59 : 0,
+      endOfDay ? 999 : 0
+    );
+
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  function filterInvoicesByScope(invoices, scope, config) {
+    const now = new Date();
+    return (invoices || []).filter((invoice) => {
+      const createdAt = new Date(invoice.created_at || Date.now());
+
+      if (scope === 'year') {
+        const yearValue = String(config.year || now.getFullYear());
+        return String(createdAt.getFullYear()) === yearValue;
+      }
+
+      if (scope === 'custom') {
+        const fromDate = parseLocalDate(config.from, false);
+        const toDate = parseLocalDate(config.to, true);
+        if (!fromDate || !toDate) return false;
+        return createdAt >= fromDate && createdAt <= toDate;
+      }
+
+      return true;
+    });
+  }
+
+  async function downloadMonthlyPdf(monthKey, monthInvoices) {
+    if (!window.billingApp || typeof window.billingApp.downloadMonthlyPdf !== 'function') {
+      alert('Monthly PDF download service is not available. Please restart the app.');
+      return;
+    }
+
+    const filename = `Invoices_${monthKey}.pdf`;
+    const result = await window.billingApp.downloadMonthlyPdf(monthInvoices, filename, {
+      pageSize: 'A4',
+      margins: { marginType: 'none' },
+    });
+
+    if (result && result.ok) {
+      alert(`Monthly PDF saved: ${result.path || filename}`);
+    } else {
+      alert(`Failed to save monthly PDF.${result && result.error ? ` ${result.error}` : ''}`);
+    }
+  }
+
+  async function downloadFilteredInvoicesPdf(title, filename, invoices) {
+    if (!window.billingApp || typeof window.billingApp.downloadInvoicesPdf !== 'function') {
+      alert('Invoice PDF export service is not available. Please restart the app.');
+      return;
+    }
+
+    const result = await window.billingApp.downloadInvoicesPdf(invoices, filename, {
+      title,
+      pageSize: 'A4',
+      margins: { marginType: 'none' },
+    });
+
+    if (result && result.ok) {
+      alert(`PDF saved: ${result.path || filename}`);
+    } else {
+      alert(`Failed to save PDF.${result && result.error ? ` ${result.error}` : ''}`);
+    }
+  }
+
   async function renderInvoicesView(container) {
     container.innerHTML = '';
     await loadInvoices();
 
-    const list = document.createElement('div');
-    list.className = 'invoice-list';
+    const root = document.createElement('div');
+    root.className = 'invoice-list';
+
+    const exportPanel = document.createElement('div');
+    exportPanel.className = 'cart-summary';
+    exportPanel.style.marginBottom = '16px';
+
+    const exportTitle = document.createElement('div');
+    exportTitle.className = 'field-label';
+    exportTitle.textContent = 'Download Invoices';
+
+    const exportScopeRow = document.createElement('div');
+    exportScopeRow.style.display = 'flex';
+    exportScopeRow.style.gap = '10px';
+    exportScopeRow.style.flexWrap = 'wrap';
+
+    const exportScope = document.createElement('select');
+    exportScope.className = 'input';
+    exportScope.style.minWidth = '160px';
+    ['month', 'year', 'custom'].forEach((value) => {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = value === 'month' ? 'Monthly' : value === 'year' ? 'Yearly' : 'Date Range';
+      exportScope.appendChild(option);
+    });
+
+    const current = new Date();
+    const monthInput = document.createElement('input');
+    monthInput.type = 'month';
+    monthInput.className = 'input';
+    monthInput.value = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+
+    const yearInput = document.createElement('input');
+    yearInput.type = 'number';
+    yearInput.className = 'input';
+    yearInput.min = '2000';
+    yearInput.max = '2100';
+    yearInput.value = String(current.getFullYear());
+
+    const fromInput = document.createElement('input');
+    fromInput.type = 'date';
+    fromInput.className = 'input';
+
+    const toInput = document.createElement('input');
+    toInput.type = 'date';
+    toInput.className = 'input';
+
+    const exportBtn = document.createElement('button');
+    exportBtn.type = 'button';
+    exportBtn.className = 'btn-primary';
+    exportBtn.textContent = 'Download PDF';
+
+    exportScopeRow.appendChild(exportScope);
+    exportScopeRow.appendChild(monthInput);
+    exportScopeRow.appendChild(yearInput);
+    exportScopeRow.appendChild(fromInput);
+    exportScopeRow.appendChild(toInput);
+    exportScopeRow.appendChild(exportBtn);
+    exportPanel.appendChild(exportTitle);
+    exportPanel.appendChild(exportScopeRow);
+
+    function syncExportVisibility() {
+      const scope = exportScope.value;
+      monthInput.style.display = scope === 'month' ? '' : 'none';
+      yearInput.style.display = scope === 'year' ? '' : 'none';
+      fromInput.style.display = scope === 'custom' ? '' : 'none';
+      toInput.style.display = scope === 'custom' ? '' : 'none';
+    }
+
+    exportScope.addEventListener('change', syncExportVisibility);
+    syncExportVisibility();
+
+    exportBtn.onclick = async () => {
+      const scope = exportScope.value;
+      const monthValue = monthInput.value;
+      const yearValue = Number(yearInput.value || current.getFullYear());
+      const fromValue = fromInput.value;
+      const toValue = toInput.value;
+
+      let filtered = [];
+      let filename = 'Invoices.pdf';
+      let title = 'Invoices';
+
+      if (scope === 'month') {
+        filtered = (window.BillingState.invoices || []).filter((invoice) => {
+          const createdAt = new Date(invoice.created_at || Date.now());
+          const invoiceKey = `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, '0')}`;
+          return invoiceKey === monthValue;
+        });
+        filename = `Invoices_${monthValue}.pdf`;
+        title = `Invoices - ${monthValue}`;
+      } else if (scope === 'year') {
+        filtered = filterInvoicesByScope(window.BillingState.invoices, 'year', { year: yearValue });
+        filename = `Invoices_${yearValue}.pdf`;
+        title = `Invoices - ${yearValue}`;
+      } else {
+        filtered = filterInvoicesByScope(window.BillingState.invoices, 'custom', { from: fromValue, to: toValue });
+        filename = `Invoices_${fromValue || 'from'}_${toValue || 'to'}.pdf`;
+        title = 'Invoices - Date Range';
+      }
+
+      if (!filtered.length) {
+        alert('No invoices found for the selected range.');
+        return;
+      }
+
+      exportBtn.disabled = true;
+      exportBtn.textContent = 'Preparing...';
+      try {
+        await downloadFilteredInvoicesPdf(title, filename, filtered);
+      } finally {
+        exportBtn.disabled = false;
+        exportBtn.textContent = 'Download PDF';
+      }
+    };
+
+    root.appendChild(exportPanel);
 
     if (!window.BillingState.invoices.length) {
       const empty = document.createElement('div');
       empty.className = 'text-muted';
       empty.textContent = 'No invoices yet.';
-      list.appendChild(empty);
-      container.appendChild(list);
+      root.appendChild(empty);
+      container.appendChild(root);
       return;
     }
 
-    window.BillingState.invoices.forEach((inv) => {
+    const groups = {};
+    (window.BillingState.invoices || []).forEach((inv) => {
+      const key = getMonthKey(inv.created_at);
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(inv);
+    });
+
+    const monthKeys = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+
+    monthKeys.forEach((monthKey) => {
+      const monthInvoices = groups[monthKey]
+        .slice()
+        .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+      const monthSection = document.createElement('section');
+      monthSection.className = 'invoice-month-section';
+
+      const monthHeader = document.createElement('div');
+      monthHeader.className = 'invoice-month-header';
+
+      const monthTitle = document.createElement('h3');
+      monthTitle.className = 'invoice-month-title';
+      monthTitle.textContent = `${getMonthLabel(monthKey)} (${monthInvoices.length})`;
+
+      const monthDownloadBtn = document.createElement('button');
+      monthDownloadBtn.className = 'btn-primary';
+      monthDownloadBtn.textContent = 'Download Month PDF';
+      monthDownloadBtn.onclick = async () => {
+        monthDownloadBtn.disabled = true;
+        monthDownloadBtn.textContent = 'Preparing...';
+        try {
+          await downloadMonthlyPdf(monthKey, monthInvoices);
+        } finally {
+          monthDownloadBtn.disabled = false;
+          monthDownloadBtn.textContent = 'Download Month PDF';
+        }
+      };
+
+      monthHeader.appendChild(monthTitle);
+      monthHeader.appendChild(monthDownloadBtn);
+
+      const monthList = document.createElement('div');
+      monthList.className = 'invoice-month-list';
+
+      monthInvoices.forEach((inv) => {
       const card = document.createElement('article');
       card.className = 'invoice-card';
       card.style.cursor = 'pointer';
@@ -288,10 +538,15 @@
       card.appendChild(stats);
 
       card.onclick = () => openInvoiceDetail(inv);
-      list.appendChild(card);
+      monthList.appendChild(card);
     });
 
-    container.appendChild(list);
+      monthSection.appendChild(monthHeader);
+      monthSection.appendChild(monthList);
+      root.appendChild(monthSection);
+    });
+
+    container.appendChild(root);
   }
 
   window.InvoicesView = { render: renderInvoicesView };

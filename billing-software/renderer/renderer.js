@@ -23,6 +23,12 @@
       return;
     }
 
+    if (view === 'reports') {
+      viewTitle.textContent = 'Reports';
+      window.ReportsView.render(viewContainer);
+      return;
+    }
+
     viewTitle.textContent = 'Billing Counter';
     window.BillingView.render(viewContainer);
   }
