@@ -15,7 +15,6 @@ function getLogoDataUri() {
     return '';
   }
 }
-
 const LOGO_DATA_URI = getLogoDataUri();
 const WATERMARK_DATA_URI = (() => {
   try {
@@ -145,13 +144,13 @@ function buildPrintFooterComponent() {
   return `
     <div class="print-footer">
       <div class="footer-contact">
-        <img src="${PHONE_ICON}" alt="Phone"/><span class="company-detail">8248723726</span>
+        <img src="${PHONE_ICON}" alt="Phone"/><span class="company-detail">9965125250</span>
       </div>
       <div class="footer-contact">
         <img src="${EMAIL_ICON}" alt="Email"/><span class="company-detail">meenacards.mdu@gmail.com</span>
       </div>
       <div class="footer-contact">
-        <img src="${ADDRESS_ICON}" alt="Address"/><span class="company-detail">62/1, Manjanakara St., Madurai</span>
+        <img src="${ADDRESS_ICON}" alt="Address"/><span class="company-detail">62/1, MANJANAKARA ST., MADURAI - 625001</span>
       </div>
     </div>
   `;
@@ -215,7 +214,7 @@ function buildPrintBaseStyles(extraCss = '') {
     .company-name {
       width: 34%;
       text-align: center;
-      font-size: 28px;
+      font-size: 26px;
       font-weight: 800;
       color: #5b1225;
       letter-spacing: 0.02em;
@@ -279,16 +278,16 @@ function buildPrintBaseStyles(extraCss = '') {
 
 function buildPrintDocumentHtml({ title, bodyHtml, includeWatermark = true, extraCss = '' }) {
   return `
-    <!doctype html>
+    <!DOCTYPE html>
     <html>
       <head>
-        <meta charset="utf-8" />
-        <title>${escapeHtml(title || 'Document')}</title>
+        <meta charset="UTF-8" />
+        <title>${escapeHtml(title || 'Print')}</title>
         <style>${buildPrintBaseStyles(extraCss)}</style>
       </head>
       <body>
         <div class="page">
-          <div class="watermark">${includeWatermark && WATERMARK_DATA_URI ? `<img src="${WATERMARK_DATA_URI}" alt="Watermark"/>` : ''}</div>
+          ${includeWatermark && WATERMARK_DATA_URI ? `<div class="watermark"><img src="${WATERMARK_DATA_URI}" alt="Watermark"/></div>` : ''}
           <div class="content">
             ${buildPrintHeaderComponent()}
             <div class="print-body">${bodyHtml}</div>
@@ -438,7 +437,7 @@ function buildInvoicePrintHtml(invoice) {
     .map((item, idx) => `
       <tr>
         <td style="text-align:center;">${idx + 1}</td>
-        <td>${escapeHtml(item.name)}</td>
+        <td>${escapeHtml(String(item.name || '').toUpperCase())}</td>
         <td style="text-align:center;">${item.is_transportation ? '-' : Number(item.quantity || 0)}</td>
         <td style="text-align:right;">${item.is_transportation ? '-' : `Rs. ${Number(item.price || 0).toFixed(2)}`}</td>
         <td style="text-align:right;">Rs. ${Number(item.line_total ?? (Number(item.price || 0) * Number(item.quantity || 0))).toFixed(2)}</td>
@@ -453,6 +452,10 @@ function buildInvoicePrintHtml(invoice) {
   const sgst = subtotal * (sgstPercent / 100);
   const total = Number(invoice.total_amount || 0);
   const createdAt = invoice.created_at || Date.now();
+  const customerName = escapeHtml(String(invoice.to_name || '').toUpperCase()) || '-';
+  const customerAddress = escapeHtml(String(invoice.to_address || '').toUpperCase()) || '-';
+  const customerPhone = escapeHtml(String(invoice.to_phone || '').toUpperCase()) || '-';
+  const customerGstin = escapeHtml(String(invoice.gstin || '').toUpperCase()) || '-';
 
   const termsHtml = invoice.apply_terms_conditions ? '<div class="terms-full-width">Terms and Conditions</div>' : '';
   const bodyHtml = `
@@ -460,24 +463,40 @@ function buildInvoicePrintHtml(invoice) {
       <div class="invoice-info">
         <div class="invoice-info-left">
           <div class="invoice-info-label">Invoice to :</div>
-          <div class="invoice-info-content">
-            <strong>${escapeHtml(invoice.to_name || '')}</strong><br/>
-            ${escapeHtml(invoice.to_phone || '')}<br/>
-            <span>${escapeHtml(invoice.to_address || '')}</span><br/>
-            <strong>GSTIN:</strong> ${escapeHtml(invoice.gstin || '')}
+          <div class="invoice-info-content party-box">
+            <div class="party-line">
+              <span class="party-label">Name</span>
+              <span class="party-colon">:</span>
+              <span class="party-value">${customerName}</span>
+            </div>
+            <div class="party-line">
+              <span class="party-label">Address</span>
+              <span class="party-colon">:</span>
+              <span class="party-value">${customerAddress}</span>
+            </div>
+            <div class="party-line">
+              <span class="party-label">Mobile</span>
+              <span class="party-colon">:</span>
+              <span class="party-value">${customerPhone}</span>
+            </div>
+            <div class="party-line">
+              <span class="party-label">GSTIN</span>
+              <span class="party-colon">:</span>
+              <span class="party-value">${customerGstin}</span>
+            </div>
           </div>
         </div>
         <div class="invoice-info-right">
-            <table class="meta-table">
-              <tr>
-              <td class="meta-label"><strong>Invoice No.</strong></td>
-              <td class="meta-fill"><span class="meta-value">: ${escapeHtml(invoice.invoice_number || '')}</span></td>
-              </tr>
-              <tr>
-              <td class="meta-label"><strong>Date</strong></td>
-              <td class="meta-fill"><span class="meta-value">: ${formatDateDDMMYYYY(createdAt)}</span></td>
-              </tr>
-            </table>
+          <div class="meta-box">
+            <div class="meta-line">
+              <span class="meta-label">Invoice No.</span>
+              <span class="meta-fill"><span class="meta-value">: ${escapeHtml(invoice.invoice_number || '')}</span></span>
+            </div>
+            <div class="meta-line">
+              <span class="meta-label">Date</span>
+              <span class="meta-fill"><span class="meta-value">: ${formatDateDDMMYYYY(createdAt)}</span></span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -541,8 +560,9 @@ function buildInvoicePrintHtml(invoice) {
     .invoice-info {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 14px;
-      font-size: 13px;
+      margin-bottom: 12px;
+      font-size: 15px;
+      gap: 8px;
     }
     .invoice-info-left {
       width: 55%;
@@ -551,41 +571,79 @@ function buildInvoicePrintHtml(invoice) {
       width: 45%;
       display: flex;
       justify-content: flex-end;
+      margin-top: -2px;
     }
     .invoice-info-label {
-      font-weight: bold;
+      font-weight: 700;
       margin-bottom: 3px;
+      text-transform: uppercase;
     }
     .invoice-info-content {
       margin-bottom: 6px;
       line-height: 1.4;
+      text-transform: uppercase;
     }
-    .meta-table {
-      border-collapse: collapse;
-      font-size: 13px;
-      width: 260px;
-      border: none !important;
+    .party-box {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
     }
-    .meta-table tr {
-      height: 28px;
-      border: none !important;
-    }
-    .meta-table td {
+    .party-line {
+      display: flex;
+      align-items: baseline;
+      min-height: 18px;
+      margin: 0;
       padding: 0;
+    }
+    .party-label {
+      width: 82px;
+      font-weight: 700;
+      white-space: nowrap;
+      text-align: left;
+      line-height: 1.2;
+    }
+    .party-colon {
+      width: 10px;
+      text-align: center;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .party-value {
+      flex: 1;
+      text-align: left;
+      line-height: 1.2;
+      word-break: break-word;
+    }
+    .meta-box {
+      font-size: 15px;
+      width: 248px;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    .meta-line {
+      display: flex;
+      align-items: center;
+      min-height: 18px;
+      margin: 0;
+      padding: 0;
+    }
+    .meta-label,
+    .meta-fill {
       vertical-align: middle;
-      border: none !important;
     }
     .meta-label {
       font-weight: 700;
-      padding-right: 10px;
-      width: 86px;
+      padding-right: 8px;
+      width: 98px;
       text-align: left;
       white-space: nowrap;
       line-height: 1;
+      text-transform: uppercase;
     }
     .meta-fill {
-      width: 170px;
-      padding-left: 8px;
+      width: 150px;
+      padding-left: 4px;
       text-align: left;
       line-height: 1;
       border: none !important;
@@ -599,6 +657,7 @@ function buildInvoicePrintHtml(invoice) {
       min-width: 1px;
       line-height: 1;
       text-decoration: none;
+      text-transform: uppercase;
     }
     table.items-table {
       width: 100%;
@@ -622,17 +681,20 @@ function buildInvoicePrintHtml(invoice) {
       background: #f8eef1;
     }
     .totals-section {
-      display: flex;
-      justify-content: space-between;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(260px, 290px);
       margin: 10px 0;
-      font-size: 12px;
+      font-size: 17px;
+      column-gap: 12px;
+      align-items: start;
     }
     .totals-left {
-      width: 50%;
+      width: 100%;
     }
     .totals-right {
-      width: 50%;
+      width: auto;
       text-align: right;
+      justify-self: end;
     }
     .totals-row {
       display: flex;
@@ -642,8 +704,8 @@ function buildInvoicePrintHtml(invoice) {
       line-height: 1.2;
     }
     .totals-row.grand-total {
-      font-weight: bold;
-      font-size: 13px;
+      font-weight: 700;
+      font-size: 18px;
       padding: 8px 0;
       background: transparent;
       color: #5b1225;
@@ -651,6 +713,7 @@ function buildInvoicePrintHtml(invoice) {
       margin-top: 4px;
     }
     .terms-full-width {
+      grid-column: 1 / -1;
       width: 100%;
       margin-top: 8px;
       font-size: 12px;

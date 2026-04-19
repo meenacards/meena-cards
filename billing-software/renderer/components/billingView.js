@@ -117,15 +117,26 @@
     left.appendChild(pressPanel);
 
     // Product search input + suggestions
+    const searchToolbar = document.createElement('div');
+    searchToolbar.className = 'billing-search-toolbar';
+
     const searchInput = document.createElement('input');
     searchInput.placeholder = 'Search product by name';
     searchInput.className = 'input';
     searchInput.style.width = '100%';
 
+    const addCustomProductBtn = document.createElement('button');
+    addCustomProductBtn.type = 'button';
+    addCustomProductBtn.className = 'btn-secondary billing-add-custom-btn';
+    addCustomProductBtn.textContent = '+';
+    addCustomProductBtn.title = 'Add temporary product';
+
     const suggestions = document.createElement('div');
     suggestions.className = 'products-list-simple';
 
-    left.appendChild(searchInput);
+    searchToolbar.appendChild(searchInput);
+    searchToolbar.appendChild(addCustomProductBtn);
+    left.appendChild(searchToolbar);
     left.appendChild(suggestions);
 
     // Cart table
@@ -237,6 +248,144 @@
     let isTransportationEnabled = false;
     let isTermsEnabled = false;
 
+    function showBillingMessage(type, message) {
+      const toastType = type || 'info';
+      const theme = {
+        success: 'linear-gradient(135deg, #2f8f61, #256f4b)',
+        warning: 'linear-gradient(135deg, #c08a2d, #8f6620)',
+        error: 'linear-gradient(135deg, #b85b5b, #8e3f3f)',
+        info: 'linear-gradient(135deg, #5b1225, #7a1e35)',
+      };
+
+      if (window.Toastify) {
+        window.Toastify({
+          text: message,
+          duration: toastType === 'error' ? 4500 : 3200,
+          gravity: 'top',
+          position: 'right',
+          stopOnFocus: true,
+          close: true,
+          style: {
+            background: theme[toastType] || theme.info,
+            color: '#fff',
+            borderRadius: '10px',
+            boxShadow: '0 10px 24px rgba(0, 0, 0, 0.22)',
+            fontWeight: '600',
+          },
+        }).showToast();
+        return;
+      }
+
+      console[toastType === 'error' ? 'error' : 'log'](message);
+    }
+
+    function openCustomProductModal() {
+      const overlay = document.createElement('div');
+      overlay.className = 'admin-modal-overlay';
+
+      const modal = document.createElement('div');
+      modal.className = 'admin-modal billing-custom-modal';
+
+      const header = document.createElement('div');
+      header.className = 'admin-modal-header';
+      header.innerHTML = '<h3>Add Temporary Product</h3>';
+
+      const closeBtn = document.createElement('button');
+      closeBtn.type = 'button';
+      closeBtn.className = 'admin-modal-close';
+      closeBtn.textContent = '×';
+
+      const body = document.createElement('div');
+      body.className = 'admin-modal-body';
+
+      const nameLabel = document.createElement('div');
+      nameLabel.className = 'field-label';
+      nameLabel.textContent = 'Product Name';
+      const nameInput = document.createElement('input');
+      nameInput.className = 'input';
+      nameInput.placeholder = 'Enter product name';
+
+      const priceLabel = document.createElement('div');
+      priceLabel.className = 'field-label';
+      priceLabel.textContent = 'Price';
+      const priceInput = document.createElement('input');
+      priceInput.type = 'number';
+      priceInput.min = '0';
+      priceInput.step = '0.01';
+      priceInput.className = 'input';
+      priceInput.placeholder = 'Enter price';
+
+      const quantityLabel = document.createElement('div');
+      quantityLabel.className = 'field-label';
+      quantityLabel.textContent = 'Quantity';
+      const quantityInput = document.createElement('input');
+      quantityInput.type = 'number';
+      quantityInput.min = '1';
+      quantityInput.step = '1';
+      quantityInput.className = 'input';
+      quantityInput.placeholder = 'Enter quantity';
+      quantityInput.value = '1';
+
+      body.appendChild(nameLabel);
+      body.appendChild(nameInput);
+      body.appendChild(priceLabel);
+      body.appendChild(priceInput);
+      body.appendChild(quantityLabel);
+      body.appendChild(quantityInput);
+
+      const footer = document.createElement('div');
+      footer.className = 'admin-modal-footer';
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.type = 'button';
+      cancelBtn.className = 'btn-secondary';
+      cancelBtn.textContent = 'Cancel';
+
+      const addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      addBtn.className = 'btn-primary';
+      addBtn.textContent = 'Add';
+
+      const closeModal = () => overlay.remove();
+
+      closeBtn.onclick = closeModal;
+      cancelBtn.onclick = closeModal;
+      overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) closeModal();
+      });
+
+      addBtn.onclick = () => {
+        const result = window.BillingActions.addCustomItem({
+          name: nameInput.value,
+          price: priceInput.value,
+          quantity: quantityInput.value,
+        });
+
+        if (!result || !result.ok) {
+          showBillingMessage('error', 'Enter a valid temporary product name, price, and quantity.');
+          return;
+        }
+
+        closeModal();
+        renderCartRows();
+        renderTotals();
+        showBillingMessage('success', 'Temporary product added to the invoice.');
+        setTimeout(() => searchInput.focus(), 0);
+      };
+
+      footer.appendChild(cancelBtn);
+      footer.appendChild(addBtn);
+      modal.appendChild(header);
+      modal.appendChild(closeBtn);
+      modal.appendChild(body);
+      modal.appendChild(footer);
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+      setTimeout(() => nameInput.focus(), 0);
+    }
+
+    addCustomProductBtn.addEventListener('click', openCustomProductModal);
+
     function setTransportationMode(enabled) {
       isTransportationEnabled = Boolean(enabled);
       transportAmountInput.style.display = isTransportationEnabled ? 'block' : 'none';
@@ -342,7 +491,7 @@
           const val = isNaN(parsed) ? 1 : Math.max(1, parsed);
           const updateResult = window.BillingActions.updateQuantity(item.id, val);
           if (updateResult && updateResult.ok === false && Number.isFinite(Number(updateResult.stock))) {
-            alert(`Quantity adjusted to available stock (${updateResult.stock}).`);
+            showBillingMessage('warning', `Quantity adjusted to available stock (${updateResult.stock}).`);
           }
           renderCartRows();
           renderTotals();
@@ -355,7 +504,7 @@
           const newVal = item.quantity + 1;
           const updateResult = window.BillingActions.updateQuantity(item.id, newVal);
           if (updateResult && updateResult.ok === false && Number.isFinite(Number(updateResult.stock))) {
-            alert(`Cannot exceed stock. Available stock: ${updateResult.stock}.`);
+            showBillingMessage('warning', `Cannot exceed stock. Available stock: ${updateResult.stock}.`);
           }
           renderCartRows();
           renderTotals();
@@ -414,7 +563,7 @@
       totalsEl.appendChild(row(`CGST (${cgstPercent}%)`, cgst));
       totalsEl.appendChild(row(`SGST (${sgstPercent}%)`, sgst));
       if (transportationCharge > 0) {
-        totalsEl.appendChild(row('Transportation Charge', transportationCharge));
+        totalsEl.appendChild(row('TRANSPORTATION CHARGE', transportationCharge));
       }
       totalsEl.appendChild(row('Grand Total', total, true));
     }
@@ -488,7 +637,7 @@
           const addResult = window.BillingActions.addToCart(product);
           if (!addResult || !addResult.ok) {
             const stockText = Number.isFinite(Number(addResult && addResult.stock)) ? ` Available stock: ${addResult.stock}.` : '';
-            alert(`Cannot add more quantity for this product.${stockText}`);
+            showBillingMessage('warning', `Cannot add more quantity for this product.${stockText}`);
             return;
           }
           searchInput.value = '';
@@ -542,7 +691,7 @@
 
     createInvoiceBtn.onclick = async () => {
       if (!window.BillingState.cart.length) {
-        alert('Cart is empty');
+        showBillingMessage('error', 'Cart is empty.');
         return;
       }
       createInvoiceBtn.disabled = true;
@@ -557,7 +706,7 @@
         const customerPhone = phoneInput.value.trim();
 
         if (!customerName) {
-          alert('Please enter customer/press name before generating invoice.');
+          showBillingMessage('error', 'Please enter customer/press name before generating invoice.');
           return;
         }
 
@@ -565,7 +714,7 @@
         const transportationCharge = getTransportationChargeAmount();
 
         if (isTransportationEnabled && transportationCharge <= 0) {
-          alert('Please enter transportation charge amount.');
+          showBillingMessage('error', 'Please enter transportation charge amount.');
           return;
         }
 
@@ -601,14 +750,14 @@
           };
           const printResult = await printInvoiceDirect(printData);
           if (printResult && printResult.ok) {
-            alert(`Invoice #${invoice.invoice_number} saved and printed successfully.`);
+            showBillingMessage('success', `Invoice #${invoice.invoice_number} saved and printed successfully.`);
             resetBillingForm();
           } else {
-            alert(`Invoice #${invoice.invoice_number} saved successfully, but printing failed.${printResult && printResult.error ? ` ${printResult.error}` : ''}`);
+            showBillingMessage('warning', `Invoice #${invoice.invoice_number} saved successfully, but printing failed.${printResult && printResult.error ? ` ${printResult.error}` : ''}`);
           }
         }
       } catch (error) {
-        alert(`Failed to create invoice: ${error.message}`);
+        showBillingMessage('error', `Failed to create invoice: ${error.message}`);
       } finally {
         createInvoiceBtn.disabled = false;
         createInvoiceBtn.textContent = 'Generate Invoice';

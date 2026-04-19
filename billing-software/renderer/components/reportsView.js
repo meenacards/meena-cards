@@ -1,4 +1,33 @@
 (function () {
+  function showToast(message, type = 'info') {
+    const theme = {
+      success: 'linear-gradient(135deg, #2f8f61, #256f4b)',
+      warning: 'linear-gradient(135deg, #c08a2d, #8f6620)',
+      error: 'linear-gradient(135deg, #b85b5b, #8e3f3f)',
+      info: 'linear-gradient(135deg, #5b1225, #7a1e35)',
+    };
+
+    if (window.Toastify) {
+      window.Toastify({
+        text: message,
+        duration: type === 'error' ? 4500 : 3200,
+        gravity: 'top',
+        position: 'right',
+        stopOnFocus: true,
+        close: true,
+        style: {
+          background: theme[type] || theme.info,
+          color: '#fff',
+          borderRadius: '10px',
+          boxShadow: '0 10px 24px rgba(0, 0, 0, 0.22)',
+          fontWeight: '600',
+        },
+      }).showToast();
+      return;
+    }
+
+    console[type === 'error' ? 'error' : 'log'](message);
+  }
   function parseLocalDate(value, endOfDay = false) {
     if (!value) return null;
     const parts = String(value).split('-').map(Number);
@@ -146,7 +175,7 @@
 
   async function downloadReportPdf(report) {
     if (!window.billingApp || typeof window.billingApp.downloadReportPdf !== 'function') {
-      alert('Report PDF service is not available. Please restart the app.');
+      showToast('Report PDF service is not available. Please restart the app.', 'error');
       return;
     }
 
@@ -157,9 +186,9 @@
     });
 
     if (result && result.ok) {
-      alert(`Report PDF saved: ${result.path || filename}`);
+      showToast(`Report PDF saved: ${result.path || filename}`, 'success');
     } else {
-      alert(`Failed to save report PDF.${result && result.error ? ` ${result.error}` : ''}`);
+      showToast(`Failed to save report PDF.${result && result.error ? ` ${result.error}` : ''}`, 'error');
     }
   }
 

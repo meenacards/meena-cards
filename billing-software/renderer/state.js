@@ -49,6 +49,29 @@ window.BillingActions = {
     return { ok: true };
   },
 
+  addCustomItem(item) {
+    const name = String(item && item.name ? item.name : '').trim();
+    const price = Number(item && item.price);
+    const quantity = Math.max(1, parseInt(item && item.quantity, 10) || 1);
+
+    if (!name) {
+      return { ok: false, reason: 'missing-name' };
+    }
+
+    const normalizedPrice = Number.isFinite(price) ? Math.max(0, price) : 0;
+    const customId = `custom-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+    window.BillingState.cart.push({
+      id: customId,
+      name,
+      price: normalizedPrice,
+      quantity,
+      is_custom: true,
+    });
+
+    return { ok: true };
+  },
+
   removeFromCart(id) {
     window.BillingState.cart = window.BillingState.cart.filter(c => c.id !== id);
   },
@@ -119,11 +142,12 @@ window.BillingActions = {
       price: c.price,
       quantity: c.quantity,
       line_total: Number(c.price || 0) * Number(c.quantity || 0),
+      is_custom: Boolean(c.is_custom),
     }));
 
     if (transportationCharge > 0) {
       invoiceItems.push({
-        name: 'Transportation Charge',
+        name: 'TRANSPORTATION CHARGE',
         quantity: 0,
         price: 0,
         line_total: transportationCharge,
