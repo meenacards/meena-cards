@@ -124,6 +124,182 @@ function formatTime12Hour(dateValue) {
   return `${String(hours).padStart(2, '0')}:${mins}:${secs} ${period}`;
 }
 
+function buildPrintHeaderComponent() {
+  return `
+    <div class="print-header">
+      <div class="header-left">
+        <div class="logo-section">
+          ${LOGO_DATA_URI ? `<img src="${LOGO_DATA_URI}" alt="Meena Cards"/>` : ''}
+        </div>
+      </div>
+      <div class="company-name">MEENA CARDS</div>
+      <div class="header-right">
+        <div class="website-line"><img class="website-icon" src="${WEBSITE_ICON}" alt="Website"/><span class="company-detail">https://www.meenacards.com</span></div>
+        <div class="company-detail">GSTIN: 33AIPPJ2536H1ZA</div>
+      </div>
+    </div>
+  `;
+}
+
+function buildPrintFooterComponent() {
+  return `
+    <div class="print-footer">
+      <div class="footer-contact">
+        <img src="${PHONE_ICON}" alt="Phone"/><span class="company-detail">8248723726</span>
+      </div>
+      <div class="footer-contact">
+        <img src="${EMAIL_ICON}" alt="Email"/><span class="company-detail">meenacards.mdu@gmail.com</span>
+      </div>
+      <div class="footer-contact">
+        <img src="${ADDRESS_ICON}" alt="Address"/><span class="company-detail">62/1, Manjanakara St., Madurai</span>
+      </div>
+    </div>
+  `;
+}
+
+function buildPrintBaseStyles(extraCss = '') {
+  return `
+    @page { size: A4; margin: 0; }
+    body { font-family: Arial, sans-serif; margin: 0; color: #222; }
+    .page {
+      position: relative;
+      width: 210mm;
+      min-height: 297mm;
+      height: 297mm;
+      padding: 8mm;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+    .watermark {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.08;
+      z-index: 1;
+      pointer-events: none;
+    }
+    .watermark img {
+      width: 500px;
+      height: 500px;
+      object-fit: contain;
+    }
+    .content {
+      position: relative;
+      z-index: 2;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    .print-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      border-bottom: 2px solid #5b1225;
+      padding-bottom: 10px;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      width: 33%;
+    }
+    .logo-section img {
+      max-width: 120px;
+      height: auto;
+      display: block;
+    }
+    .company-name {
+      width: 34%;
+      text-align: center;
+      font-size: 28px;
+      font-weight: 800;
+      color: #5b1225;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .header-right {
+      width: 33%;
+      text-align: right;
+      font-size: 12px;
+      color: #5b1225;
+      font-weight: 700;
+      line-height: 1.5;
+    }
+    .website-line {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+    .website-icon {
+      width: 13px;
+      height: 13px;
+      object-fit: contain;
+    }
+    .company-detail {
+      font-weight: 700;
+      color: #5b1225;
+    }
+    .print-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .print-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 14px;
+      padding-top: 10px;
+      border-top: 2px solid #5b1225;
+      font-size: 12px;
+      color: #5b1225;
+      font-weight: 700;
+      gap: 8px;
+    }
+    .footer-contact {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .footer-contact img {
+      width: 14px;
+      height: 14px;
+    }
+    ${extraCss}
+  `;
+}
+
+function buildPrintDocumentHtml({ title, bodyHtml, includeWatermark = true, extraCss = '' }) {
+  return `
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>${escapeHtml(title || 'Document')}</title>
+        <style>${buildPrintBaseStyles(extraCss)}</style>
+      </head>
+      <body>
+        <div class="page">
+          <div class="watermark">${includeWatermark && WATERMARK_DATA_URI ? `<img src="${WATERMARK_DATA_URI}" alt="Watermark"/>` : ''}</div>
+          <div class="content">
+            ${buildPrintHeaderComponent()}
+            <div class="print-body">${bodyHtml}</div>
+            ${buildPrintFooterComponent()}
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+}
+
 function buildReportPrintHtml(report) {
   const summaryCards = [
     { label: 'Total Bills', value: Number(report.totalBills || 0) },
@@ -155,125 +331,77 @@ function buildReportPrintHtml(report) {
 
   const generatedAt = report.generatedAt || Date.now();
 
-  return `
-    <!doctype html>
-    <html>
-      <head>
-        <meta charset="utf-8" />
-        <title>Report ${escapeHtml(report.title || '')}</title>
-        <style>
-          @page { size: A4; margin: 0; }
-          body { margin: 0; font-family: Arial, sans-serif; color: #222; }
-          .page {
-            width: 210mm;
-            min-height: 297mm;
-            box-sizing: border-box;
-            padding: 8mm;
-          }
-          .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #5b1225;
-            padding-bottom: 10px;
-            margin-bottom: 12px;
-          }
-          .brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-          }
-          .brand img { max-width: 92px; max-height: 70px; object-fit: contain; }
-          .brand-name {
-            font-size: 30px;
-            font-weight: 800;
-            color: #5b1225;
-          }
-          .report-title {
-            text-align: right;
-            font-size: 18px;
-            color: #5b1225;
-            font-weight: 700;
-          }
-          .report-subtitle {
-            text-align: right;
-            font-size: 11px;
-            color: #666;
-            margin-top: 2px;
-          }
-          .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 10px;
-            margin-bottom: 14px;
-          }
-          .summary-card {
-            border: 1px solid #ddcfba;
-            background: #fffdf9;
-            border-radius: 12px;
-            padding: 12px;
-          }
-          .summary-label { font-size: 11px; color: #4b3a34; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
-          .summary-value { margin-top: 6px; font-size: 22px; font-weight: 700; color: #5b1225; }
-          .summary-note { margin-top: 5px; font-size: 11px; color: #6d5f4c; }
-          table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-          th, td { border: 1px solid #ddd; padding: 7px; font-size: 12px; }
-          th { background: #f8eef1; color: #5b1225; text-align: left; }
-          .footer {
-            margin-top: 10px;
-            display: flex;
-            justify-content: space-between;
-            font-size: 11px;
-            color: #5b1225;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="page">
-          <div class="header">
-            <div class="brand">
-              ${LOGO_DATA_URI ? `<img src="${LOGO_DATA_URI}" alt="Meena Cards"/>` : ''}
-              <div class="brand-name">MEENA CARDS</div>
-            </div>
-            <div>
-              <div class="report-title">${escapeHtml(report.title || 'Report')}</div>
-              <div class="report-subtitle">Generated on ${formatDateDDMMYYYY(generatedAt)}</div>
-            </div>
-          </div>
+  const bodyHtml = `
+    <div class="report-title">${escapeHtml(report.title || 'Report')}</div>
+    <div class="report-subtitle">Generated on ${formatDateDDMMYYYY(generatedAt)} ${formatTime12Hour(generatedAt)}</div>
 
-          <div class="summary-grid">
-            ${summaryCards.map((card) => `
-              <div class="summary-card">
-                <div class="summary-label">${escapeHtml(card.label)}</div>
-                <div class="summary-value">${escapeHtml(String(card.value))}</div>
-                <div class="summary-note">${escapeHtml(report.title || '')}</div>
-              </div>
-            `).join('')}
-          </div>
-
-          <table>
-            <thead>
-              <tr>
-                <th>Invoice No.</th>
-                <th>Date</th>
-                <th style="text-align:right;">Stocks Sold</th>
-                <th style="text-align:right;">Revenue</th>
-                <th style="text-align:right;">Tax</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rows || '<tr><td colspan="5">No invoices found for this report.</td></tr>'}
-            </tbody>
-          </table>
-
-          <div class="footer">
-            <div>No Refund | No Exchange</div>
-            <div>Thank you for shopping with Meena Cards</div>
-          </div>
+    <div class="summary-grid">
+      ${summaryCards.map((card) => `
+        <div class="summary-card">
+          <div class="summary-label">${escapeHtml(card.label)}</div>
+          <div class="summary-value">${escapeHtml(String(card.value))}</div>
+          <div class="summary-note">${escapeHtml(report.title || '')}</div>
         </div>
-      </body>
-    </html>
+      `).join('')}
+    </div>
+
+    <table class="report-table">
+      <thead>
+        <tr>
+          <th>Invoice No.</th>
+          <th>Date</th>
+          <th style="text-align:right;">Stocks Sold</th>
+          <th style="text-align:right;">Revenue</th>
+          <th style="text-align:right;">Tax</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows || '<tr><td colspan="5">No invoices found for this report.</td></tr>'}
+      </tbody>
+    </table>
+
   `;
+
+  const reportCss = `
+    .report-title {
+      text-align: left;
+      font-size: 18px;
+      color: #5b1225;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .report-subtitle {
+      text-align: left;
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 10px;
+    }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .summary-card {
+      border: 1px solid #ddcfba;
+      background: #fffdf9;
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .summary-label { font-size: 11px; color: #4b3a34; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
+    .summary-value { margin-top: 6px; font-size: 22px; font-weight: 700; color: #5b1225; }
+    .summary-note { margin-top: 5px; font-size: 11px; color: #6d5f4c; }
+    .report-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    .report-table th, .report-table td { border: 1px solid #ddd; padding: 7px; font-size: 12px; }
+    .report-table th { background: #f8eef1; color: #5b1225; text-align: left; }
+  `;
+
+  return buildPrintDocumentHtml({
+    title: `Report ${escapeHtml(report.title || '')}`,
+    bodyHtml,
+    includeWatermark: true,
+    extraCss: reportCss,
+  });
 }
 
 function buildInvoicesBundleHtml(invoices, title) {
@@ -325,378 +453,245 @@ function buildInvoicePrintHtml(invoice) {
   const sgst = subtotal * (sgstPercent / 100);
   const total = Number(invoice.total_amount || 0);
   const createdAt = invoice.created_at || Date.now();
-  const termsHtml = invoice.apply_terms_conditions ? '<div class="terms-line">Terms and Conditions</div>' : '';
 
-  return `
-    <!doctype html>
-    <html>
-      <head>
-        <meta charset="utf-8" />
-        <title>Invoice ${escapeHtml(invoice.invoice_number || '')}</title>
-        <style>
-          @page { size: A4; margin: 0; }
-          body { font-family: Arial, sans-serif; margin: 0; color: #222; }
-          .page {
-            position: relative;
-            width: 210mm;
-            height: 297mm;
-            padding: 8mm;
-            box-sizing: border-box;
-            overflow: hidden;
-          }
-          .watermark {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0.08;
-            z-index: 1;
-            pointer-events: none;
-          }
-          .watermark img {
-            width: 500px;
-            height: 500px;
-            object-fit: contain;
-          }
-          .content {
-            position: relative;
-            z-index: 2;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-          }
-          .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-          }
-          .header-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 14px;
-            border-bottom: 2px solid #5b1225;
-            padding-bottom: 10px;
-          }
-          .header-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            width: 33%;
-          }
-          .logo-section img {
-            max-width: 120px;
-            height: auto;
-            display: block;
-          }
-          .company-name {
-            width: 34%;
-            text-align: center;
-            font-size: 30px;
-            font-weight: 800;
-            color: #5b1225;
-            letter-spacing: 0.03em;
-          }
-          .header-right {
-            width: 33%;
-            text-align: right;
-            font-size: 12px;
-            color: #5b1225;
-            font-weight: 700;
-            line-height: 1.5;
-          }
-          .website-line {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 6px;
-          }
-          .website-icon {
-            width: 13px;
-            height: 13px;
-            object-fit: contain;
-          }
-          .company-detail {
-            font-weight: 700;
-            color: #5b1225;
-          }
-          .invoice-info {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 14px;
-            font-size: 13px;
-          }
-          .invoice-info-left {
-            width: 55%;
-          }
-          .invoice-info-right {
-            width: 45%;
-            display: flex;
-            justify-content: flex-end;
-          }
-          .invoice-info-label {
-            font-weight: bold;
-            margin-bottom: 3px;
-          }
-          .invoice-info-content {
-            margin-bottom: 6px;
-            line-height: 1.4;
-          }
-          .meta-table {
-            border-collapse: collapse;
-            font-size: 13px;
-            width: 260px;
-            border: none !important;
-          }
-          .meta-table tr {
-            height: 28px;
-            border: none !important;
-          }
-          .meta-table td {
-            padding: 0;
-            vertical-align: middle;
-            border: none !important;
-          }
-          .meta-label {
-            font-weight: 700;
-            padding-right: 10px;
-            width: 86px;
-            text-align: left;
-            white-space: nowrap;
-            line-height: 1;
-          }
-          .meta-fill {
-            width: 170px;
-            padding-left: 8px;
-            text-align: left;
-            line-height: 1;
-            border: none !important;
-            box-shadow: none !important;
-            background: transparent !important;
-          }
-          .meta-value {
-            font-weight: 700;
-            text-align: left;
-            display: inline-block;
-            min-width: 1px;
-            line-height: 1;
-            text-decoration: none;
-          }
-          table.items-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 10px 0;
-            font-size: 12px;
-          }
-          .items-table th {
-            background: #f8eef1;
-            color: #5b1225;
-            padding: 8px;
-            text-align: left;
-            font-weight: bold;
-            border: 1px solid #ddd;
-          }
-          .items-table td {
-            border: 1px solid #ddd;
-            padding: 7px;
-          }
-          .items-table tr:nth-child(even) {
-            background: #f8eef1;
-          }
-          .totals-section {
-            display: flex;
-            justify-content: space-between;
-            margin: 10px 0;
-            font-size: 12px;
-          }
-          .totals-left {
-            width: 50%;
-          }
-          .totals-right {
-            width: 50%;
-            text-align: right;
-          }
-          .totals-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin: 3px 0;
-            line-height: 1.2;
-          }
-          .totals-row.grand-total {
-            font-weight: bold;
-            font-size: 13px;
-            padding: 8px 0;
-            background: transparent;
-            color: #5b1225;
-            border-top: 1px solid #5b1225;
-            margin-top: 4px;
-          }
-          .terms-line {
-            margin-top: 8px;
-            font-size: 12px;
-            font-weight: 700;
-            color: #5b1225;
-            text-align: center;
-          }
-          .bottom-stack {
-            margin-top: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-          }
-          .notes {
-            font-size: 12px;
-            color: #5b1225;
-            font-weight: 700;
-            line-height: 1.6;
-            text-align: left;
-          }
-          .signature-section {
-            display: flex;
-            justify-content: flex-end;
-            font-size: 12px;
-            font-weight: 700;
-            color: #5b1225;
-          }
-          .signature-line {
-            min-width: 220px;
-            text-align: center;
-            border-top: 1px solid #5b1225;
-            padding-top: 8px;
-          }
-          .footer-section {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 14px;
-            padding-top: 10px;
-            border-top: 2px solid #5b1225;
-            font-size: 12px;
-            color: #5b1225;
-            font-weight: 700;
-          }
-          .footer-contact {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-          }
-          .footer-contact img {
-            width: 14px;
-            height: 14px;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="page">
-          <div class="watermark">${WATERMARK_DATA_URI ? `<img src="${WATERMARK_DATA_URI}" alt="Watermark"/>` : ''}</div>
-          <div class="content">
-            <div class="main-content">
-              <div class="header-top">
-                <div class="header-left">
-                  <div class="logo-section">
-                    ${LOGO_DATA_URI ? `<img src="${LOGO_DATA_URI}" alt="Meena Cards"/>` : ''}
-                  </div>
-                </div>
-                <div class="company-name">MEENA CARDS</div>
-                <div class="header-right">
-                  <div class="website-line"><img class="website-icon" src="${WEBSITE_ICON}" alt="Website"/><span class="company-detail">https://www.meenacards.com</span></div>
-                  <div class="company-detail">GSTIN: 33AIPPJ2536H1ZA</div>
-                </div>
-              </div>
-
-              <div class="invoice-info">
-                <div class="invoice-info-left">
-                  <div class="invoice-info-label">Invoice to :</div>
-                  <div class="invoice-info-content">
-                    <strong>${escapeHtml(invoice.to_name || '')}</strong><br/>
-                    ${escapeHtml(invoice.to_phone || '')}<br/>
-                    <span>${escapeHtml(invoice.to_address || '')}</span><br/>
-                    <strong>GSTIN:</strong> ${escapeHtml(invoice.gstin || '')}
-                  </div>
-                </div>
-                <div class="invoice-info-right">
-                    <table class="meta-table">
-                      <tr>
-                      <td class="meta-label"><strong>Invoice No.</strong></td>
-                      <td class="meta-fill"><span class="meta-value">: ${escapeHtml(invoice.invoice_number || '')}</span></td>
-                      </tr>
-                      <tr>
-                      <td class="meta-label"><strong>Date</strong></td>
-                      <td class="meta-fill"><span class="meta-value">: ${formatDateDDMMYYYY(createdAt)}</span></td>
-                      </tr>
-                    </table>
-                </div>
-              </div>
-
-              <table class="items-table">
-                <thead>
-                  <tr>
-                    <th style="width: 8%;">NO</th>
-                    <th style="width: 40%;">DESCRIPTION</th>
-                    <th style="width: 15%;">QTY</th>
-                    <th style="width: 18%;">PRICE</th>
-                    <th style="width: 19%;">TOTAL</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${rows}
-                </tbody>
-              </table>
-
-              <div class="totals-section">
-                <div class="totals-left"></div>
-                <div class="totals-right">
-                  <div class="totals-row">
-                    <span>Sub Total :</span>
-                    <span>Rs. ${subtotal.toFixed(2)}</span>
-                  </div>
-                  <div class="totals-row">
-                    <span>CGST (${cgstPercent}%) :</span>
-                    <span>Rs. ${cgst.toFixed(2)}</span>
-                  </div>
-                  <div class="totals-row">
-                    <span>SGST (${sgstPercent}%) :</span>
-                    <span>Rs. ${sgst.toFixed(2)}</span>
-                  </div>
-                  <div class="totals-row grand-total">
-                    <span>GRAND TOTAL :</span>
-                    <span>Rs. ${total.toFixed(2)}</span>
-                  </div>
-                  ${termsHtml}
-                </div>
-              </div>
-
-              <div class="bottom-stack">
-                <div class="signature-section">
-                  <div class="signature-line">Authorized Signature</div>
-                </div>
-                <div class="notes">
-                  <div>No Refund | No Exchange</div>
-                  <div>Thank you for shopping with Meena Cards</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="footer-section">
-              <div class="footer-contact">
-                <img src="${PHONE_ICON}" alt="Phone"/><span class="company-detail">8248723726</span>
-              </div>
-              <div class="footer-contact">
-                <img src="${EMAIL_ICON}" alt="Email"/><span class="company-detail">meenacards.mdu@gmail.com</span>
-              </div>
-              <div class="footer-contact">
-                <img src="${ADDRESS_ICON}" alt="Address"/><span class="company-detail">62/1, Manjanakara St., Madurai</span>
-              </div>
-            </div>
+  const termsHtml = invoice.apply_terms_conditions ? '<div class="terms-full-width">Terms and Conditions</div>' : '';
+  const bodyHtml = `
+    <div class="invoice-main-content">
+      <div class="invoice-info">
+        <div class="invoice-info-left">
+          <div class="invoice-info-label">Invoice to :</div>
+          <div class="invoice-info-content">
+            <strong>${escapeHtml(invoice.to_name || '')}</strong><br/>
+            ${escapeHtml(invoice.to_phone || '')}<br/>
+            <span>${escapeHtml(invoice.to_address || '')}</span><br/>
+            <strong>GSTIN:</strong> ${escapeHtml(invoice.gstin || '')}
           </div>
         </div>
-      </body>
-    </html>
+        <div class="invoice-info-right">
+            <table class="meta-table">
+              <tr>
+              <td class="meta-label"><strong>Invoice No.</strong></td>
+              <td class="meta-fill"><span class="meta-value">: ${escapeHtml(invoice.invoice_number || '')}</span></td>
+              </tr>
+              <tr>
+              <td class="meta-label"><strong>Date</strong></td>
+              <td class="meta-fill"><span class="meta-value">: ${formatDateDDMMYYYY(createdAt)}</span></td>
+              </tr>
+            </table>
+        </div>
+      </div>
+
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th style="width: 8%;">NO</th>
+            <th style="width: 40%;">DESCRIPTION</th>
+            <th style="width: 15%;">QTY</th>
+            <th style="width: 18%;">PRICE</th>
+            <th style="width: 19%;">TOTAL</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+
+      <div class="totals-section">
+        <div class="totals-left"></div>
+        <div class="totals-right">
+          <div class="totals-row">
+            <span>Sub Total :</span>
+            <span>Rs. ${subtotal.toFixed(2)}</span>
+          </div>
+          <div class="totals-row">
+            <span>CGST (${cgstPercent}%) :</span>
+            <span>Rs. ${cgst.toFixed(2)}</span>
+          </div>
+          <div class="totals-row">
+            <span>SGST (${sgstPercent}%) :</span>
+            <span>Rs. ${sgst.toFixed(2)}</span>
+          </div>
+          <div class="totals-row grand-total">
+            <span>GRAND TOTAL :</span>
+            <span>Rs. ${total.toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+
+      ${termsHtml}
+
+      <div class="bottom-stack">
+        <div class="signature-section">
+          <div class="signature-line">Authorized Signature</div>
+        </div>
+        <div class="notes">
+          <div>No Refund | No Exchange</div>
+          <div>Thank you for shopping with Meena Cards</div>
+        </div>
+      </div>
+    </div>
   `;
+
+  const invoiceCss = `
+    .invoice-main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .invoice-info {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      font-size: 13px;
+    }
+    .invoice-info-left {
+      width: 55%;
+    }
+    .invoice-info-right {
+      width: 45%;
+      display: flex;
+      justify-content: flex-end;
+    }
+    .invoice-info-label {
+      font-weight: bold;
+      margin-bottom: 3px;
+    }
+    .invoice-info-content {
+      margin-bottom: 6px;
+      line-height: 1.4;
+    }
+    .meta-table {
+      border-collapse: collapse;
+      font-size: 13px;
+      width: 260px;
+      border: none !important;
+    }
+    .meta-table tr {
+      height: 28px;
+      border: none !important;
+    }
+    .meta-table td {
+      padding: 0;
+      vertical-align: middle;
+      border: none !important;
+    }
+    .meta-label {
+      font-weight: 700;
+      padding-right: 10px;
+      width: 86px;
+      text-align: left;
+      white-space: nowrap;
+      line-height: 1;
+    }
+    .meta-fill {
+      width: 170px;
+      padding-left: 8px;
+      text-align: left;
+      line-height: 1;
+      border: none !important;
+      box-shadow: none !important;
+      background: transparent !important;
+    }
+    .meta-value {
+      font-weight: 700;
+      text-align: left;
+      display: inline-block;
+      min-width: 1px;
+      line-height: 1;
+      text-decoration: none;
+    }
+    table.items-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+      font-size: 12px;
+    }
+    .items-table th {
+      background: #f8eef1;
+      color: #5b1225;
+      padding: 8px;
+      text-align: left;
+      font-weight: bold;
+      border: 1px solid #ddd;
+    }
+    .items-table td {
+      border: 1px solid #ddd;
+      padding: 7px;
+    }
+    .items-table tr:nth-child(even) {
+      background: #f8eef1;
+    }
+    .totals-section {
+      display: flex;
+      justify-content: space-between;
+      margin: 10px 0;
+      font-size: 12px;
+    }
+    .totals-left {
+      width: 50%;
+    }
+    .totals-right {
+      width: 50%;
+      text-align: right;
+    }
+    .totals-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 3px 0;
+      line-height: 1.2;
+    }
+    .totals-row.grand-total {
+      font-weight: bold;
+      font-size: 13px;
+      padding: 8px 0;
+      background: transparent;
+      color: #5b1225;
+      border-top: 1px solid #5b1225;
+      margin-top: 4px;
+    }
+    .terms-full-width {
+      width: 100%;
+      margin-top: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #5b1225;
+      text-align: center;
+    }
+    .bottom-stack {
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .notes {
+      font-size: 12px;
+      color: #5b1225;
+      font-weight: 700;
+      line-height: 1.6;
+      text-align: left;
+    }
+    .signature-section {
+      display: flex;
+      justify-content: flex-end;
+      font-size: 12px;
+      font-weight: 700;
+      color: #5b1225;
+    }
+    .signature-line {
+      min-width: 220px;
+      text-align: center;
+      border-top: 1px solid #5b1225;
+      padding-top: 8px;
+    }
+  `;
+
+  return buildPrintDocumentHtml({
+    title: `Invoice ${escapeHtml(invoice.invoice_number || '')}`,
+    bodyHtml,
+    includeWatermark: true,
+    extraCss: invoiceCss,
+  });
 }
 
 function extractStyleBlock(html) {
@@ -728,25 +723,43 @@ function printInvoice(invoice, options = {}) {
 
     const tempHtmlPath = createTempHtmlFile(buildInvoicePrintHtml(invoice));
 
-    hiddenWin.webContents.once('did-finish-load', () => {
-      hiddenWin.webContents.print(
-        {
-          silent: options.silent !== false,
-          printBackground: true,
-          pageSize: options.pageSize || 'A4',
-          margins: options.margins || { marginType: 'none' },
-          deviceName: options.deviceName || undefined,
-        },
-        (success, errorType) => {
-          hiddenWin.close();
-          safeDeleteFile(tempHtmlPath);
-          if (!success) {
-            resolve({ ok: false, error: errorType || 'Print failed' });
-            return;
+    hiddenWin.webContents.once('did-finish-load', async () => {
+      try {
+        const isSilent = options.silent !== false;
+        let deviceName = options.deviceName || undefined;
+
+        // For direct invoice generation prints, auto-target default printer.
+        if (isSilent && !deviceName) {
+          const printers = await hiddenWin.webContents.getPrintersAsync();
+          const defaultPrinter = (printers || []).find((printer) => printer && printer.isDefault) || (printers || [])[0];
+          if (defaultPrinter && defaultPrinter.name) {
+            deviceName = defaultPrinter.name;
           }
-          resolve({ ok: true });
         }
-      );
+
+        hiddenWin.webContents.print(
+          {
+            silent: isSilent,
+            printBackground: true,
+            pageSize: options.pageSize || 'A4',
+            margins: options.margins || { marginType: 'none' },
+            deviceName,
+          },
+          (success, errorType) => {
+            hiddenWin.close();
+            safeDeleteFile(tempHtmlPath);
+            if (!success) {
+              resolve({ ok: false, error: errorType || 'Print failed' });
+              return;
+            }
+            resolve({ ok: true });
+          }
+        );
+      } catch (error) {
+        hiddenWin.close();
+        safeDeleteFile(tempHtmlPath);
+        resolve({ ok: false, error: error.message || 'Print failed' });
+      }
     });
 
     hiddenWin.loadFile(tempHtmlPath).catch((error) => {
