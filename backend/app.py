@@ -37,12 +37,10 @@ if MONGODB_URI:
         db = client.card_shop
         
     cards_collection = db["cards"]
-    customers_collection = db["customers"]
     invoices_collection = db["invoices"]
     presses_collection = db["presses"]
 else:
     cards_collection = None
-    customers_collection = None
     invoices_collection = None
     presses_collection = None
     print("WARNING: MONGODB_URI not set")
@@ -423,103 +421,34 @@ def get_invoice(invoice_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- Customer Authentication & Approval ---
+# --- Press Authentication ---
 
-@app.route("/register", methods=["POST"])
-def register_customer():
-    if customers_collection is None:
+@app.route("/login/press", methods=["POST"])
+def login_press():
+    if presses_collection is None:
         return jsonify({"error": "Database not configured"}), 500
     
     data = request.get_json()
-    print(f"DEBUG: Received registration request: {data}")
-    
     name = data.get("name")
-    email = data.get("email", "").strip()
-    phone = data.get("phone", "").strip()
-    password = data.get("password")
+    ph_no = data.get("ph_no")
 
-    if not all([name, email, phone, password]):
-        print(f"DEBUG: Registration failed - Missing fields: name={name}, email={email}, phone={phone}")
-        return jsonify({"error": "Missing fields"}), 400
+    if not name or not ph_no:
+        return jsonify({"error": "Name and phone number are required"}), 400
 
-    existing_user = customers_collection.find_one({"email": email})
-    if existing_user:
-        print(f"DEBUG: Registration failed - Email '{email}' already registered")
-        return jsonify({"error": "Email already registered"}), 400
-
-    new_customer = {
-        "name": name,
-        "email": email,
-        "phone": phone,
-        "password": generate_password_hash(password),
-        "is_approved": False, # Approval system
-        "created_at": ObjectId().generation_time
-    }
-
-    customers_collection.insert_one(new_customer)
-    return jsonify({"message": "Registration successful. Please contact Admin for approval."}), 201
-
-@app.route("/login/customer", methods=["POST"])
-def login_customer():
-    if customers_collection is None:
-        return jsonify({"error": "Database not configured"}), 500
-    
-    data = request.get_json()
-    email = data.get("email")
-    password = data.get("password")
-
-    user = customers_collection.find_one({"email": email})
-    if not user:
-        return jsonify({"error": "Account not found"}), 404
-
-    if not check_password_hash(user["password"], password):
-        return jsonify({"error": "Incorrect password"}), 401
-
-    if not user.get("is_approved", False):
-        return jsonify({"error": "Account pending approval. Please contact Admin via WhatsApp."}), 403
+    press = presses_collection.find_one({"name": name, "ph_no": ph_no})
+    if not press:
+        return jsonify({"error": "Invalid name or phone number"}), 401
 
     return jsonify({
-        "id": str(user["_id"]),
-        "name": user["name"],
-        "email": user["email"],
-        "is_approved": True
+        "id": str(press["_id"]),
+        "name": press["name"],
+        "ph_no": press.get("ph_no", "")
     }), 200
 
-@app.route("/admin/customers", methods=["GET"])
-def get_customers():
-    if customers_collection is None:
-        return jsonify({"error": "Database not configured"}), 500
-    
-    customers = list(customers_collection.find())
-    for c in customers:
-        c["id"] = str(c.pop("_id"))
-        c.pop("password", None)
-    return jsonify(customers), 200
-
-@app.route("/admin/customers/<cust_id>/approve", methods=["PUT"])
-def approve_customer(cust_id):
-    if customers_collection is None:
-        return jsonify({"error": "Database not configured"}), 500
-    
-    oid = parse_object_id(cust_id)
-    if not oid: return jsonify({"error": "Invalid ID"}), 400
-
-    result = customers_collection.update_one({"_id": oid}, {"$set": {"is_approved": True}})
-    if result.matched_count == 0:
-        return jsonify({"error": "Customer not found"}), 404
-    
-    return jsonify({"message": "Customer approved successfully"}), 200
-
-@app.route("/admin/customers/<cust_id>", methods=["DELETE"])
-def delete_customer(cust_id):
-    if customers_collection is None:
-        return jsonify({"error": "Database not configured"}), 500
-    
-    oid = parse_object_id(cust_id)
-    if not oid: return jsonify({"error": "Invalid ID"}), 400
-
-    customers_collection.delete_one({"_id": oid})
-    return jsonify({"message": "Customer removed"}), 200
+@app.route("/register/press", methods=["POST"])
+def register_press():
+    # Alias for adding a press via public registration
+    return add_press()
 
 # --- Press Management (CRUD) ---
 
