@@ -26,7 +26,9 @@ const Admin = () => {
     category: [],
     image: null,
     is_latest: false,
-    is_offer: false
+    is_offer: false,
+    price: '',
+    stock: ''
   });
   const [imagePreview, setImagePreview] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -111,7 +113,9 @@ const Admin = () => {
       category: [],
       image: null,
       is_latest: false,
-      is_offer: false
+      is_offer: false,
+      price: '',
+      stock: ''
     });
     setImagePreview(null);
     setEditingCard(null);
@@ -125,7 +129,9 @@ const Admin = () => {
       category: Array.isArray(card.category) ? card.category : [card.category],
       image: null,
       is_latest: card.is_latest || false,
-      is_offer: card.is_offer || false
+      is_offer: card.is_offer || false,
+      price: card.price || '',
+      stock: card.stock || ''
     });
     setImagePreview(card.image_url);
     setIsFormOpen(true);
@@ -166,6 +172,8 @@ const Admin = () => {
       if (formData.image) {
         formPayload.append('image', formData.image);
       }
+      formPayload.append('price', formData.price || 0);
+      formPayload.append('stock', formData.stock || 0);
 
       const headers = { 'Content-Type': 'multipart/form-data' };
 
@@ -544,6 +552,8 @@ const Admin = () => {
                     <th>THUMBNAIL</th>
                     <th>NAME</th>
                     <th>CATEGORIES</th>
+                    <th>PRICE (₹)</th>
+                    <th>STOCK</th>
                     <th>FLAGS</th>
                     <th>ACTIONS</th>
                   </tr>
@@ -580,6 +590,12 @@ const Admin = () => {
                           <td className="admin-item-name">{card.name}</td>
                           <td className="admin-item-cat">
                             {Array.isArray(card.category) ? card.category.join(", ") : card.category}
+                          </td>
+                          <td style={{ fontWeight: 'bold', color: '#059669' }}>
+                            {card.price ? `₹${card.price}` : '—'}
+                          </td>
+                          <td style={{ fontWeight: 'bold', color: card.stock > 10 ? '#475569' : '#ef4444' }}>
+                            {card.stock || 0}
                           </td>
                           <td className="admin-item-flags" style={{ verticalAlign: 'middle' }}>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
@@ -759,7 +775,30 @@ const Admin = () => {
                     style={{ width: 'auto' }}
                   />
                   <label htmlFor="is_offer" style={{ marginBottom: 0 }}>Special Offer</label>
+                </div>
+              </div>
 
+              <div className="form-row" style={{ gap: '20px', marginBottom: '20px' }}>
+                <div className="form-group">
+                  <label>Price (₹)</label>
+                  <input 
+                    type="number" 
+                    name="price" 
+                    value={formData.price} 
+                    onChange={handleInputChange} 
+                    placeholder="0.00"
+                    step="0.01"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Stock Quantity</label>
+                  <input 
+                    type="number" 
+                    name="stock" 
+                    value={formData.stock} 
+                    onChange={handleInputChange} 
+                    placeholder="0"
+                  />
                 </div>
               </div>
 
