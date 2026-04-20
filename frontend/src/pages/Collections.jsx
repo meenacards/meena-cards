@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { Filter, ChevronRight, ChevronDown, Layers } from 'lucide-react';
+import { Filter, ChevronRight, ChevronDown, Layers, Scissors, Box, Package, Star, Heart, Tag, Sparkles } from 'lucide-react';
 import SEO from '../components/SEO';
 import { sampleCards } from '../data/sampleCards';
 import './home.css';
@@ -9,6 +9,17 @@ import './home.css';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const Collections = ({ filterCategory }) => {
+  const iconMap = {
+    "All Products": <Layers size={18} />,
+    "Cards Only": <Package size={18} />,
+    "Card, Cover, Paper Sets": <Package size={18} />,
+    "Card, Cover, Board Sets": <Box size={18} />,
+    "Brand Series": <Package size={18} />,
+    "Ceremony Tags": <Tag size={18} />,
+    "Tradition Tags": <Tag size={18} />,
+    "Special Collections": <Sparkles size={18} />,
+  };
+
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
   
@@ -36,13 +47,10 @@ const Collections = ({ filterCategory }) => {
       "12x8 Metallic ITC Board Set", 
       "12x8 Offset ITC Board Set"
     ],
-    "V Cards": [],
-    "K Cards": [],
-    "R Cards": [],
-    "ES Cards": [],
-    "Friends Card": [],
-    "Luxe Models": [],
-    "Offer": []
+    "Brand Series": [],
+    "Ceremony Tags": [],
+    "Tradition Tags": [],
+    "Special Collections": []
   };
 
 
@@ -121,17 +129,21 @@ const Collections = ({ filterCategory }) => {
 
   const handleMainClick = (main) => {
     setActiveMain(main);
-    if (Array.isArray(collectionTree[main])) {
+    const content = collectionTree[main];
+    if (Array.isArray(content)) {
       setActiveSub("");
-      if (collectionTree[main].length > 0) {
-        setActiveSeries(collectionTree[main][0]);
+      if (content.length > 0) {
+        setActiveSeries(content[0]);
       } else {
-        setActiveSeries(main); // Empty category selects itself
+        setActiveSeries(main);
       }
-    } else {
-      const firstSub = Object.keys(collectionTree[main])[0];
+    } else if (content && typeof content === 'object') {
+      const firstSub = Object.keys(content)[0];
       setActiveSub(firstSub);
-      setActiveSeries(collectionTree[main][firstSub][0]);
+      setActiveSeries(content[firstSub][0]);
+    } else {
+       setActiveSub("");
+       setActiveSeries(main);
     }
   };
 
@@ -141,7 +153,6 @@ const Collections = ({ filterCategory }) => {
     const newSeries = activeSeries === ser ? "" : ser;
     setActiveSeries(newSeries);
     
-    // Auto-scroll to results on mobile after selection
     if (newSeries && window.innerWidth < 768) {
       setTimeout(() => {
         catalogRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -150,119 +161,122 @@ const Collections = ({ filterCategory }) => {
   };
 
   return (
-    <div className="home-page animate-fade-in" style={{ padding: '60px 0' }}>
+    <div className="home-page animate-fade-in" style={{ padding: 0 }}>
       <SEO 
         title="Luxury Wedding Card Collections | Gold Foil, 3D & Scroll Cards" 
         description="Browse our exclusive collections of laser-cut, 3D, and metallic wedding cards. Find the perfect box set or pouch set for your special day at Meena Cards."
       />
-      <section className="catalog container">
-        <div className="section-header">
-           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '15px' }}>
-            <Layers className="gradient-text" style={{ color: 'var(--primary-color)' }} size={32} />
-            <h2 style={{ margin: 0 }}>The Meena Catalogue</h2>
-          </div>
-          <p>Handcrafted series designed for every unique celebration</p>
-        </div>
-
-        <div className="collections-layout" style={{ 
-          display: 'flex', 
-          flexDirection: window.innerWidth < 768 ? 'column' : 'row',
-          gap: '30px', 
-          marginTop: '50px' 
+      
+      <div className="collections-container" style={{ 
+        display: 'flex', 
+        minHeight: '100vh',
+        flexDirection: window.innerWidth < 1024 ? 'column' : 'row'
+      }}>
+        {/* Admin-like Sidebar */}
+        <aside className="sidebar-admin-client" style={{ 
+          width: window.innerWidth < 1024 ? '100%' : '300px',
+          background: '#111827',
+          color: '#fff',
+          padding: '24px 16px',
+          boxShadow: '4px 0 10px rgba(0,0,0,0.1)',
+          display: 'flex',
+          flexDirection: 'column',
+          zIndex: 10,
+          position: window.innerWidth < 1024 ? 'relative' : 'sticky',
+          top: 0,
+          height: window.innerWidth < 1024 ? 'auto' : '100vh',
+          overflowY: 'auto'
         }}>
-          {/* Sidebar */}
-          <aside className="collections-sidebar" style={{ 
-            flex: window.innerWidth < 768 ? '1' : '0 0 320px', 
-            background: '#fff', 
-            padding: '20px', 
-            borderRadius: '12px', 
-            border: '1px solid #eee' 
-          }}>
+          <div style={{ marginBottom: '32px', display: 'flex', alignItems: 'center', gap: '12px', padding: '0 8px' }}>
+            <Layers size={24} style={{ color: 'var(--secondary-color)' }} />
+            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold' }}>Collections</h3>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {Object.entries(collectionTree).map(([main, content]) => (
-              <div key={main} style={{ marginBottom: '15px' }}>
+              <div key={main} style={{ marginBottom: '4px' }}>
                 <div 
-                  className={`main-nav-item ${activeMain === main ? 'active' : ''}`}
                   onClick={() => handleMainClick(main)}
                   style={{ 
-                    padding: '14px 18px', 
-                    background: activeMain === main ? 'var(--primary-color)' : '#fdfdfd',
-                    color: activeMain === main ? '#fff' : '#444',
+                    padding: '12px 16px', 
+                    background: activeMain === main ? 'rgba(58, 3, 3, 0.9)' : 'transparent',
+                    color: activeMain === main ? '#fff' : '#9ca3af',
                     borderRadius: '8px',
                     display: 'flex', 
                     alignItems: 'center', 
-                    justifyContent: 'space-between',
+                    gap: '12px',
                     cursor: 'pointer',
-                    fontWeight: '700',
-                    boxShadow: activeMain === main ? '0 10px 20px var(--primary-glow)' : 'none',
-                    transition: 'all 0.3s ease'
+                    fontWeight: activeMain === main ? '600' : '500',
+                    transition: 'all 0.2s ease',
+                    borderLeft: activeMain === main ? '4px solid var(--secondary-color)' : '4px solid transparent'
                   }}
+                  className="main-nav-item-styled"
                 >
-                  {main}
+                  {iconMap[main] || <Layers size={18} />}
+                  <span style={{ flex: 1, fontSize: '0.95rem' }}>{main}</span>
                   {(!Array.isArray(content) || content.length > 0) && (
-                    activeMain === main ? <ChevronDown size={18} /> : <ChevronRight size={18} />
+                    activeMain === main ? <ChevronDown size={14} /> : <ChevronRight size={14} />
                   )}
                 </div>
 
                 {activeMain === main && (
-                  <div className="sub-nav-wrapper" style={{ paddingLeft: '10px', marginTop: '8px' }}>
+                  <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                     {Array.isArray(content) ? (
-                      <div className="series-list" style={{ marginTop: '5px' }}>
-                        {content.map(ser => (
-                              <button 
-                                key={ser}
-                                onClick={() => handleSeriesClick(ser)}
-                                style={{
-                                  textAlign: 'left',
-                                  width: '100%',
-                                  padding: '10px 15px',
-                                  fontSize: '0.9rem',
-                                  borderRadius: '6px',
-                                  background: activeSeries === ser ? '#FFF5F8' : 'none',
-                                  color: activeSeries === ser ? 'var(--primary-color)' : '#666',
-                                  fontWeight: activeSeries === ser ? '700' : '500',
-                                  border: 'none',
-                                  cursor: 'pointer',
-                                  marginBottom: '4px'
-                                }}
-                              >
-                                {ser}
-                              </button>
-                        ))}
-                      </div>
+                      content.map(ser => (
+                        <button 
+                          key={ser}
+                          onClick={() => handleSeriesClick(ser)}
+                          style={{
+                            textAlign: 'left',
+                            width: '100%',
+                            padding: '10px 16px 10px 42px',
+                            fontSize: '0.85rem',
+                            borderRadius: '4px',
+                            background: activeSeries === ser ? 'rgba(255,255,255,0.05)' : 'none',
+                            color: activeSeries === ser ? '#fff' : '#6b7280',
+                            fontWeight: activeSeries === ser ? '600' : '400',
+                            border: 'none',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {ser}
+                        </button>
+                      ))
                     ) : (
                       Object.entries(content).map(([sub, seriesList]) => (
                         <div key={sub}>
                           <div 
                             onClick={() => handleSubClick(sub, main)}
                             style={{
-                              padding: '10px 15px',
-                              fontSize: '0.95rem',
-                              fontWeight: '600',
-                              color: activeSub === sub ? 'var(--primary-color)' : '#666',
+                              padding: '10px 16px 10px 32px',
+                              fontSize: '0.9rem',
+                              fontWeight: activeSub === sub ? '600' : '500',
+                              color: activeSub === sub ? '#fff' : '#6b7280',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               gap: '8px'
                             }}
                           >
-                            <ChevronRight size={14} style={{ opacity: 0.5 }} />
+                            <ChevronRight size={12} style={{ opacity: activeSub === sub ? 1 : 0.3 }} />
                             {sub}
                           </div>
                           {activeSub === sub && (
-                            <div className="series-list" style={{ paddingLeft: '25px', display: 'flex', flexDirection: 'column', gap: '4px', margin: '5px 0 12px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', paddingLeft: '48px' }}>
                               {seriesList.map(ser => (
                                 <button 
                                   key={ser}
                                   onClick={() => handleSeriesClick(ser)}
                                   style={{
                                     textAlign: 'left',
-                                    padding: '6px 12px',
-                                    fontSize: '0.85rem',
+                                    padding: '8px 0',
+                                    fontSize: '0.8rem',
                                     borderRadius: '4px',
-                                    background: activeSeries === ser ? '#FFF5F8' : 'none',
-                                    color: activeSeries === ser ? 'var(--primary-color)' : '#888',
+                                    background: 'none',
+                                    color: activeSeries === ser ? 'var(--secondary-color)' : '#9ca3af',
                                     fontWeight: activeSeries === ser ? '700' : '400',
-                                    borderLeft: activeSeries === ser ? '3px solid var(--primary-color)' : '3px solid transparent'
+                                    cursor: 'pointer',
+                                    border: 'none'
                                   }}
                                 >
                                   {ser}
@@ -277,67 +291,89 @@ const Collections = ({ filterCategory }) => {
                 )}
               </div>
             ))}
-          </aside>
-
-          {/* Catalog View */}
-          <div className="collections-content" ref={catalogRef} style={{ flex: 1, minHeight: '400px' }}>
-            {activeSeries && (
-              <div className="active-filter-badge" style={{ marginBottom: '25px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                 <span style={{ fontSize: '0.9rem', color: '#999', fontWeight: 'bold' }}>Showing:</span>
-                 <span style={{ padding: '6px 15px', background: '#f0f4f8', borderRadius: '30px', color: '#1E3A8A', fontWeight: 'bold', fontSize: '0.9rem' }}>
-                    {activeMain} {activeSub ? `› ${activeSub}` : ''} › {activeSeries}
-                 </span>
-              </div>
-            )}
-
-            {loading ? (
-              <div className="loading-state">
-                <div className="spinner"></div>
-                <p>Curating collection...</p>
-              </div>
-            ) : (
-              <>
-                {!activeSeries ? (
-                  <div className="empty-state" style={{ background: '#fff', border: '1px solid #eee', borderRadius: '16px', padding: '120px 40px' }}>
-                    <Layers size={64} style={{ color: '#eee', marginBottom: '30px' }} />
-                    <h2 style={{ fontSize: '1.8rem', color: '#333' }}>Select a collection to view cards</h2>
-                    <p style={{ color: '#999', maxWidth: '400px', margin: '0 auto' }}>Choose a category and series from the sidebar to browse our premium card designs.</p>
-                  </div>
-                ) : filteredCards.length === 0 ? (
-                  <div className="empty-state" style={{ background: '#fff', border: '1px solid #eee', borderRadius: '16px', padding: '120px 40px' }}>
-                    <Filter size={64} style={{ color: '#eee', marginBottom: '30px' }} />
-                    <h2 style={{ fontSize: '1.8rem', color: '#333' }}>New items arrival soon!</h2>
-                    <p style={{ color: '#999', maxWidth: '400px', margin: '0 auto' }}>We are currently uploading our latest stock for {activeSeries}. Please check back in a moment.</p>
-                  </div>
-                ) : (
-                  <div className="card-grid">
-                    {filteredCards.map(card => (
-                      <div className="card group" key={card.id}>
-                        <div className="card-image-wrapper">
-                          <img src={card.image_url} alt={card.name} className="card-image" loading="lazy" />
-                        </div>
-                        <div className="card-content">
-                          <h3 className="card-title">{card.name}</h3>
-                          <div className="card-footer" style={{ marginTop: 'auto' }}>
-                            <button 
-                              onClick={() => window.location.href = `/product/${card.id}`}
-                              className="view-details-btn"
-                            >
-                              View Details
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
           </div>
-        </div>
-      </section>
+        </aside>
+
+        {/* Catalog Body */}
+        <main style={{ flex: 1, padding: '40px', background: 'var(--bg-color)', overflowY: 'auto' }} ref={catalogRef}>
+          <div style={{ marginBottom: '40px' }}>
+            <h2 style={{ fontSize: '2.4rem', color: 'var(--primary-color)', marginBottom: '8px' }}>Catalogue</h2>
+            <p style={{ color: '#6b7280' }}>Explore our premium handcrafted invitation series</p>
+          </div>
+
+          {activeSeries && (
+            <div style={{ marginBottom: '32px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+               <span style={{ fontSize: '0.9rem', color: '#9ca3af' }}>Filtered by:</span>
+               <span style={{ padding: '8px 16px', background: '#fff', borderRadius: '8px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', color: 'var(--primary-color)', fontWeight: 'bold', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {activeMain} {activeSub ? `› ${activeSub}` : ''} › {activeSeries}
+               </span>
+            </div>
+          )}
+
+          {loading ? (
+             <div style={{ textAlign: 'center', padding: '100px 0' }}>
+               <div className="spinner"></div>
+               <p style={{ color: '#9ca3af', marginTop: '16px' }}>Curating your selection...</p>
+             </div>
+          ) : !activeSeries ? (
+            <div style={{ textAlign: 'center', padding: '100px 40px', background: '#fff', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+              <Package size={64} style={{ color: '#e5e7eb', marginBottom: '24px' }} />
+              <h2 style={{ fontSize: '1.8rem', color: '#374151' }}>No collection selected</h2>
+              <p style={{ color: '#9ca3af', maxWidth: '400px', margin: '0 auto' }}>Choose a category from the sidebar to start browsing our premium card designs.</p>
+            </div>
+          ) : filteredCards.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '100px 40px', background: '#fff', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+              <Star size={64} style={{ color: '#e5e7eb', marginBottom: '24px' }} />
+              <h2 style={{ fontSize: '1.8rem', color: '#374151' }}>Collection arriving soon</h2>
+              <p style={{ color: '#9ca3af', maxWidth: '400px', margin: '0 auto' }}>We are currently updating our stock for {activeSeries}. Please visit another collection while we prepare this for you.</p>
+            </div>
+          ) : (
+            <div className="card-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '32px' }}>
+              {filteredCards.map(card => {
+                const cats = Array.isArray(card.category) ? card.category : [card.category || ""];
+                const isBrandSeries = cats.some(c => c.toLowerCase().includes('brand series')) || 
+                                     card.name.toLowerCase().includes('brand series');
+                const stockVal = parseInt(card.stock) || 0;
+
+                return (
+                  <div className="card group" key={card.id} style={{ background: '#fff', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', transition: 'transform 0.3s ease', cursor: 'pointer' }}>
+                    <div style={{ height: '320px', overflow: 'hidden', position: 'relative' }}>
+                      <img src={card.image_url} alt={card.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      {isBrandSeries && (
+                        <div style={{ position: 'absolute', top: '16px', left: '16px', background: 'var(--secondary-color)', color: '#fff', padding: '4px 12px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                          Brand Series
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ padding: '24px' }}>
+                      <h3 style={{ fontSize: '1.2rem', marginBottom: '12px', color: '#1f2937' }}>{card.name}</h3>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '1.3rem', fontWeight: 'bold', color: 'var(--primary-color)' }}>{card.price ? `₹${card.price}` : 'Price on request'}</span>
+                        {isBrandSeries ? (
+                           <span style={{ fontSize: '0.8rem', color: '#1E3A8A', fontWeight: 'bold', background: '#E0F2FE', padding: '4px 8px', borderRadius: '4px' }}>Contact For Stock</span>
+                        ) : (
+                           <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: stockVal > 0 ? 'var(--success-color)' : 'var(--danger-color)' }}>
+                             {stockVal > 0 ? 'IN STOCK' : 'PRE-ORDER'}
+                           </span>
+                        )}
+                      </div>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); window.location.href = `/product/${card.id}`; }}
+                        style={{ width: '100%', marginTop: '20px', padding: '12px', background: 'var(--primary-color)', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
+                      >
+                        Enquire Details
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 };
+
 
 export default Collections;
