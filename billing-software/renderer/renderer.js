@@ -1,4 +1,34 @@
 (function () {
+  function showToast(message, type = 'info') {
+    const theme = {
+      success: 'linear-gradient(135deg, #2f8f61, #256f4b)',
+      warning: 'linear-gradient(135deg, #c08a2d, #8f6620)',
+      error: 'linear-gradient(135deg, #b85b5b, #8e3f3f)',
+      info: 'linear-gradient(135deg, #5b1225, #7a1e35)',
+    };
+
+    if (window.Toastify) {
+      window.Toastify({
+        text: message,
+        duration: type === 'error' ? 4500 : 3200,
+        gravity: 'top',
+        position: 'right',
+        stopOnFocus: true,
+        close: true,
+        style: {
+          background: theme[type] || theme.info,
+          color: '#fff',
+          borderRadius: '10px',
+          boxShadow: '0 10px 24px rgba(0, 0, 0, 0.22)',
+          fontWeight: '600',
+        },
+      }).showToast();
+      return;
+    }
+
+    console[type === 'error' ? 'error' : 'log'](message);
+  }
+
   const viewTitle = document.getElementById('view-title');
   const viewContainer = document.getElementById('view-container');
   const loadingScreen = document.getElementById('loading-screen');
@@ -57,7 +87,7 @@
       const baseUrl = (window.ApiService && typeof window.ApiService.getBaseUrl === 'function')
         ? window.ApiService.getBaseUrl()
         : 'configured backend URL';
-      alert(`Unable to connect to backend API at ${baseUrl}. Check deployed URL and refresh app.`);
+      showToast(`Unable to connect to backend API at ${baseUrl}. Check deployed URL and refresh app.`, 'error');
     }
 
     try {

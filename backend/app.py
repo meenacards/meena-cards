@@ -278,6 +278,10 @@ def create_invoice():
         # Validate requested quantities before invoice creation.
         for item in items:
             card_id = item.get("id")
+            is_custom_line = bool(item.get("is_custom")) or (isinstance(card_id, str) and card_id.startswith("custom-"))
+            if is_custom_line:
+                continue
+
             quantity = int(item.get("quantity", 0))
 
             if not card_id or quantity <= 0:
@@ -286,7 +290,8 @@ def create_invoice():
 
             oid = parse_object_id(card_id)
             if oid is None:
-                return jsonify({"error": "Invalid product ID in invoice items"}), 400
+                # Treat non-ObjectId lines as non-stock entries rather than hard-failing.
+                continue
 
             card = cards_collection.find_one({"_id": oid}, {"name": 1, "stock": 1})
             if not card:
@@ -325,6 +330,10 @@ def create_invoice():
         # Update product stocks for each item in the invoice
         for item in items:
             card_id = item.get("id")
+            is_custom_line = bool(item.get("is_custom")) or (isinstance(card_id, str) and card_id.startswith("custom-"))
+            if is_custom_line:
+                continue
+
             quantity = int(item.get("quantity", 0))
             
             if card_id and quantity > 0:

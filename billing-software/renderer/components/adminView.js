@@ -229,7 +229,7 @@
         deleteBtn.className = 'btn-secondary admin-action-danger';
         deleteBtn.textContent = 'Delete';
         deleteBtn.onclick = async () => {
-          const confirmed = window.confirm(`Delete card "${card.name || 'Unnamed card'}"?`);
+          const confirmed = await showConfirmDialog(`Delete card "${card.name || 'Unnamed card'}"?`);
           if (!confirmed) return;
 
           deleteBtn.disabled = true;
@@ -281,24 +281,85 @@
     const root = document.createElement('div');
     root.className = 'admin-view';
 
-    const toast = document.createElement('div');
-    toast.className = 'admin-toast hidden';
-    root.appendChild(toast);
-
-    let toastTimer = null;
-
     function showToast(message, type) {
-      if (toastTimer) {
-        clearTimeout(toastTimer);
+      const toastType = type === 'error' ? 'error' : 'success';
+      const theme = {
+        success: 'linear-gradient(135deg, #2f8f61, #256f4b)',
+        error: 'linear-gradient(135deg, #b85b5b, #8e3f3f)',
+      };
+
+      if (window.Toastify) {
+        window.Toastify({
+          text: message,
+          duration: toastType === 'error' ? 4500 : 3200,
+          gravity: 'top',
+          position: 'right',
+          stopOnFocus: true,
+          close: true,
+          style: {
+            background: theme[toastType],
+            color: '#fff',
+            borderRadius: '10px',
+            boxShadow: '0 10px 24px rgba(0, 0, 0, 0.22)',
+            fontWeight: '600',
+          },
+        }).showToast();
+        return;
       }
 
-      toast.textContent = message;
-      toast.classList.remove('hidden', 'success', 'error');
-      toast.classList.add(type === 'error' ? 'error' : 'success');
+      console[toastType === 'error' ? 'error' : 'log'](message);
+    }
 
-      toastTimer = setTimeout(() => {
-        toast.classList.add('hidden');
-      }, 2800);
+    function showConfirmDialog(message) {
+      return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.className = 'admin-modal-overlay';
+
+        const modal = document.createElement('div');
+        modal.className = 'admin-modal';
+        modal.style.maxWidth = '420px';
+
+        const header = document.createElement('div');
+        header.className = 'admin-modal-header';
+        header.innerHTML = '<h3>Confirm Action</h3>';
+
+        const body = document.createElement('div');
+        body.className = 'admin-modal-body';
+        body.textContent = message;
+
+        const footer = document.createElement('div');
+        footer.className = 'admin-modal-footer';
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.type = 'button';
+        cancelBtn.className = 'btn-secondary';
+        cancelBtn.textContent = 'Cancel';
+
+        const confirmBtn = document.createElement('button');
+        confirmBtn.type = 'button';
+        confirmBtn.className = 'btn-primary';
+        confirmBtn.textContent = 'Delete';
+
+        const closeWith = (value) => {
+          overlay.remove();
+          resolve(value);
+        };
+
+        cancelBtn.onclick = () => closeWith(false);
+        confirmBtn.onclick = () => closeWith(true);
+        overlay.addEventListener('click', (event) => {
+          if (event.target === overlay) closeWith(false);
+        });
+
+        footer.appendChild(cancelBtn);
+        footer.appendChild(confirmBtn);
+        modal.appendChild(header);
+        modal.appendChild(body);
+        modal.appendChild(footer);
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+        setTimeout(() => confirmBtn.focus(), 0);
+      });
     }
 
     const tabs = document.createElement('div');
@@ -889,7 +950,7 @@
           openUpdateModal(card);
         };
         deleteBtn.onclick = async () => {
-          const confirmed = window.confirm(`Delete card "${card.name || 'Unnamed card'}"?`);
+          const confirmed = await showConfirmDialog(`Delete card "${card.name || 'Unnamed card'}"?`);
           if (!confirmed) return;
           try {
             await window.ApiService.deleteProduct(card.id);

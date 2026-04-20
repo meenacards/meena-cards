@@ -452,6 +452,62 @@ input[type="number"]:not(:disabled):focus {
   gap: 14px;
 }
 
+.billing-search-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.billing-search-toolbar .input {
+  flex: 1;
+}
+
+.billing-add-custom-btn {
+  width: 44px;
+  min-width: 44px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 10px 0;
+}
+
+.billing-notice {
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.billing-notice.info {
+  background: rgba(91, 18, 37, 0.06);
+  border-color: rgba(91, 18, 37, 0.16);
+  color: var(--text-primary);
+}
+
+.billing-notice.success {
+  background: rgba(94, 125, 82, 0.12);
+  border-color: rgba(94, 125, 82, 0.24);
+  color: var(--success);
+}
+
+.billing-notice.warning {
+  background: rgba(196, 140, 42, 0.14);
+  border-color: rgba(196, 140, 42, 0.24);
+  color: var(--warning);
+}
+
+.billing-notice.error {
+  background: rgba(184, 91, 91, 0.12);
+  border-color: rgba(184, 91, 91, 0.24);
+  color: var(--error);
+}
+
+.billing-custom-modal {
+  width: min(520px, calc(100vw - 40px));
+}
+
 .invoice-month-section {
   background: rgba(255, 251, 244, 0.55);
   border: 1px solid rgba(201, 163, 91, 0.28);
