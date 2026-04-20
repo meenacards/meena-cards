@@ -413,7 +413,20 @@ def get_invoice(invoice_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- Press Authentication ---
+# --- Authentication ---
+
+@app.route("/login/admin", methods=["POST"])
+def login_admin():
+    data = request.get_json()
+    user = data.get("username", "").strip()
+    password = data.get("password", "").strip()
+    
+    admin_user = os.getenv("ADMIN_USER") or os.getenv("VITE_ADMIN_USER", "admin")
+    admin_pass = os.getenv("ADMIN_PASS") or os.getenv("VITE_ADMIN_PASS", "1234")
+    
+    if user == admin_user and password == admin_pass:
+        return jsonify({"message": "Admin login successful", "role": "admin"}), 200
+    return jsonify({"error": "Invalid admin credentials"}), 401
 
 @app.route("/login/press", methods=["POST"])
 def login_press():
