@@ -135,10 +135,10 @@ function buildPrintHeaderComponent() {
       <div class="company-center">
         <div class="company-name">MEENA CARDS</div>
         <div class="company-name-tamil">மீனா கார்ட்ஸ்</div>
-        <div class="company-address-tamil">62/1, மஞ்சனகரா தெரு., மதுரை - 625001</div>
+        <div class="company-address-tamil">62/1, மஞ்சணக்காரத் தெரு., மதுரை - 625001</div>
       </div>
       <div class="header-right">
-        <div class="website-line"><img class="website-icon" src="${LANE_ICON}" alt="Lane number"/><span class="company-detail">0452-7964782</span></div>
+        <div class="website-line"><img class="website-icon" src="${PHONE_ICON}" alt="Mobile"/><span class="company-detail">8248723726</span></div>
         <div class="website-line"><img class="website-icon" src="${WEBSITE_ICON}" alt="Website"/><span class="company-detail">https://www.meenacards.com</span></div>
         <div class="company-detail">GSTIN: 33AIPPJ2536H1ZA</div>
       </div>
@@ -150,7 +150,7 @@ function buildPrintFooterComponent() {
   return `
     <div class="print-footer">
       <div class="footer-contact">
-        <img src="${PHONE_ICON}" alt="Phone"/><span class="company-detail">8248723726</span>
+        <img src="${LANE_ICON}" alt="Lane number"/><span class="company-detail">0452-7964782</span>
       </div>
       <div class="footer-contact">
         <img src="${EMAIL_ICON}" alt="Email"/><span class="company-detail">meenacards.mdu@gmail.com</span>

@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -311,13 +312,29 @@ def create_invoice():
                     "error": f"Insufficient stock for {card.get('name', 'product')}. Available: {available_stock}, requested: {quantity}"
                 }), 400
 
-        # Get the next invoice number
-        last_invoice = invoices_collection.find_one(sort=[("invoice_number", -1)])
-        invoice_number = (last_invoice.get("invoice_number", 0) if last_invoice else 0) + 1
+        # Get the next invoice sequence number and build invoice number as <sequence>-<year>
+        last_invoice = invoices_collection.find_one(sort=[("invoice_sequence", -1), ("_id", -1)])
+        if last_invoice and isinstance(last_invoice.get("invoice_sequence"), int):
+            invoice_sequence = int(last_invoice.get("invoice_sequence", 0)) + 1
+        else:
+            # Backward compatibility for older invoices that stored only invoice_number.
+            legacy_last = invoices_collection.find_one(sort=[("_id", -1)])
+            legacy_value = legacy_last.get("invoice_number") if legacy_last else 0
+            if isinstance(legacy_value, str) and "-" in legacy_value:
+                legacy_value = legacy_value.split("-", 1)[0]
+            try:
+                invoice_sequence = int(legacy_value) + 1
+            except (TypeError, ValueError):
+                invoice_sequence = 1
+
+        invoice_year = datetime.now().year
+        invoice_number = f"{invoice_sequence}-{invoice_year}"
         
         # Create invoice document
         invoice_doc = {
             "invoice_number": invoice_number,
+            "invoice_sequence": invoice_sequence,
+            "invoice_year": invoice_year,
             "items": items,
             "subtotal": float(subtotal),
             "tax": float(tax),
@@ -367,12 +384,14 @@ def get_invoices():
         return jsonify({"error": "Database not configured"}), 500
     
     try:
-        invoices = list(invoices_collection.find().sort("invoice_number", -1))
+        invoices = list(invoices_collection.find().sort([("invoice_sequence", -1), ("_id", -1)]))
         result = []
         for inv in invoices:
             result.append({
                 "id": str(inv["_id"]),
                 "invoice_number": inv.get("invoice_number"),
+            "invoice_sequence": inv.get("invoice_sequence"),
+            "invoice_year": inv.get("invoice_year"),
                 "items": inv.get("items", []),
                 "subtotal": inv.get("subtotal", 0),
                 "tax": inv.get("tax", 0),
@@ -406,6 +425,8 @@ def get_invoice(invoice_id):
         return jsonify({
             "id": str(invoice["_id"]),
             "invoice_number": invoice.get("invoice_number"),
+            "invoice_sequence": invoice.get("invoice_sequence"),
+            "invoice_year": invoice.get("invoice_year"),
             "items": invoice.get("items", []),
             "subtotal": invoice.get("subtotal", 0),
             "tax": invoice.get("tax", 0),
