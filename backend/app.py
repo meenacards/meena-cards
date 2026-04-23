@@ -15,17 +15,8 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Restrict CORS to known app origins in production.
-# Keep desktop and local development origins enabled for Electron billing app.
-_frontend_url = os.getenv("FRONTEND_URL")
-_allowed_origins = [
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "null",  # Electron file:// origin appears as null
-]
-if _frontend_url:
-    _allowed_origins.insert(0, _frontend_url)
-CORS(app, origins="*" if not _frontend_url else _allowed_origins)
+# Enable wide CORS for testing
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # MongoDB setup
 MONGODB_URI = os.getenv("MONGODB_URI")
@@ -85,7 +76,8 @@ def format_press(press):
         "id": str(press["_id"]),
         "name": press.get("name"),
         "address": press.get("address"),
-        "ph_no": press.get("ph_no", "")
+        "ph_no": press.get("ph_no", ""),
+        "is_approved": press.get("is_approved", False)
     }
 
 
@@ -442,7 +434,20 @@ def get_invoice(invoice_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- Press Authentication ---
+# --- Authentication ---
+
+@app.route("/login/admin", methods=["POST"])
+def login_admin():
+    data = request.get_json()
+    user = data.get("username", "").strip()
+    password = data.get("password", "").strip()
+    
+    admin_user = os.getenv("ADMIN_USER") or os.getenv("VITE_ADMIN_USER", "admin")
+    admin_pass = os.getenv("ADMIN_PASS") or os.getenv("VITE_ADMIN_PASS", "1234")
+    
+    if user == admin_user and password == admin_pass:
+        return jsonify({"message": "Admin login successful", "role": "admin"}), 200
+    return jsonify({"error": "Invalid admin credentials"}), 401
 
 @app.route("/login/press", methods=["POST"])
 def login_press():
@@ -456,14 +461,26 @@ def login_press():
     if not name or not ph_no:
         return jsonify({"error": "Name and phone number are required"}), 400
 
-    press = presses_collection.find_one({"name": name, "ph_no": ph_no})
+    # Clean input ph_no (remove all whitespace) for matching
+    clean_ph_no = ph_no.replace(" ", "").strip()
+
+    # Case-insensitive name match AND cleaned ph_no match
+    press = presses_collection.find_one({
+        "name": {"$regex": f"^{name}$", "$options": "i"}, 
+        "ph_no": clean_ph_no
+    })
+    
     if not press:
         return jsonify({"error": "Invalid name or phone number"}), 401
+    
+    if not press.get("is_approved", False):
+        return jsonify({"error": "Your account is pending approval. Please contact admin."}), 403
 
     return jsonify({
         "id": str(press["_id"]),
         "name": press["name"],
-        "ph_no": press.get("ph_no", "")
+        "ph_no": press.get("ph_no", ""),
+        "is_approved": True
     }), 200
 
 @app.route("/register/press", methods=["POST"])
@@ -478,7 +495,8 @@ def get_presses():
     if presses_collection is None:
         return jsonify({"error": "Database not configured"}), 500
     try:
-        presses = list(presses_collection.find().sort('name', 1))
+        # Only return presses where is_approved is explicitly True
+        presses = list(presses_collection.find({"is_approved": True}).sort('name', 1))
         return jsonify([format_press(p) for p in presses]), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -512,16 +530,65 @@ def add_press():
         return jsonify({"error": "Name and address are required"}), 400
 
     try:
+        # Clean phone number for consistency
+        clean_ph_no = ph_no.replace(" ", "").strip()
+
+        # Unique Phone Number Check
+        existing = presses_collection.find_one({
+            "ph_no": clean_ph_no
+        })
+        if existing:
+            return jsonify({"error": "Already phone number exists, try different phone number."}), 400
+
         new_press = {
             "name": name,
             "address": address,
-            "ph_no": ph_no
+            "ph_no": clean_ph_no,
+            "is_approved": False  # New presses require approval
         }
         result = presses_collection.insert_one(new_press)
         new_press["_id"] = result.inserted_id
         return jsonify(format_press(new_press)), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route("/presses/pending", methods=["GET"])
+def get_pending_presses():
+    if presses_collection is None:
+        return jsonify({"error": "Database not configured"}), 500
+    try:
+        # Pending means is_approved is explicitly False OR missing OR None
+        # We can use {'$ne': True} to catch all these states
+        pending = list(presses_collection.find({
+            "is_approved": {"$ne": True}
+        }).sort('name', 1))
+        return jsonify([format_press(p) for p in pending]), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/presses/<press_id>/approve", methods=["POST"])
+def approve_press(press_id):
+    if presses_collection is None:
+        return jsonify({"error": "Database not configured"}), 500
+    oid = parse_object_id(press_id)
+    if not oid: return jsonify({"error": "Invalid ID"}), 400
+    
+    result = presses_collection.update_one({"_id": oid}, {"$set": {"is_approved": True}})
+    if result.matched_count == 0:
+        return jsonify({"error": "Press not found"}), 404
+    return jsonify({"message": "Press approved successfully"}), 200
+
+@app.route("/presses/<press_id>/reject", methods=["POST"])
+def reject_press(press_id):
+    if presses_collection is None:
+        return jsonify({"error": "Database not configured"}), 500
+    oid = parse_object_id(press_id)
+    if not oid: return jsonify({"error": "Invalid ID"}), 400
+    
+    result = presses_collection.delete_one({"_id": oid})
+    if result.deleted_count == 0:
+        return jsonify({"error": "Press not found"}), 404
+    return jsonify({"message": "Press rejected and removed"}), 200
 
 @app.route("/presses/<press_id>", methods=["PUT"])
 def update_press(press_id):
@@ -567,4 +634,5 @@ def delete_press(press_id):
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
-    app.run(debug=True, host='0.0.0.0', port=port)
+    # use_reloader=False to prevent WinError 10038 on Windows
+    app.run(debug=True, host='0.0.0.0', port=port, use_reloader=False)
