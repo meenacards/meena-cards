@@ -559,18 +559,50 @@ const Admin = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.entries(cards.reduce((acc, card) => {
-                    const cardCats = Array.isArray(card.category) ? card.category : [card.category];
-                    cardCats.forEach(cat => {
-                      if (!acc[cat]) acc[cat] = [];
-                      acc[cat].push(card);
+                  {(() => {
+                    // Build flat ordered category list from sidebar hierarchy
+                    const orderedCategories = [];
+                    const traverse = (obj) => {
+                      if (Array.isArray(obj)) {
+                        orderedCategories.push(...obj);
+                      } else if (typeof obj === 'object') {
+                        Object.values(obj).forEach(val => {
+                          if (Array.isArray(val)) {
+                            orderedCategories.push(...val);
+                          } else {
+                            traverse(val);
+                          }
+                        });
+                      }
+                    };
+                    traverse(categoryHierarchy);
+
+                    // Group cards by category
+                    const grouped = cards.reduce((acc, card) => {
+                      const cardCats = Array.isArray(card.category) ? card.category : [card.category];
+                      cardCats.forEach(cat => {
+                        if (!acc[cat]) acc[cat] = [];
+                        acc[cat].push(card);
+                      });
+                      if (card.is_offer === true || card.is_offer === "true") {
+                        if (!acc['Offer']) acc['Offer'] = [];
+                        acc['Offer'].push(card);
+                      }
+                      return acc;
+                    }, {});
+
+                    // Sort groups by sidebar hierarchy order; unknown categories go to the end
+                    const sortedEntries = Object.entries(grouped).sort(([a], [b]) => {
+                      const idxA = orderedCategories.indexOf(a);
+                      const idxB = orderedCategories.indexOf(b);
+                      if (idxA === -1 && idxB === -1) return a.localeCompare(b);
+                      if (idxA === -1) return 1;
+                      if (idxB === -1) return -1;
+                      return idxA - idxB;
                     });
-                    if (card.is_offer === true || card.is_offer === "true") {
-                      if (!acc['Offer']) acc['Offer'] = [];
-                      acc['Offer'].push(card);
-                    }
-                    return acc;
-                  }, {})).sort(([a], [b]) => a[0].localeCompare(b[0])).map(([groupName, groupCards]) => (
+
+                    return sortedEntries;
+                  })().map(([groupName, groupCards]) => (
                     <React.Fragment key={groupName}>
                       <tr id={`group-${groupName.replace(/\s+/g, '-').toLowerCase()}`} style={{ background: '#f1f5f9', borderTop: '2px solid #e2e8f0' }}>
                         <td colSpan="5" style={{ padding: '12px 24px', fontWeight: 'bold', color: '#1e293b', fontSize: '1rem' }}>
