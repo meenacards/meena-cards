@@ -5,6 +5,18 @@ const os = require('os');
 
 let mainWindow = null;
 
+// Ensure Windows taskbar and Start Menu use the correct AppUserModelID
+try {
+  if (process.platform === 'win32') {
+    // set a stable AppUserModelID as early as possible
+    app.setAppUserModelId && app.setAppUserModelId('com.meenacards.billing');
+    // also set app name
+    app.name = app.name || 'Meena Cards Billing';
+  }
+} catch (e) {
+  // ignore if called too early in some environments
+}
+
 function getLogoDataUri() {
   try {
     const logoPath = path.join(__dirname, 'public', 'bill-logo.png');
