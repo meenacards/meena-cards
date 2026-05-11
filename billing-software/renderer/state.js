@@ -27,13 +27,10 @@ window.BillingActions = {
 
   addToCart(product) {
     const maxStock = this.getAvailableStock(product.id);
-    if (Number.isFinite(maxStock) && maxStock <= 0) {
-      return { ok: false, reason: 'out-of-stock', stock: maxStock };
-    }
 
     const existing = window.BillingState.cart.find(c => c.id === product.id);
     if (existing) {
-      if (Number.isFinite(maxStock) && existing.quantity >= maxStock) {
+      if (Number.isFinite(maxStock) && maxStock > 0 && existing.quantity >= maxStock) {
         return { ok: false, reason: 'exceeds-stock', stock: maxStock };
       }
       existing.quantity += 1;
@@ -46,6 +43,7 @@ window.BillingActions = {
       });
     }
 
+    window.dispatchEvent(new Event('billing:cart-changed'));
     return { ok: true };
   },
 
@@ -69,11 +67,13 @@ window.BillingActions = {
       is_custom: true,
     });
 
+    window.dispatchEvent(new Event('billing:cart-changed'));
     return { ok: true };
   },
 
   removeFromCart(id) {
     window.BillingState.cart = window.BillingState.cart.filter(c => c.id !== id);
+    window.dispatchEvent(new Event('billing:cart-changed'));
   },
 
   updateQuantity(id, quantity) {
@@ -82,12 +82,14 @@ window.BillingActions = {
       const maxStock = this.getAvailableStock(id);
       const nextQuantity = Math.max(1, quantity);
 
-      if (Number.isFinite(maxStock)) {
+      if (Number.isFinite(maxStock) && maxStock > 0) {
         item.quantity = Math.min(nextQuantity, Math.max(1, maxStock));
+        window.dispatchEvent(new Event('billing:cart-changed'));
         return { ok: item.quantity === nextQuantity, quantity: item.quantity, stock: maxStock };
       }
 
       item.quantity = nextQuantity;
+      window.dispatchEvent(new Event('billing:cart-changed'));
       return { ok: true, quantity: item.quantity };
     }
 
@@ -96,6 +98,7 @@ window.BillingActions = {
 
   clearCart() {
     window.BillingState.cart = [];
+    window.dispatchEvent(new Event('billing:cart-changed'));
   },
 
   setTaxPercentages({ cgstPercent, sgstPercent } = {}) {

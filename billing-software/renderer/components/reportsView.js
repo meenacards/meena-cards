@@ -181,6 +181,7 @@
 
     const filename = `Report_${report.scope || 'custom'}_${Date.now()}.pdf`;
     const result = await window.billingApp.downloadReportPdf(report, filename, {
+      folder: 'reports',
       pageSize: 'A4',
       margins: { marginType: 'none' },
     });

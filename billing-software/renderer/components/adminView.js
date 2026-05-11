@@ -38,6 +38,49 @@
     return categories.includes(series) || (card.name || '').toLowerCase().includes(series);
   }
 
+  function cardMatchesSearch(card, term) {
+    if (!term) return true;
+    const name = String(card.name || '').toLowerCase();
+    const description = String(card.description || '').toLowerCase();
+    const categories = normalizeCategoryList(card.category).map((cat) => String(cat || '').toLowerCase());
+    return name.includes(term) || description.includes(term) || categories.some((cat) => cat.includes(term));
+  }
+
+  function addCardToBill(card) {
+    if (!window.BillingActions || typeof window.BillingActions.addToCart !== 'function') {
+      return { ok: false, error: 'Billing actions are not available.' };
+    }
+
+    const result = window.BillingActions.addToCart({
+      id: card.id,
+      name: card.name,
+      price: card.price,
+    });
+
+    if (result && result.ok) {
+      if (window.Toastify) {
+        window.Toastify({
+          text: `Added ${card.name || 'card'} to the bill.`,
+          duration: 3200,
+          gravity: 'top',
+          position: 'right',
+          stopOnFocus: true,
+          close: true,
+          style: {
+            background: 'linear-gradient(135deg, #2f8f61, #256f4b)',
+            color: '#fff',
+            borderRadius: '10px',
+            boxShadow: '0 10px 24px rgba(0, 0, 0, 0.22)',
+            fontWeight: '600',
+          },
+        }).showToast();
+      }
+      return { ok: true };
+    }
+
+    return { ok: false, error: 'Unable to add to bill.' };
+  }
+
   function buildProductsLayout(root, onOpenDetail) {
     const layout = document.createElement('div');
     layout.className = 'products-layout admin-products-layout';
@@ -61,6 +104,8 @@
     content.appendChild(searchInput);
     content.appendChild(infoBar);
     content.appendChild(cardsGrid);
+
+    // (debug overlay removed)
 
     layout.appendChild(sidebar);
     layout.appendChild(content);
@@ -159,6 +204,7 @@
     function renderCards() {
       const term = (searchInput.value || '').trim().toLowerCase();
       const allCards = window.BillingState.products || [];
+
       const filtered = allCards
         .filter((card) => cardMatchesSeries(card, activeMain, activeSeries))
         .filter((card) => !term || (card.name || '').toLowerCase().includes(term))
@@ -177,7 +223,7 @@
 
       filtered.forEach((card) => {
         const cardEl = document.createElement('article');
-        cardEl.className = 'product-card admin-product-card';
+        cardEl.className = 'product-card';
 
         const image = document.createElement('img');
         image.className = 'product-card-image';
@@ -210,60 +256,38 @@
         `;
 
         const actions = document.createElement('div');
-        actions.className = 'product-card-actions admin-product-actions';
+        actions.className = 'product-card-actions';
 
-        const detailBtn = document.createElement('button');
-        detailBtn.type = 'button';
-        detailBtn.className = 'btn-secondary';
-        detailBtn.textContent = 'Details';
-        detailBtn.onclick = () => onOpenDetail(card);
-
-        const updateBtn = document.createElement('button');
-        updateBtn.type = 'button';
-        updateBtn.className = 'btn-secondary';
-        updateBtn.textContent = 'Update';
-        updateBtn.onclick = () => onOpenDetail(card, true);
-
-        const deleteBtn = document.createElement('button');
-        deleteBtn.type = 'button';
-        deleteBtn.className = 'btn-secondary admin-action-danger';
-        deleteBtn.textContent = 'Delete';
-        deleteBtn.onclick = async () => {
-          const confirmed = await showConfirmDialog(`Delete card "${card.name || 'Unnamed card'}"?`);
-          if (!confirmed) return;
-
-          deleteBtn.disabled = true;
-          deleteBtn.textContent = 'Deleting...';
-          try {
-            await window.ApiService.deleteProduct(card.id);
-            const latest = await window.ApiService.fetchProducts();
-            window.BillingActions.setProducts(latest);
-            renderDashboard();
-            renderProductsPanel();
-            renderAddProduct();
-            showToast('Card deleted successfully.', 'success');
-          } catch (error) {
-            showToast('Failed to delete card.', 'error');
-            deleteBtn.disabled = false;
-            deleteBtn.textContent = 'Delete';
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'btn-primary';
+        addBtn.textContent = 'Add To Billing';
+        addBtn.onclick = () => {
+          // Use wrapper which shows toast and normalizes the object
+          const result = addCardToBill(card);
+          if (result && result.ok) {
+            // notify billing UI to refresh if it's visible
+            try {
+              window.dispatchEvent(new Event('billing:cart-changed'));
+            } catch (e) {
+              // ignore
+            }
           }
         };
 
-        actions.appendChild(detailBtn);
-        actions.appendChild(updateBtn);
-        actions.appendChild(deleteBtn);
-
+        actions.appendChild(addBtn);
         body.appendChild(title);
         body.appendChild(description);
         body.appendChild(meta);
         body.appendChild(stats);
         body.appendChild(actions);
 
-        image.onclick = () => onOpenDetail(card);
         cardEl.appendChild(image);
         cardEl.appendChild(body);
         cardsGrid.appendChild(cardEl);
       });
+
+      // debug overlay removed
     }
 
     if (activeMain) {
@@ -900,6 +924,7 @@
               <p class="admin-product-detail-description">${card.description || 'No description available.'}</p>
               <div class="admin-product-detail-actions">
                 <button type="button" class="btn-secondary" data-view-image>View Image</button>
+                <button type="button" class="btn-primary" data-add-to-bill>Add to Bill</button>
                 <button type="button" class="btn-secondary" data-update-card>Update</button>
                 <button type="button" class="btn-secondary admin-action-danger" data-delete-card>Delete</button>
               </div>
@@ -912,6 +937,7 @@
 
         const closeBtn = modal.querySelector('.admin-modal-close');
         const viewImageBtn = modal.querySelector('[data-view-image]');
+        const addToBillBtn = modal.querySelector('[data-add-to-bill]');
         const updateBtn = modal.querySelector('[data-update-card]');
         const deleteBtn = modal.querySelector('[data-delete-card]');
         const imageEl = modal.querySelector('.admin-product-detail-image');
@@ -945,6 +971,7 @@
 
         imageEl.onclick = openImageViewer;
         viewImageBtn.onclick = openImageViewer;
+        addToBillBtn.onclick = () => addCardToBill(card);
         updateBtn.onclick = () => {
           close();
           openUpdateModal(card);
@@ -991,6 +1018,7 @@
     renderProductsPanel();
     renderAddProduct();
     renderPressesPanel();
+    setTab('products');
   }
 
   window.AdminView = { render: renderAdminView };

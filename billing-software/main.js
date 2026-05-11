@@ -44,6 +44,28 @@ function createTempHtmlFile(html) {
   return tempFile;
 }
 
+const STORAGE_ROOT_DIR_NAME = 'meen-cards';
+const STORAGE_SUBDIRS = ['bill', 'reports', 'invoices'];
+
+function getStorageRootDir() {
+  return path.join(app.getPath('documents'), STORAGE_ROOT_DIR_NAME);
+}
+
+function ensureStorageDirectories() {
+  const rootDir = getStorageRootDir();
+  fs.mkdirSync(rootDir, { recursive: true });
+  STORAGE_SUBDIRS.forEach((subdir) => {
+    fs.mkdirSync(path.join(rootDir, subdir), { recursive: true });
+  });
+  return rootDir;
+}
+
+function getPdfSavePath(filename, folderName = 'invoices') {
+  const rootDir = ensureStorageDirectories();
+  const safeFolder = STORAGE_SUBDIRS.includes(folderName) ? folderName : 'invoices';
+  return path.join(rootDir, safeFolder, path.basename(filename || 'document.pdf'));
+}
+
 function safeDeleteFile(filePath) {
   if (!filePath) return;
   try {
@@ -568,7 +590,6 @@ function buildInvoicePrintHtml(invoice) {
           <div class="terms-block">
             <div class="terms-title">Terms and Conditions</div>
             <ol class="terms-list">
-              <li>Payment is due within 30 days from the date of invoice. Any delay beyond the due date will attract a late fee of 10% per month on the outstanding amount. The company reserves the right to suspend services or withhold further deliveries until all outstanding dues are cleared.</li>
               <li>Goods once sold will not be taken back or exchanged. Cancellation of orders is not permitted once the invoice is generated, unless explicitly agreed upon in writing by the company.</li>
             </ol>
           </div>
@@ -840,6 +861,10 @@ function buildMonthlyInvoicesHtml(invoices) {
   return buildInvoicesBundleHtml(invoices, 'Monthly Invoices');
 }
 
+function isPdfPrinterName(name) {
+  return /pdf|xps/i.test(String(name || ''));
+}
+
 function printInvoice(invoice, options = {}) {
   return new Promise((resolve) => {
     const hiddenWin = new BrowserWindow({
@@ -862,7 +887,8 @@ function printInvoice(invoice, options = {}) {
         // For direct invoice generation prints, auto-target default printer.
         if (isSilent && !deviceName) {
           const printers = await hiddenWin.webContents.getPrintersAsync();
-          const defaultPrinter = (printers || []).find((printer) => printer && printer.isDefault) || (printers || [])[0];
+          const physicalPrinter = (printers || []).find((printer) => printer && printer.name && !isPdfPrinterName(printer.name));
+          const defaultPrinter = physicalPrinter || (printers || []).find((printer) => printer && printer.isDefault) || (printers || [])[0];
           if (defaultPrinter && defaultPrinter.name) {
             deviceName = defaultPrinter.name;
           }
@@ -901,7 +927,7 @@ function printInvoice(invoice, options = {}) {
   });
 }
 
-function saveInvoicePdf(invoice, filename) {
+function saveInvoicePdf(invoice, filename, options = {}) {
   return new Promise((resolve) => {
     const hiddenWin = new BrowserWindow({
       width: 820,
@@ -927,8 +953,7 @@ function saveInvoicePdf(invoice, filename) {
           margins: { top: 0, bottom: 0, left: 0, right: 0 },
         });
 
-        const downloadsPath = path.join(os.homedir(), 'Downloads');
-        const filepath = path.join(downloadsPath, filename);
+        const filepath = getPdfSavePath(filename, options.folder || 'invoices');
 
         fs.writeFile(filepath, pdfData, (err) => {
           hiddenWin.close();
@@ -954,7 +979,7 @@ function saveInvoicePdf(invoice, filename) {
   });
 }
 
-function saveMonthlyInvoicesPdf(invoices, filename) {
+function saveMonthlyInvoicesPdf(invoices, filename, options = {}) {
   return new Promise((resolve) => {
     const hiddenWin = new BrowserWindow({
       width: 820,
@@ -980,8 +1005,7 @@ function saveMonthlyInvoicesPdf(invoices, filename) {
           margins: { top: 0, bottom: 0, left: 0, right: 0 },
         });
 
-        const downloadsPath = path.join(os.homedir(), 'Downloads');
-        const filepath = path.join(downloadsPath, filename);
+        const filepath = getPdfSavePath(filename, options.folder || 'invoices');
 
         fs.writeFile(filepath, pdfData, (err) => {
           hiddenWin.close();
@@ -1007,7 +1031,7 @@ function saveMonthlyInvoicesPdf(invoices, filename) {
   });
 }
 
-function saveInvoicesPdf(invoices, filename, title) {
+function saveInvoicesPdf(invoices, filename, title, options = {}) {
   return new Promise((resolve) => {
     const hiddenWin = new BrowserWindow({
       width: 820,
@@ -1033,8 +1057,7 @@ function saveInvoicesPdf(invoices, filename, title) {
           margins: { top: 0, bottom: 0, left: 0, right: 0 },
         });
 
-        const downloadsPath = path.join(os.homedir(), 'Downloads');
-        const filepath = path.join(downloadsPath, filename);
+        const filepath = getPdfSavePath(filename, options.folder || 'invoices');
 
         fs.writeFile(filepath, pdfData, (err) => {
           hiddenWin.close();
@@ -1060,7 +1083,7 @@ function saveInvoicesPdf(invoices, filename, title) {
   });
 }
 
-function saveReportPdf(report, filename) {
+function saveReportPdf(report, filename, options = {}) {
   return new Promise((resolve) => {
     const hiddenWin = new BrowserWindow({
       width: 920,
@@ -1086,8 +1109,7 @@ function saveReportPdf(report, filename) {
           margins: { top: 0, bottom: 0, left: 0, right: 0 },
         });
 
-        const downloadsPath = path.join(os.homedir(), 'Downloads');
-        const filepath = path.join(downloadsPath, filename);
+        const filepath = getPdfSavePath(filename, options.folder || 'reports');
 
         fs.writeFile(filepath, pdfData, (err) => {
           hiddenWin.close();
@@ -1132,6 +1154,7 @@ function createWindow() {
 
 app.whenReady().then(() => {
   loadEnvFromFile();
+  ensureStorageDirectories();
   app.setAppUserModelId('com.meenacards.billing');
 
   ipcMain.handle('app:refresh', () => {
@@ -1156,7 +1179,7 @@ app.whenReady().then(() => {
 
   ipcMain.handle('pdf:download', async (_event, payload) => {
     try {
-      return await saveInvoicePdf(payload.invoice, payload.filename);
+      return await saveInvoicePdf(payload.invoice, payload.filename, payload.options || {});
     } catch (error) {
       return { ok: false, error: error.message || 'PDF save error' };
     }
@@ -1164,7 +1187,7 @@ app.whenReady().then(() => {
 
   ipcMain.handle('pdf:download-month', async (_event, payload) => {
     try {
-      return await saveMonthlyInvoicesPdf(payload.invoices || [], payload.filename || 'Monthly_Invoices.pdf');
+      return await saveMonthlyInvoicesPdf(payload.invoices || [], payload.filename || 'Monthly_Invoices.pdf', payload.options || {});
     } catch (error) {
       return { ok: false, error: error.message || 'Monthly PDF save error' };
     }
@@ -1173,7 +1196,7 @@ app.whenReady().then(() => {
   ipcMain.handle('pdf:download-invoices', async (_event, payload) => {
     try {
       const title = payload.options && payload.options.title ? payload.options.title : 'Invoices';
-      return await saveInvoicesPdf(payload.invoices || [], payload.filename || 'Invoices.pdf', title);
+      return await saveInvoicesPdf(payload.invoices || [], payload.filename || 'Invoices.pdf', title, payload.options || {});
     } catch (error) {
       return { ok: false, error: error.message || 'Invoices PDF save error' };
     }
@@ -1181,7 +1204,7 @@ app.whenReady().then(() => {
 
   ipcMain.handle('pdf:download-report', async (_event, payload) => {
     try {
-      return await saveReportPdf(payload.report || {}, payload.filename || 'Report.pdf');
+      return await saveReportPdf(payload.report || {}, payload.filename || 'Report.pdf', payload.options || {});
     } catch (error) {
       return { ok: false, error: error.message || 'Report PDF save error' };
     }

@@ -92,6 +92,7 @@
 
     if (typeof window.billingApp.downloadPdf === 'function') {
       const result = await window.billingApp.downloadPdf(printableInvoice, filename, {
+        folder: 'invoices',
         pageSize: 'A4',
         margins: { marginType: 'none' },
       });
@@ -296,6 +297,7 @@
     const filename = `Invoices_${monthKey}.pdf`;
     const normalizedInvoices = (monthInvoices || []).map(normalizeInvoiceForPrint);
     const result = await window.billingApp.downloadMonthlyPdf(normalizedInvoices, filename, {
+      folder: 'invoices',
       pageSize: 'A4',
       margins: { marginType: 'none' },
     });
@@ -316,6 +318,7 @@
     const normalizedInvoices = (invoices || []).map(normalizeInvoiceForPrint);
     const result = await window.billingApp.downloadInvoicesPdf(normalizedInvoices, filename, {
       title,
+      folder: 'invoices',
       pageSize: 'A4',
       margins: { marginType: 'none' },
     });

@@ -171,50 +171,15 @@
     transportLabel.className = 'field-label';
     transportLabel.textContent = 'Transportation Charges';
 
-    const transportToggleRow = document.createElement('div');
-    transportToggleRow.style.display = 'flex';
-    transportToggleRow.style.gap = '8px';
-    transportToggleRow.style.marginBottom = '8px';
-
-    const transportYesBtn = document.createElement('button');
-    transportYesBtn.type = 'button';
-    transportYesBtn.className = 'btn-secondary';
-    transportYesBtn.textContent = 'Yes';
-
-    const transportNoBtn = document.createElement('button');
-    transportNoBtn.type = 'button';
-    transportNoBtn.className = 'btn-secondary';
-    transportNoBtn.textContent = 'No';
-
     const transportAmountInput = document.createElement('input');
     transportAmountInput.type = 'number';
     transportAmountInput.min = '0';
     transportAmountInput.step = '0.01';
     transportAmountInput.className = 'input';
     transportAmountInput.placeholder = 'Enter transportation charge';
-    transportAmountInput.style.display = 'none';
-
-    const termsControls = document.createElement('div');
-    termsControls.className = 'transport-controls';
-
-    const termsLabel = document.createElement('div');
-    termsLabel.className = 'field-label';
-    termsLabel.textContent = 'Apply Terms and Conditions';
-
-    const termsToggleRow = document.createElement('div');
-    termsToggleRow.style.display = 'flex';
-    termsToggleRow.style.gap = '8px';
-    termsToggleRow.style.marginBottom = '8px';
-
-    const termsYesBtn = document.createElement('button');
-    termsYesBtn.type = 'button';
-    termsYesBtn.className = 'btn-secondary';
-    termsYesBtn.textContent = 'Yes';
-
-    const termsNoBtn = document.createElement('button');
-    termsNoBtn.type = 'button';
-    termsNoBtn.className = 'btn-secondary';
-    termsNoBtn.textContent = 'No';
+    const termsNote = document.createElement('div');
+    termsNote.className = 'text-muted';
+    termsNote.textContent = 'Terms and Conditions will be applied automatically.';
 
     const createInvoiceBtn = document.createElement('button');
     createInvoiceBtn.textContent = 'Generate Invoice';
@@ -222,17 +187,10 @@
 
     summary.appendChild(document.createElement('hr'));
     summary.appendChild(taxInputs);
-    transportToggleRow.appendChild(transportYesBtn);
-    transportToggleRow.appendChild(transportNoBtn);
     transportControls.appendChild(transportLabel);
-    transportControls.appendChild(transportToggleRow);
     transportControls.appendChild(transportAmountInput);
     summary.appendChild(transportControls);
-    termsToggleRow.appendChild(termsYesBtn);
-    termsToggleRow.appendChild(termsNoBtn);
-    termsControls.appendChild(termsLabel);
-    termsControls.appendChild(termsToggleRow);
-    summary.appendChild(termsControls);
+    summary.appendChild(termsNote);
     summary.appendChild(totalsEl);
     summary.appendChild(document.createElement('hr'));
     summary.appendChild(createInvoiceBtn);
@@ -246,7 +204,6 @@
     let presses = [];
     let selectedPress = null;
     let isTransportationEnabled = false;
-    let isTermsEnabled = false;
 
     function showBillingMessage(type, message) {
       const toastType = type || 'info';
@@ -388,21 +345,11 @@
 
     function setTransportationMode(enabled) {
       isTransportationEnabled = Boolean(enabled);
-      transportAmountInput.style.display = isTransportationEnabled ? 'block' : 'none';
-
+      transportAmountInput.style.display = 'block';
       if (!isTransportationEnabled) {
         transportAmountInput.value = '';
       }
-
-      transportYesBtn.style.background = isTransportationEnabled ? 'rgba(91, 18, 37, 0.14)' : 'transparent';
-      transportNoBtn.style.background = !isTransportationEnabled ? 'rgba(91, 18, 37, 0.14)' : 'transparent';
       renderTotals();
-    }
-
-    function setTermsMode(enabled) {
-      isTermsEnabled = Boolean(enabled);
-      termsYesBtn.style.background = isTermsEnabled ? 'rgba(91, 18, 37, 0.14)' : 'transparent';
-      termsNoBtn.style.background = !isTermsEnabled ? 'rgba(91, 18, 37, 0.14)' : 'transparent';
     }
 
     function applySelectedPress(press) {
@@ -602,7 +549,6 @@
       cgstPercentInput.value = '9';
       sgstPercentInput.value = '9';
       setTransportationMode(false);
-      setTermsMode(false);
       syncTaxState();
       renderTotals();
     }
@@ -673,22 +619,6 @@
       renderTotals();
     });
 
-    transportYesBtn.addEventListener('click', () => {
-      setTransportationMode(true);
-    });
-
-    transportNoBtn.addEventListener('click', () => {
-      setTransportationMode(false);
-    });
-
-    termsYesBtn.addEventListener('click', () => {
-      setTermsMode(true);
-    });
-
-    termsNoBtn.addEventListener('click', () => {
-      setTermsMode(false);
-    });
-
     createInvoiceBtn.onclick = async () => {
       if (!window.BillingState.cart.length) {
         showBillingMessage('error', 'Cart is empty.');
@@ -723,7 +653,7 @@
           to_address: customerAddress,
           to_phone: customerPhone,
           gstin: gstInput.value.trim(),
-          apply_terms_conditions: isTermsEnabled,
+          apply_terms_conditions: true,
         }, {
           ...taxConfig,
           transportationCharge,
@@ -748,12 +678,23 @@
             gstin: invoice.gstin,
             created_at: invoice.created_at,
           };
-          const printResult = await printInvoiceDirect(printData);
-          if (printResult && printResult.ok) {
-            showBillingMessage('success', `Invoice #${invoice.invoice_number} saved and printed successfully.`);
+          const savePromise = window.billingApp && typeof window.billingApp.downloadPdf === 'function'
+            ? window.billingApp.downloadPdf(printData, `Bill_${invoice.invoice_number}.pdf`, {
+                folder: 'bill',
+                pageSize: 'A4',
+                margins: { marginType: 'none' },
+              })
+            : Promise.resolve({ ok: false, error: 'Bill save service unavailable' });
+          const printPromise = printInvoiceDirect(printData);
+          const [saveResult, printResult] = await Promise.all([savePromise, printPromise]);
+          if (printResult && printResult.ok && saveResult && saveResult.ok) {
+            showBillingMessage('success', `Invoice #${invoice.invoice_number} printed and saved in Documents/meen-cards/bill.`);
+            resetBillingForm();
+          } else if (printResult && printResult.ok) {
+            showBillingMessage('warning', `Invoice #${invoice.invoice_number} printed, but saving the bill copy failed.${saveResult && saveResult.error ? ` ${saveResult.error}` : ''}`);
             resetBillingForm();
           } else {
-            showBillingMessage('warning', `Invoice #${invoice.invoice_number} saved successfully, but printing failed.${printResult && printResult.error ? ` ${printResult.error}` : ''}`);
+            showBillingMessage('warning', `Invoice #${invoice.invoice_number} saved, but printing failed.${printResult && printResult.error ? ` ${printResult.error}` : ''}`);
           }
         }
       } catch (error) {
@@ -766,13 +707,18 @@
 
     renderCartRows();
     setTransportationMode(false);
-    setTermsMode(false);
     renderTotals();
 
     // Auto-focus the search box so the caret is visible immediately
     setTimeout(() => {
       searchInput.focus();
     }, 0);
+
+    // Listen for external cart changes (e.g., Add To Billing from Admin/Products view)
+    window.addEventListener('billing:cart-changed', () => {
+      renderCartRows();
+      renderTotals();
+    });
   }
 
   window.BillingView = { render: renderBillingView };
