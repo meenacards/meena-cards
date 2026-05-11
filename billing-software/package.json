@@ -17,6 +17,7 @@
   "build": {
     "appId": "com.meenacards.billing",
     "productName": "Meena Cards Billing",
+    "afterPack": "scripts/after-pack-icon.js",
     "asar": true,
     "directories": {
       "output": "dist"
