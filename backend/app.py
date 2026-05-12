@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -338,7 +338,7 @@ def create_invoice():
             "to_address": to_address,
             "to_phone": to_phone,
             "gstin": gstin,
-            "created_at": ObjectId().generation_time,
+            "created_at": datetime.utcnow(),
         }
         
         result = invoices_collection.insert_one(invoice_doc)
@@ -394,7 +394,7 @@ def get_invoices():
                 "to_address": inv.get("to_address", ""),
                 "to_phone": inv.get("to_phone", ""),
                 "gstin": inv.get("gstin", ""),
-                "created_at": inv.get("created_at").isoformat() if inv.get("created_at") else None,
+                "created_at": inv.get("created_at").strftime('%Y-%m-%dT%H:%M:%S.000Z') if inv.get("created_at") else None,
             })
         return jsonify(result), 200
     except Exception as e:
@@ -429,7 +429,7 @@ def get_invoice(invoice_id):
             "to_address": invoice.get("to_address", ""),
             "to_phone": invoice.get("to_phone", ""),
             "gstin": invoice.get("gstin", ""),
-            "created_at": invoice.get("created_at").isoformat() if invoice.get("created_at") else None,
+            "created_at": invoice.get("created_at").strftime('%Y-%m-%dT%H:%M:%S.000Z') if invoice.get("created_at") else None,
         }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
