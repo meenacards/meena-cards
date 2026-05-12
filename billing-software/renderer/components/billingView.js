@@ -11,7 +11,16 @@
     });
 
     if (!result || !result.ok) {
-      return { ok: false, error: (result && result.error) || 'Direct print failed. Please ensure a printer (or Microsoft Print to PDF) is available.' };
+      const errMsg = (result && result.error) || '';
+      // Detect common no-printer error strings from Electron/Windows
+      const noPrinter = /no printer|printer not found|no default printer|cancelled|canceled/i.test(errMsg);
+      return {
+        ok: false,
+        noPrinter,
+        error: noPrinter
+          ? 'No printer is connected or selected. Please connect a printer and try again.'
+          : errMsg || 'Direct print failed. Please ensure a printer is available.',
+      };
     }
 
     return { ok: true };
@@ -412,7 +421,22 @@
         tdName.textContent = item.name;
 
         const tdPrice = document.createElement('td');
-        tdPrice.textContent = `Rs. ${item.price.toFixed(2)}`;
+        const priceInput = document.createElement('input');
+        priceInput.type = 'number';
+        priceInput.min = '0';
+        priceInput.step = '0.01';
+        priceInput.value = item.price.toFixed(2);
+        priceInput.className = 'input input-price-edit';
+        priceInput.title = 'Edit price';
+        priceInput.onchange = () => {
+          const parsed = parseFloat(priceInput.value);
+          const newPrice = Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+          item.price = newPrice;
+          priceInput.value = newPrice.toFixed(2);
+          renderCartRows();
+          renderTotals();
+        };
+        tdPrice.appendChild(priceInput);
 
         const tdQty = document.createElement('td');
 
@@ -658,6 +682,13 @@
           ...taxConfig,
           transportationCharge,
         });
+        // Refresh products from backend to sync updated stock
+        try {
+          const freshProducts = await window.ApiService.fetchProducts();
+          window.BillingActions.setProducts(freshProducts);
+        } catch (refreshErr) {
+          console.warn('Could not refresh products after invoice:', refreshErr);
+        }
         renderCartRows();
         renderTotals();
         if (invoice) {
@@ -693,8 +724,13 @@
           } else if (printResult && printResult.ok) {
             showBillingMessage('warning', `Invoice #${invoice.invoice_number} printed, but saving the bill copy failed.${saveResult && saveResult.error ? ` ${saveResult.error}` : ''}`);
             resetBillingForm();
+          } else if (printResult && printResult.noPrinter) {
+            // No printer connected — invoice saved but not printed
+            showBillingMessage('warning', `⚠️ No printer connected! Invoice #${invoice.invoice_number} saved but NOT printed. Please connect a printer and print from the Invoices page.`);
+            resetBillingForm();
           } else {
-            showBillingMessage('warning', `Invoice #${invoice.invoice_number} saved, but printing failed.${printResult && printResult.error ? ` ${printResult.error}` : ''}`);
+            showBillingMessage('warning', `Invoice #${invoice.invoice_number} saved. Print failed: ${printResult && printResult.error ? printResult.error : 'Unknown error.'}`);
+            resetBillingForm();
           }
         }
       } catch (error) {

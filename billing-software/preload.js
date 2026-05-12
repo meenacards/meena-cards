@@ -4,7 +4,7 @@ function sanitizeBaseUrl(url) {
   return String(url || '').trim().replace(/\/+$/, '');
 }
 
-const resolvedBackendUrl = sanitizeBaseUrl(process.env.BACKEND_URL) || 'http://localhost:8080';
+const resolvedBackendUrl = sanitizeBaseUrl(process.env.BACKEND_URL) || 'https://api.meenacards.com';
 
 const billingBridge = {
   version: '1.0.0',
