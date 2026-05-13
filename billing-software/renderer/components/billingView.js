@@ -6,7 +6,7 @@
 
     const result = await window.billingApp.printInvoice(invoice, {
       silent: true,
-      pageSize: 'A4',
+      pageSize: 'A5',
       margins: { marginType: 'none' },
     });
 
@@ -353,9 +353,7 @@
     addCustomProductBtn.addEventListener('click', openCustomProductModal);
 
     function setTransportationMode(enabled) {
-      isTransportationEnabled = Boolean(enabled);
-      transportAmountInput.style.display = 'block';
-      if (!isTransportationEnabled) {
+      if (!enabled) {
         transportAmountInput.value = '';
       }
       renderTotals();
@@ -540,7 +538,6 @@
     }
 
     function getTransportationChargeAmount() {
-      if (!isTransportationEnabled) return 0;
       const parsed = parseFloat(transportAmountInput.value);
       return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
     }
@@ -667,11 +664,6 @@
         const taxConfig = syncTaxState();
         const transportationCharge = getTransportationChargeAmount();
 
-        if (isTransportationEnabled && transportationCharge <= 0) {
-          showBillingMessage('error', 'Please enter transportation charge amount.');
-          return;
-        }
-
         const invoice = await window.BillingActions.createInvoice({
           to_name: customerName,
           to_address: customerAddress,
@@ -711,10 +703,10 @@
           };
           const savePromise = window.billingApp && typeof window.billingApp.downloadPdf === 'function'
             ? window.billingApp.downloadPdf(printData, `Bill_${invoice.invoice_number}.pdf`, {
-                folder: 'bill',
-                pageSize: 'A4',
-                margins: { marginType: 'none' },
-              })
+              folder: 'bill',
+              pageSize: 'A5',
+              margins: { marginType: 'none' },
+            })
             : Promise.resolve({ ok: false, error: 'Bill save service unavailable' });
           const printPromise = printInvoiceDirect(printData);
           const [saveResult, printResult] = await Promise.all([savePromise, printPromise]);

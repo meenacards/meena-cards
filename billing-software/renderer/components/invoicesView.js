@@ -93,7 +93,7 @@
     if (typeof window.billingApp.downloadPdf === 'function') {
       const result = await window.billingApp.downloadPdf(printableInvoice, filename, {
         folder: 'invoices',
-        pageSize: 'A4',
+        pageSize: 'A5',
         margins: { marginType: 'none' },
       });
 
@@ -107,7 +107,7 @@
     if (typeof window.billingApp.printInvoice === 'function') {
       const printResult = await window.billingApp.printInvoice(printableInvoice, {
         silent: false,
-        pageSize: 'A4',
+        pageSize: 'A5',
         margins: { marginType: 'none' },
       });
 
@@ -203,7 +203,7 @@
 
     const downloadBtn = document.createElement('button');
     downloadBtn.className = 'btn-primary';
-    downloadBtn.textContent = 'Download PDF (A4)';
+    downloadBtn.textContent = 'Download PDF (A5)';
     downloadBtn.onclick = async () => {
       await downloadPdfA4(invoice);
     };
@@ -298,7 +298,7 @@
     const normalizedInvoices = (monthInvoices || []).map(normalizeInvoiceForPrint);
     const result = await window.billingApp.downloadMonthlyPdf(normalizedInvoices, filename, {
       folder: 'invoices',
-      pageSize: 'A4',
+      pageSize: 'A5',
       margins: { marginType: 'none' },
     });
 
@@ -319,7 +319,7 @@
     const result = await window.billingApp.downloadInvoicesPdf(normalizedInvoices, filename, {
       title,
       folder: 'invoices',
-      pageSize: 'A4',
+      pageSize: 'A5',
       margins: { marginType: 'none' },
     });
 
@@ -517,62 +517,62 @@
       monthList.className = 'invoice-month-list';
 
       monthInvoices.forEach((inv) => {
-      const card = document.createElement('article');
-      card.className = 'invoice-card';
-      card.style.cursor = 'pointer';
-      card.style.transition = 'all 0.3s ease';
-      card.onmouseover = () => card.style.transform = 'translateY(-2px)';
-      card.onmouseout = () => card.style.transform = 'translateY(0)';
+        const card = document.createElement('article');
+        card.className = 'invoice-card';
+        card.style.cursor = 'pointer';
+        card.style.transition = 'all 0.3s ease';
+        card.onmouseover = () => card.style.transform = 'translateY(-2px)';
+        card.onmouseout = () => card.style.transform = 'translateY(0)';
 
-      const top = document.createElement('div');
-      top.className = 'invoice-card-top';
+        const top = document.createElement('div');
+        top.className = 'invoice-card-top';
 
-      const left = document.createElement('div');
-      left.className = 'invoice-meta';
+        const left = document.createElement('div');
+        left.className = 'invoice-meta';
 
-      const idEl = document.createElement('h3');
-      idEl.className = 'invoice-id';
-      idEl.textContent = `Invoice #${inv.invoice_number}`;
+        const idEl = document.createElement('h3');
+        idEl.className = 'invoice-id';
+        idEl.textContent = `Invoice #${inv.invoice_number}`;
 
-      const dateEl = document.createElement('div');
-      dateEl.className = 'text-muted';
-      dateEl.textContent = new Date(inv.created_at).toLocaleString();
+        const dateEl = document.createElement('div');
+        dateEl.className = 'text-muted';
+        dateEl.textContent = new Date(inv.created_at).toLocaleString();
 
-      left.appendChild(idEl);
-      left.appendChild(dateEl);
+        left.appendChild(idEl);
+        left.appendChild(dateEl);
 
-      const stateChip = document.createElement('span');
-      stateChip.className = 'invoice-chip';
-      stateChip.textContent = 'Generated';
+        const stateChip = document.createElement('span');
+        stateChip.className = 'invoice-chip';
+        stateChip.textContent = 'Generated';
 
-      top.appendChild(left);
-      top.appendChild(stateChip);
+        top.appendChild(left);
+        top.appendChild(stateChip);
 
-      const stats = document.createElement('div');
-      stats.className = 'invoice-stats';
+        const stats = document.createElement('div');
+        stats.className = 'invoice-stats';
 
-      const itemsStat = document.createElement('div');
-      itemsStat.className = 'invoice-stat';
-      itemsStat.innerHTML = `<span class="stat-label">Items</span><span class="stat-value">${inv.items.length}</span>`;
+        const itemsStat = document.createElement('div');
+        itemsStat.className = 'invoice-stat';
+        itemsStat.innerHTML = `<span class="stat-label">Items</span><span class="stat-value">${inv.items.length}</span>`;
 
-      const taxStat = document.createElement('div');
-      taxStat.className = 'invoice-stat';
-      taxStat.innerHTML = `<span class="stat-label">Tax</span><span class="stat-value">Rs. ${Number(inv.tax).toFixed(2)}</span>`;
+        const taxStat = document.createElement('div');
+        taxStat.className = 'invoice-stat';
+        taxStat.innerHTML = `<span class="stat-label">Tax</span><span class="stat-value">Rs. ${Number(inv.tax).toFixed(2)}</span>`;
 
-      const totalStat = document.createElement('div');
-      totalStat.className = 'invoice-stat invoice-stat-total';
-      totalStat.innerHTML = `<span class="stat-label">Total</span><span class="stat-value">Rs. ${Number(inv.total_amount).toFixed(2)}</span>`;
+        const totalStat = document.createElement('div');
+        totalStat.className = 'invoice-stat invoice-stat-total';
+        totalStat.innerHTML = `<span class="stat-label">Total</span><span class="stat-value">Rs. ${Number(inv.total_amount).toFixed(2)}</span>`;
 
-      stats.appendChild(itemsStat);
-      stats.appendChild(taxStat);
-      stats.appendChild(totalStat);
+        stats.appendChild(itemsStat);
+        stats.appendChild(taxStat);
+        stats.appendChild(totalStat);
 
-      card.appendChild(top);
-      card.appendChild(stats);
+        card.appendChild(top);
+        card.appendChild(stats);
 
-      card.onclick = () => openInvoiceDetail(inv);
-      monthList.appendChild(card);
-    });
+        card.onclick = () => openInvoiceDetail(inv);
+        monthList.appendChild(card);
+      });
 
       monthSection.appendChild(monthHeader);
       monthSection.appendChild(monthList);

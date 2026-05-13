@@ -198,16 +198,13 @@ function buildPrintFooterComponent() {
 
 function buildPrintBaseStyles(extraCss = '') {
   return `
-    @page { size: A4; margin: 0; }
+    @page { size: A5; margin: 0; }
     body { font-family: Arial, sans-serif; margin: 0; color: #222; }
     .page {
       position: relative;
-      width: 210mm;
-      min-height: 297mm;
-      height: 297mm;
-      padding: 8mm;
+      min-height: 100vh;
+      padding: 4mm;
       box-sizing: border-box;
-      overflow: hidden;
     }
     .watermark {
       position: absolute;
@@ -229,7 +226,7 @@ function buildPrintBaseStyles(extraCss = '') {
     .content {
       position: relative;
       z-index: 2;
-      height: 100%;
+      flex: 1;
       display: flex;
       flex-direction: column;
     }
@@ -260,7 +257,7 @@ function buildPrintBaseStyles(extraCss = '') {
       gap: 2px;
     }
     .company-name {
-      font-size: 26px;
+      font-size: 27px;
       font-weight: 800;
       color: #5b1225;
       letter-spacing: 0.02em;
@@ -269,13 +266,13 @@ function buildPrintBaseStyles(extraCss = '') {
       text-overflow: ellipsis;
     }
     .company-name-tamil {
-      font-size: 18px;
+      font-size: 19px;
       font-weight: 700;
       color: #5b1225;
       line-height: 1.1;
     }
     .company-address-tamil {
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 600;
       color: #5b1225;
       line-height: 1.2;
@@ -284,7 +281,7 @@ function buildPrintBaseStyles(extraCss = '') {
     .header-right {
       width: 33%;
       text-align: right;
-      font-size: 12px;
+      font-size: 13px;
       color: #5b1225;
       font-weight: 700;
       line-height: 1.5;
@@ -317,7 +314,7 @@ function buildPrintBaseStyles(extraCss = '') {
       margin-top: 14px;
       padding-top: 10px;
       border-top: 2px solid #5b1225;
-      font-size: 12px;
+      font-size: 13px;
       color: #5b1225;
       font-weight: 700;
       gap: 8px;
@@ -599,19 +596,13 @@ function buildInvoicePrintHtml(invoice) {
 
       <div class="bottom-stack">
         <div class="terms-signature-row">
-          <div class="terms-block">
-            <div class="terms-title">Terms and Conditions</div>
-            <ol class="terms-list">
-              <li>Goods once sold will not be taken back or exchanged. Cancellation of orders is not permitted once the invoice is generated, unless explicitly agreed upon in writing by the company.</li>
-            </ol>
+          <div class="notes">
+            <div>No Refund | No Exchange</div>
+            <div>Thank you for shopping with Meena Cards</div>
           </div>
           <div class="signature-section">
             <div class="signature-line">Authorized Signature</div>
           </div>
-        </div>
-        <div class="notes">
-          <div>No Refund | No Exchange</div>
-          <div>Thank you for shopping with Meena Cards</div>
         </div>
       </div>
     </div>
@@ -910,7 +901,7 @@ function printInvoice(invoice, options = {}) {
           {
             silent: isSilent,
             printBackground: true,
-            pageSize: options.pageSize || 'A4',
+            pageSize: options.pageSize || 'A5',
             margins: options.margins || { marginType: 'none' },
             deviceName,
           },
@@ -959,7 +950,7 @@ function saveInvoicePdf(invoice, filename, options = {}) {
         await hiddenWin.webContents.executeJavaScript('new Promise((resolve) => requestAnimationFrame(() => resolve(true)))');
 
         const pdfData = await hiddenWin.webContents.printToPDF({
-          pageSize: 'A4',
+          pageSize: 'A5',
           preferCSSPageSize: false,
           printBackground: true,
           margins: { top: 0, bottom: 0, left: 0, right: 0 },
@@ -1011,7 +1002,7 @@ function saveMonthlyInvoicesPdf(invoices, filename, options = {}) {
         await hiddenWin.webContents.executeJavaScript('new Promise((resolve) => requestAnimationFrame(() => resolve(true)))');
 
         const pdfData = await hiddenWin.webContents.printToPDF({
-          pageSize: 'A4',
+          pageSize: 'A5',
           preferCSSPageSize: false,
           printBackground: true,
           margins: { top: 0, bottom: 0, left: 0, right: 0 },
@@ -1063,7 +1054,7 @@ function saveInvoicesPdf(invoices, filename, title, options = {}) {
         await hiddenWin.webContents.executeJavaScript('new Promise((resolve) => requestAnimationFrame(() => resolve(true)))');
 
         const pdfData = await hiddenWin.webContents.printToPDF({
-          pageSize: 'A4',
+          pageSize: 'A5',
           preferCSSPageSize: false,
           printBackground: true,
           margins: { top: 0, bottom: 0, left: 0, right: 0 },
@@ -1115,7 +1106,7 @@ function saveReportPdf(report, filename, options = {}) {
         await hiddenWin.webContents.executeJavaScript('new Promise((resolve) => requestAnimationFrame(() => resolve(true)))');
 
         const pdfData = await hiddenWin.webContents.printToPDF({
-          pageSize: 'A4',
+          pageSize: 'A5',
           preferCSSPageSize: false,
           printBackground: true,
           margins: { top: 0, bottom: 0, left: 0, right: 0 },
