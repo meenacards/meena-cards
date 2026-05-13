@@ -6,8 +6,8 @@
 
     const result = await window.billingApp.printInvoice(invoice, {
       silent: true,
-      pageSize: 'A4',
-      margins: { marginType: 'none' },
+      pageSize: 'A5',
+      margins: { marginType: 'printableArea' },
     });
 
     if (!result || !result.ok) {
@@ -177,6 +177,13 @@
     transportAmountInput.step = '0.01';
     transportAmountInput.className = 'input';
     transportAmountInput.placeholder = 'Enter transportation charge';
+    transportAmountInput.required = true;
+
+    const transportValidationMsg = document.createElement('div');
+    transportValidationMsg.className = 'billing-notice error';
+    transportValidationMsg.style.display = 'none';
+    transportValidationMsg.style.marginTop = '8px';
+    transportValidationMsg.textContent = 'Transportation charge is required.';
     const termsNote = document.createElement('div');
     termsNote.className = 'text-muted';
     termsNote.textContent = 'Terms and Conditions will be applied automatically.';
@@ -189,6 +196,7 @@
     summary.appendChild(taxInputs);
     transportControls.appendChild(transportLabel);
     transportControls.appendChild(transportAmountInput);
+    transportControls.appendChild(transportValidationMsg);
     summary.appendChild(transportControls);
     summary.appendChild(termsNote);
     summary.appendChild(totalsEl);
@@ -203,7 +211,6 @@
 
     let presses = [];
     let selectedPress = null;
-    let isTransportationEnabled = false;
 
     function showBillingMessage(type, message) {
       const toastType = type || 'info';
@@ -344,12 +351,25 @@
     addCustomProductBtn.addEventListener('click', openCustomProductModal);
 
     function setTransportationMode(enabled) {
-      isTransportationEnabled = Boolean(enabled);
+      // keep UI input visible; use enabled flag only to clear
+      const e = Boolean(enabled);
       transportAmountInput.style.display = 'block';
-      if (!isTransportationEnabled) {
+      if (!e) {
         transportAmountInput.value = '';
+        transportValidationMsg.style.display = 'none';
+        transportAmountInput.style.borderColor = '';
       }
       renderTotals();
+    }
+
+    function validateTransportationCharge() {
+      const raw = String(transportAmountInput.value || '').trim();
+      const parsed = raw === '' ? NaN : parseFloat(raw);
+      const isValid = raw !== '' && Number.isFinite(parsed) && parsed >= 0;
+
+      transportValidationMsg.style.display = isValid ? 'none' : 'block';
+      transportAmountInput.style.borderColor = isValid ? '' : 'var(--error)';
+      return isValid;
     }
 
     function applySelectedPress(press) {
@@ -509,16 +529,27 @@
       totalsEl.appendChild(row('Subtotal', subtotal));
       totalsEl.appendChild(row(`CGST (${cgstPercent}%)`, cgst));
       totalsEl.appendChild(row(`SGST (${sgstPercent}%)`, sgst));
-      if (transportationCharge > 0) {
+      if (transportationCharge === null) {
+        const r = document.createElement('div');
+        r.className = 'summary-row';
+        const l = document.createElement('span');
+        l.textContent = 'TRANSPORTATION CHARGE';
+        const v = document.createElement('span');
+        v.textContent = 'Required';
+        r.appendChild(l);
+        r.appendChild(v);
+        totalsEl.appendChild(r);
+      } else if (transportationCharge > 0) {
         totalsEl.appendChild(row('TRANSPORTATION CHARGE', transportationCharge));
       }
       totalsEl.appendChild(row('Grand Total', total, true));
     }
 
     function getTransportationChargeAmount() {
-      if (!isTransportationEnabled) return 0;
-      const parsed = parseFloat(transportAmountInput.value);
-      return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+      const raw = String(transportAmountInput.value || '').trim();
+      if (raw === '') return null;
+      const parsed = parseFloat(raw);
+      return Number.isFinite(parsed) ? Math.max(0, parsed) : null;
     }
 
     function getTaxConfig() {
@@ -616,7 +647,12 @@
     });
 
     transportAmountInput.addEventListener('input', () => {
+      validateTransportationCharge();
       renderTotals();
+    });
+
+    transportAmountInput.addEventListener('blur', () => {
+      validateTransportationCharge();
     });
 
     createInvoiceBtn.onclick = async () => {
@@ -642,9 +678,8 @@
 
         const taxConfig = syncTaxState();
         const transportationCharge = getTransportationChargeAmount();
-
-        if (isTransportationEnabled && transportationCharge <= 0) {
-          showBillingMessage('error', 'Please enter transportation charge amount.');
+        if (!validateTransportationCharge() || transportationCharge === null) {
+          showBillingMessage('error', 'Transportation charge is required before generating invoice.');
           return;
         }
 
@@ -678,23 +713,35 @@
             gstin: invoice.gstin,
             created_at: invoice.created_at,
           };
-          const savePromise = window.billingApp && typeof window.billingApp.downloadPdf === 'function'
-            ? window.billingApp.downloadPdf(printData, `Bill_${invoice.invoice_number}.pdf`, {
+          // First save the PDF silently to Documents/meen-cards/bill then print
+          const saveResult = window.billingApp && typeof window.billingApp.downloadPdf === 'function'
+            ? await window.billingApp.downloadPdf(printData, `Bill_${invoice.invoice_number}.pdf`, {
                 folder: 'bill',
-                pageSize: 'A4',
+                pageSize: 'A5',
                 margins: { marginType: 'none' },
               })
-            : Promise.resolve({ ok: false, error: 'Bill save service unavailable' });
-          const printPromise = printInvoiceDirect(printData);
-          const [saveResult, printResult] = await Promise.all([savePromise, printPromise]);
-          if (printResult && printResult.ok && saveResult && saveResult.ok) {
-            showBillingMessage('success', `Invoice #${invoice.invoice_number} printed and saved in Documents/meen-cards/bill.`);
-            resetBillingForm();
-          } else if (printResult && printResult.ok) {
-            showBillingMessage('warning', `Invoice #${invoice.invoice_number} printed, but saving the bill copy failed.${saveResult && saveResult.error ? ` ${saveResult.error}` : ''}`);
+            : { ok: false, error: 'Bill save service unavailable' };
+
+          if (!saveResult || !saveResult.ok) {
+            showBillingMessage('warning', `Invoice #${invoice.invoice_number} saved to database but failed to store PDF.${saveResult && saveResult.error ? ` ${saveResult.error}` : ''}`);
+          }
+
+          // After save attempt, trigger printing (prefer physical printer) with A5
+          const printResult = await printInvoiceDirect(printData);
+
+          if (printResult && printResult.ok) {
+            if (saveResult && saveResult.ok) {
+              showBillingMessage('success', `Invoice #${invoice.invoice_number} printed and saved in Documents/meen-cards/bill.`);
+            } else {
+              showBillingMessage('warning', `Invoice #${invoice.invoice_number} printed, but saving the bill copy failed.${saveResult && saveResult.error ? ` ${saveResult.error}` : ''}`);
+            }
             resetBillingForm();
           } else {
-            showBillingMessage('warning', `Invoice #${invoice.invoice_number} saved, but printing failed.${printResult && printResult.error ? ` ${printResult.error}` : ''}`);
+            if (saveResult && saveResult.ok) {
+              showBillingMessage('warning', `Invoice #${invoice.invoice_number} saved, but printing failed.${printResult && printResult.error ? ` ${printResult.error}` : ''}`);
+            } else {
+              showBillingMessage('error', `Invoice #${invoice.invoice_number} failed to save and printing also failed.`);
+            }
           }
         }
       } catch (error) {

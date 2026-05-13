@@ -31,10 +31,14 @@ if MONGODB_URI:
     cards_collection = db["cards"]
     invoices_collection = db["invoices"]
     presses_collection = db["presses"]
+    companies_collection = db["companies"]
+    purchases_collection = db["purchases"]
 else:
     cards_collection = None
     invoices_collection = None
     presses_collection = None
+    companies_collection = None
+    purchases_collection = None
     print("WARNING: MONGODB_URI not set")
 
 # Cloudinary setup
@@ -78,6 +82,32 @@ def format_press(press):
         "address": press.get("address"),
         "ph_no": press.get("ph_no", ""),
         "is_approved": press.get("is_approved", False)
+    }
+
+def format_company(company):
+    return {
+        "id": str(company["_id"]),
+        "name": company.get("name"),
+        "contact_person": company.get("contact_person", ""),
+        "email": company.get("email", ""),
+        "phone": company.get("phone", ""),
+        "address": company.get("address", ""),
+        "created_at": company.get("created_at").isoformat() if company.get("created_at") else None
+    }
+
+def format_purchase(purchase):
+    return {
+        "id": str(purchase["_id"]),
+        "company_id": str(purchase.get("company_id", "")),
+        "company_name": purchase.get("company_name", ""),
+        "invoice_number": purchase.get("invoice_number", ""),
+        "purchase_date": purchase.get("purchase_date"),
+        "items": purchase.get("items", []),
+        "subtotal": purchase.get("subtotal", 0),
+        "tax": purchase.get("tax", 0),
+        "total_amount": purchase.get("total_amount", 0),
+        "notes": purchase.get("notes", ""),
+        "created_at": purchase.get("created_at").isoformat() if purchase.get("created_at") else None
     }
 
 
@@ -629,6 +659,230 @@ def delete_press(press_id):
         if result.deleted_count > 0:
             return jsonify({"message": "Press deleted successfully"}), 200
         return jsonify({"error": "Press not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# --- Companies Management ---
+
+@app.route("/companies", methods=["GET"])
+def get_companies():
+    if companies_collection is None:
+        return jsonify({"error": "Database not configured"}), 500
+    try:
+        companies = list(companies_collection.find().sort('name', 1))
+        return jsonify([format_company(c) for c in companies]), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/companies", methods=["POST"])
+def add_company():
+    if companies_collection is None:
+        return jsonify({"error": "Database not configured"}), 500
+    
+    data = request.get_json()
+    name = data.get("name", "").strip()
+    contact_person = data.get("contact_person", "").strip()
+    email = data.get("email", "").strip()
+    phone = data.get("phone", "").strip()
+    address = data.get("address", "").strip()
+    
+    if not name:
+        return jsonify({"error": "Company name is required"}), 400
+    
+    try:
+        # Check if company with same name already exists
+        existing = companies_collection.find_one({"name": {"$regex": f"^{name}$", "$options": "i"}})
+        if existing:
+            return jsonify({"error": "Company with this name already exists"}), 400
+        
+        new_company = {
+            "name": name,
+            "contact_person": contact_person,
+            "email": email,
+            "phone": phone,
+            "address": address,
+            "created_at": datetime.now()
+        }
+        result = companies_collection.insert_one(new_company)
+        new_company["_id"] = result.inserted_id
+        return jsonify(format_company(new_company)), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/companies/<company_id>", methods=["GET"])
+def get_company(company_id):
+    if companies_collection is None:
+        return jsonify({"error": "Database not configured"}), 500
+    oid = parse_object_id(company_id)
+    if oid is None:
+        return jsonify({"error": "Invalid company ID format"}), 400
+    try:
+        company = companies_collection.find_one({"_id": oid})
+        if company:
+            return jsonify(format_company(company)), 200
+        return jsonify({"error": "Company not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/companies/<company_id>", methods=["PUT"])
+def update_company(company_id):
+    if companies_collection is None:
+        return jsonify({"error": "Database not configured"}), 500
+    oid = parse_object_id(company_id)
+    if oid is None:
+        return jsonify({"error": "Invalid company ID format"}), 400
+
+    data = request.get_json()
+    update_data = {}
+    if "name" in data: update_data["name"] = data["name"].strip()
+    if "contact_person" in data: update_data["contact_person"] = data["contact_person"].strip()
+    if "email" in data: update_data["email"] = data["email"].strip()
+    if "phone" in data: update_data["phone"] = data["phone"].strip()
+    if "address" in data: update_data["address"] = data["address"].strip()
+
+    if not update_data:
+        return jsonify({"error": "No data provided to update"}), 400
+
+    try:
+        result = companies_collection.update_one({"_id": oid}, {"$set": update_data})
+        if result.matched_count == 0:
+            return jsonify({"error": "Company not found"}), 404
+        
+        updated_company = companies_collection.find_one({"_id": oid})
+        return jsonify(format_company(updated_company)), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/companies/<company_id>", methods=["DELETE"])
+def delete_company(company_id):
+    if companies_collection is None:
+        return jsonify({"error": "Database not configured"}), 500
+    oid = parse_object_id(company_id)
+    if oid is None:
+        return jsonify({"error": "Invalid company ID format"}), 400
+    try:
+        result = companies_collection.delete_one({"_id": oid})
+        if result.deleted_count > 0:
+            return jsonify({"message": "Company deleted successfully"}), 200
+        return jsonify({"error": "Company not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# --- Purchases Management ---
+
+@app.route("/purchases", methods=["POST"])
+def create_purchase():
+    if purchases_collection is None or companies_collection is None or cards_collection is None:
+        return jsonify({"error": "Database not configured"}), 500
+    
+    data = request.get_json()
+    company_id = data.get("company_id")
+    invoice_number = data.get("invoice_number", "").strip()
+    purchase_date = data.get("purchase_date")
+    items = data.get("items", [])
+    subtotal = data.get("subtotal", 0)
+    tax = data.get("tax", 0)
+    total_amount = data.get("total_amount", 0)
+    notes = data.get("notes", "").strip()
+    
+    if not company_id or not invoice_number or not items:
+        return jsonify({"error": "Company, invoice number, and items are required"}), 400
+    
+    try:
+        # Get company details
+        company_oid = parse_object_id(company_id)
+        if not company_oid:
+            return jsonify({"error": "Invalid company ID"}), 400
+        
+        company = companies_collection.find_one({"_id": company_oid})
+        if not company:
+            return jsonify({"error": "Company not found"}), 404
+        
+        # Update product stock for each item
+        for item in items:
+            product_id = item.get("product_id")
+            quantity = int(item.get("quantity", 0))
+            
+            if product_id and quantity > 0:
+                prod_oid = parse_object_id(product_id)
+                if prod_oid:
+                    # Increase stock by quantity (adding purchased items to stock)
+                    cards_collection.update_one(
+                        {"_id": prod_oid},
+                        {"$inc": {"stock": quantity}}
+                    )
+        
+        # Create purchase document
+        purchase_doc = {
+            "company_id": company_oid,
+            "company_name": company.get("name"),
+            "invoice_number": invoice_number,
+            "purchase_date": purchase_date,
+            "items": items,
+            "subtotal": float(subtotal),
+            "tax": float(tax),
+            "total_amount": float(total_amount),
+            "notes": notes,
+            "created_at": datetime.now()
+        }
+        
+        result = purchases_collection.insert_one(purchase_doc)
+        purchase_doc["_id"] = str(result.inserted_id)
+        
+        return jsonify({
+            "id": purchase_doc["_id"],
+            "message": "Purchase created successfully"
+        }), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/purchases", methods=["GET"])
+def get_purchases():
+    if purchases_collection is None:
+        return jsonify({"error": "Database not configured"}), 500
+    
+    try:
+        purchases = list(purchases_collection.find().sort([("created_at", -1), ("_id", -1)]))
+        result = []
+        for purchase in purchases:
+            result.append(format_purchase(purchase))
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/purchases/company/<company_id>", methods=["GET"])
+def get_purchases_by_company(company_id):
+    if purchases_collection is None:
+        return jsonify({"error": "Database not configured"}), 500
+    
+    oid = parse_object_id(company_id)
+    if oid is None:
+        return jsonify({"error": "Invalid company ID format"}), 400
+    
+    try:
+        purchases = list(purchases_collection.find({"company_id": oid}).sort([("created_at", -1), ("_id", -1)]))
+        result = []
+        for purchase in purchases:
+            result.append(format_purchase(purchase))
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/purchases/<purchase_id>", methods=["GET"])
+def get_purchase(purchase_id):
+    if purchases_collection is None:
+        return jsonify({"error": "Database not configured"}), 500
+    
+    oid = parse_object_id(purchase_id)
+    if oid is None:
+        return jsonify({"error": "Invalid purchase ID format"}), 400
+    
+    try:
+        purchase = purchases_collection.find_one({"_id": oid})
+        if not purchase:
+            return jsonify({"error": "Purchase not found"}), 404
+        
+        return jsonify(format_purchase(purchase)), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

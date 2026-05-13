@@ -160,5 +160,8 @@ window.ApiService = {
   },
   async fetchInvoiceById(id) {
     return apiRequest(`/invoices/${id}`);
+    async fetchFromBackend(path, options = {}) {
+      return apiRequest(path, options);
+    },
   },
 };
