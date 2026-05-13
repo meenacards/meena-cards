@@ -14,11 +14,15 @@ import 'screens/profile_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/add_edit_product_screen.dart';
 import 'screens/contact_screen.dart';
+import 'screens/privacy_policy_screen.dart';
+import 'screens/terms_conditions_screen.dart';
 import 'models/card_model.dart';
 import 'providers/favorites_provider.dart';
+import 'utils/config.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AppConfig.init();
   runApp(
     MultiProvider(
       providers: [
@@ -72,6 +76,8 @@ class MeenaCardsApp extends StatelessWidget {
         GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
         GoRoute(path: '/admin/product', builder: (context, state) => AddEditProductScreen(card: state.extra as CardModel?)),
         GoRoute(path: '/contact', builder: (context, state) => const ContactScreen()),
+        GoRoute(path: '/privacy', builder: (context, state) => const PrivacyPolicyScreen()),
+        GoRoute(path: '/terms', builder: (context, state) => const TermsConditionsScreen()),
       ],
     );
 

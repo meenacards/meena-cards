@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../widgets/skeleton_loader.dart';
 
 class CatalogScreen extends StatefulWidget {
   final String? initialCategory;
@@ -121,6 +122,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
               ),
             ),
             const Divider(height: 1),
+            _buildDrawerItem(Icons.policy_outlined, 'Privacy Policy', () => context.push('/privacy')),
+            _buildDrawerItem(Icons.gavel_outlined, 'Terms & Conditions', () => context.push('/terms')),
             Container(
               decoration: const BoxDecoration(border: Border(top: BorderSide(color: Colors.black12))),
               child: _buildDrawerItem(Icons.logout, 'Logout', () {
@@ -182,7 +185,46 @@ class _CatalogScreenState extends State<CatalogScreen> {
             ),
           Expanded(
             child: _isLoading 
-              ? const Center(child: CircularProgressIndicator())
+              ? GridView.builder(
+                  padding: const EdgeInsets.all(20),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 0.65,
+                    crossAxisSpacing: 20,
+                    mainAxisSpacing: 20,
+                  ),
+                  itemCount: 6,
+                  itemBuilder: (context, index) => Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(24),
+                      color: Colors.white,
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Expanded(child: SkeletonLoader(width: double.infinity, height: double.infinity, borderRadius: 24)),
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SkeletonLoader(width: 100, height: 12),
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const SkeletonLoader(width: 40, height: 16),
+                                  const SkeletonLoader(width: 50, height: 10),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
               : _filteredCards.isEmpty
                 ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                     Icon(Icons.search_off, size: 60, color: Colors.grey[400]),

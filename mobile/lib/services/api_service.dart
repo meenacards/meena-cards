@@ -1,21 +1,74 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../models/card_model.dart';
 import '../models/press_model.dart';
-import 'package:flutter/foundation.dart';
+import '../utils/config.dart';
+import 'secure_storage_service.dart';
 
 class ApiService {
-  // Use http://10.0.2.2 for Android emulator to access computer's localhost
-  // Production URL for release builds and physical devices
-  // static String baseUrl = 'https://api.meenacards.com/'; 
-  static String baseUrl = kDebugMode ? 'http://127.0.0.1:8080' : 'https://api.meenacards.com/';
-  // NOTE: If testing locally on an emulator, you can temporarily change this to 'http://10.0.2.2:8080'
+  late final Dio _dio;
 
-  final Dio _dio = Dio(BaseOptions(
-    baseUrl: baseUrl,
-    connectTimeout: const Duration(seconds: 30),
-    receiveTimeout: const Duration(seconds: 30),
-  ));
+  ApiService() {
+    _dio = Dio(BaseOptions(
+      baseUrl: AppConfig.apiUrl,
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 15),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+    ));
+
+    _dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) async {
+        final token = await SecureStorageService.getToken();
+        if (token != null) {
+          options.headers['Authorization'] = 'Bearer $token';
+        }
+        return handler.next(options);
+      },
+      onError: (DioException e, handler) {
+        if (e.response?.statusCode == 401) {
+          // Handle token expiry / unauthorized access
+          SecureStorageService.clearAll();
+          // We might want to trigger a logout in the UI here
+        }
+        return handler.next(e);
+      },
+    ));
+
+    if (kDebugMode) {
+      _dio.interceptors.add(LogInterceptor(
+        requestHeader: true,
+        requestBody: true,
+        responseBody: true,
+        responseHeader: false,
+        error: true,
+      ));
+    }
+  }
+
+  // Helper for user-friendly error messages
+  String getErrorMessage(dynamic e) {
+    if (e is DioException) {
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        return "Network timeout. Please check your internet.";
+      } else if (e.type == DioExceptionType.connectionError) {
+        return "No internet connection.";
+      } else if (e.response?.statusCode == 401) {
+        return "Session expired. Please login again.";
+      } else if (e.response?.statusCode == 403) {
+        return "Access denied.";
+      } else if (e.response?.statusCode == 404) {
+        return "Resource not found.";
+      } else if (e.response?.statusCode != null && e.response!.statusCode! >= 500) {
+        return "Server error. Please try again later.";
+      }
+    }
+    return "Something went wrong. Please try again.";
+  }
 
   Future<List<CardModel>> fetchCards() async {
     try {
@@ -26,7 +79,6 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      debugPrint('Error fetching cards: $e');
       return [];
     }
   }
@@ -39,7 +91,6 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      debugPrint('Error fetching card $id: $e');
       return null;
     }
   }
@@ -58,7 +109,7 @@ class ApiService {
       String fileName = image.path.split('/').last;
       FormData formData = FormData.fromMap({
         'name': name,
-        'category': categories, // Dio handles lists automatically
+        'category': categories,
         'description': description,
         'is_latest': isLatest.toString(),
         'is_offer': isOffer.toString(),
@@ -73,7 +124,6 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      debugPrint('Error adding card: $e');
       return null;
     }
   }
@@ -110,7 +160,6 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      debugPrint('Error updating card $id: $e');
       return null;
     }
   }
@@ -120,12 +169,11 @@ class ApiService {
       final response = await _dio.delete('/cards/$id');
       return response.statusCode == 200;
     } catch (e) {
-      debugPrint('Error deleting card $id: $e');
       return false;
     }
   }
 
-  // --- Press Auth ---
+  // --- Auth ---
 
   Future<Map<String, dynamic>?> loginAdmin(String username, String password) async {
     try {
@@ -135,7 +183,7 @@ class ApiService {
       });
       return response.data;
     } catch (e) {
-      return null;
+      throw getErrorMessage(e);
     }
   }
 
@@ -148,14 +196,11 @@ class ApiService {
       return response.data;
     } on DioException catch (e) {
       if (e.response?.statusCode == 403) {
-        // Return the error message from backend (e.g. "account pending approval")
         return {'status': 'pending', 'error': e.response?.data['error']};
       }
-      debugPrint('Error press login: $e');
-      return null;
+      throw getErrorMessage(e);
     } catch (e) {
-      debugPrint('Error press login: $e');
-      return null;
+      throw "An unexpected error occurred.";
     }
   }
 
@@ -175,8 +220,7 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      debugPrint('Error registering press: $e');
-      return null;
+      throw getErrorMessage(e);
     }
   }
 
@@ -191,7 +235,6 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      debugPrint('Error fetching presses: $e');
       return [];
     }
   }
@@ -212,7 +255,6 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      debugPrint('Error adding press: $e');
       return null;
     }
   }
@@ -234,7 +276,6 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      debugPrint('Error updating press $id: $e');
       return null;
     }
   }
@@ -244,7 +285,6 @@ class ApiService {
       final response = await _dio.delete('/presses/$id');
       return response.statusCode == 200;
     } catch (e) {
-      debugPrint('Error deleting press $id: $e');
       return false;
     }
   }
@@ -260,7 +300,6 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      debugPrint('Error fetching pending presses: $e');
       return [];
     }
   }
@@ -270,7 +309,6 @@ class ApiService {
       final response = await _dio.post('/presses/$id/approve');
       return response.statusCode == 200;
     } catch (e) {
-      debugPrint('Error approving press $id: $e');
       return false;
     }
   }
@@ -280,7 +318,6 @@ class ApiService {
       final response = await _dio.post('/presses/$id/reject');
       return response.statusCode == 200;
     } catch (e) {
-      debugPrint('Error rejecting press $id: $e');
       return false;
     }
   }

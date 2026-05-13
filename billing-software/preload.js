@@ -18,6 +18,8 @@ const billingBridge = {
   downloadMonthlyPdf: (invoices, filename, options) => ipcRenderer.invoke('pdf:download-month', { invoices, filename, options }),
   downloadInvoicesPdf: (invoices, filename, options) => ipcRenderer.invoke('pdf:download-invoices', { invoices, filename, options }),
   downloadReportPdf: (report, filename, options) => ipcRenderer.invoke('pdf:download-report', { report, filename, options }),
+  downloadPurchasePdf: (purchase, options) => ipcRenderer.invoke('purchases:download-pdf', { purchase, options }),
+  downloadPurchasesPdf: (purchases, options) => ipcRenderer.invoke('purchases:download-bundle-pdf', { purchases, options }),
 };
 
 contextBridge.exposeInMainWorld('billingApp', billingBridge);

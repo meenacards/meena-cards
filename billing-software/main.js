@@ -57,7 +57,7 @@ function createTempHtmlFile(html) {
 }
 
 const STORAGE_ROOT_DIR_NAME = 'meen-cards';
-const STORAGE_SUBDIRS = ['bill', 'reports', 'invoices'];
+const STORAGE_SUBDIRS = ['bill', 'reports', 'invoices', 'purchases'];
 
 function getStorageRootDir() {
   return path.join(app.getPath('documents'), STORAGE_ROOT_DIR_NAME);
@@ -197,26 +197,16 @@ function buildPrintFooterComponent() {
 
 function buildPrintBaseStyles(extraCss = '') {
   return `
-    @page {
-        size: A5 portrait;
-        margin: 0;
-    }
-    html, body {
-        width: 148mm;
-        height: 210mm;
-        margin: 0;
-        padding: 0;
-        font-family: Arial, sans-serif;
-        background: white;
-    }
+    @page { size: A5; margin: 0; }
+    body { font-family: Arial, sans-serif; margin: 0; color: #222; font-size: 12px; }
     .page {
-        width: 138mm;
-        min-height: 200mm;
-        margin: 0 auto;
-        padding: 5mm;
-        box-sizing: border-box;
-        background: white;
-        position: relative;
+      position: relative;
+      width: 148mm;
+      min-height: 210mm;
+      height: 210mm;
+      padding: 8mm 6mm 6mm;
+      box-sizing: border-box;
+      overflow: hidden;
     }
     .watermark {
       position: fixed;
@@ -226,13 +216,13 @@ function buildPrintBaseStyles(extraCss = '') {
       display: flex;
       align-items: center;
       justify-content: center;
-      opacity: 0.05;
+      opacity: 0.18;
       z-index: 1;
       pointer-events: none;
     }
     .watermark img {
-      width: 400px;
-      height: 400px;
+      width: 360px;
+      height: 360px;
       object-fit: contain;
     }
     .content {
@@ -241,38 +231,64 @@ function buildPrintBaseStyles(extraCss = '') {
       display: flex;
       flex-direction: column;
     }
-    .header-main {
+    .print-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+      border-bottom: 2px solid #5b1225;
+      padding-bottom: 4px;
+    }
+    .header-left {
       display: flex;
       align-items: center;
       gap: 15px;
       padding-bottom: 5px;
     }
-    .header-logo img {
-      max-width: 50px;
+    .logo-section img {
+      max-width: 72px;
       height: auto;
     }
     .header-company-info {
       flex: 1;
     }
     .company-name {
-      font-size: 24px;
+      font-size: 15px;
       font-weight: 800;
       color: #5b1225;
       line-height: 1.1;
     }
     .company-name-tamil {
-      font-size: 16px;
+      font-size: 10px;
       font-weight: 700;
       color: #5b1225;
       margin-top: 2px;
     }
     .company-address-tamil {
-      font-size: 11px;
+      font-size: 8px;
       font-weight: 600;
       color: #5b1225;
     }
-    .company-contact-row {
-      font-size: 11px;
+    .header-right {
+      width: 33%;
+      text-align: right;
+      font-size: 9px;
+      color: #5b1225;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+    .website-line {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+    .website-icon {
+      width: 11px;
+      height: 11px;
+      object-fit: contain;
+    }
+    .company-detail {
       font-weight: 700;
       color: #5b1225;
       margin-top: 3px;
@@ -295,12 +311,24 @@ function buildPrintBaseStyles(extraCss = '') {
     }
     .print-footer {
       display: flex;
-      justify-content: center;
-      gap: 10px;
-      font-size: 10px;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+      padding-top: 6px;
+      border-top: 2px solid #5b1225;
+      font-size: 9px;
       color: #5b1225;
       font-weight: 700;
-      padding: 5px 0;
+      gap: 6px;
+    }
+    .footer-contact {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .footer-contact img {
+      width: 11px;
+      height: 11px;
     }
     ${extraCss}
   `;
@@ -394,7 +422,7 @@ function buildReportPrintHtml(report) {
   const reportCss = `
     .report-title {
       text-align: left;
-      font-size: 18px;
+      font-size: 14px;
       color: #5b1225;
       font-weight: 700;
       margin-bottom: 2px;
@@ -418,7 +446,7 @@ function buildReportPrintHtml(report) {
       padding: 12px;
     }
     .summary-label { font-size: 11px; color: #4b3a34; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
-    .summary-value { margin-top: 6px; font-size: 22px; font-weight: 700; color: #5b1225; }
+    .summary-value { margin-top: 6px; font-size: 16px; font-weight: 700; color: #5b1225; }
     .summary-note { margin-top: 5px; font-size: 11px; color: #6d5f4c; }
     .report-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
     .report-table th, .report-table td { border: 1px solid #ddd; padding: 7px; font-size: 12px; }
@@ -486,7 +514,6 @@ function buildInvoicePrintHtml(invoice) {
   const customerAddress = escapeHtml(String(invoice.to_address || '').toUpperCase()) || '-';
   const customerPhone = escapeHtml(String(invoice.to_phone || '').toUpperCase()) || '-';
   const customerGstin = escapeHtml(String(invoice.gstin || '').toUpperCase()) || '-';
-
   const bodyHtml = `
     <div class="invoice-container">
       <div class="bill-title">CASH / CREDIT BILL</div>
@@ -556,8 +583,118 @@ function buildInvoicePrintHtml(invoice) {
     .info-section {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 15px;
-      font-size: 12px;
+      margin-bottom: 8px;
+      font-size: 10px;
+      gap: 6px;
+    }
+    .invoice-info-left {
+      width: 55%;
+    }
+    .invoice-info-right {
+      width: 45%;
+      display: flex;
+      justify-content: flex-end;
+      margin-top: -2px;
+    }
+    .invoice-info-label {
+      font-weight: 700;
+      margin-bottom: 3px;
+      text-transform: uppercase;
+    }
+    .invoice-info-content {
+      margin-bottom: 4px;
+      line-height: 1.25;
+      text-transform: uppercase;
+    }
+    .party-box {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    .party-line {
+      display: flex;
+      align-items: baseline;
+      min-height: 14px;
+      margin: 0;
+      padding: 0;
+    }
+    .party-label {
+      width: 66px;
+      font-weight: 700;
+      white-space: nowrap;
+      text-align: left;
+      line-height: 1.2;
+    }
+    .party-colon {
+      width: 8px;
+      text-align: center;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .party-value {
+      flex: 1;
+      text-align: left;
+      line-height: 1.2;
+      word-break: break-word;
+    }
+    .meta-box {
+      font-size: 10px;
+      width: 170px;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    .meta-line {
+      display: flex;
+      align-items: center;
+      min-height: 14px;
+      margin: 0;
+      padding: 0;
+    }
+    .meta-label,
+    .meta-fill {
+      vertical-align: middle;
+    }
+    .meta-label {
+      font-weight: 700;
+      padding-right: 6px;
+      width: 74px;
+      text-align: left;
+      white-space: nowrap;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+    .meta-fill {
+      width: 96px;
+      padding-left: 2px;
+      text-align: left;
+      line-height: 1;
+      border: none !important;
+      box-shadow: none !important;
+      background: transparent !important;
+    }
+    .meta-value {
+      font-weight: 700;
+      text-align: left;
+      display: inline-block;
+      min-width: 1px;
+      line-height: 1;
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+    .bill-title {
+      margin: 0 0 8px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 800;
+      color: #5b1225;
+      letter-spacing: 0.04em;
+    }
+    table.items-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 6px 0;
+      font-size: 9px;
     }
     .info-left { width: 65%; }
     .info-right { width: 35%; }
@@ -593,59 +730,102 @@ function buildInvoicePrintHtml(invoice) {
       font-weight: 800;
       text-transform: uppercase;
       color: #5b1225;
+      padding: 5px;
+      text-align: center;
+      font-weight: bold;
+      border: 1px solid #ddd;
     }
-    td {
-      border: 1px solid #5b1225;
-      padding: 5px 8px;
-      font-weight: 700;
-      vertical-align: middle;
+    .items-table td {
+      border: 1px solid #ddd;
+      padding: 4px;
     }
     .footer-stack {
       margin-top: 5px;
     }
     .totals-section {
-      width: 280px;
-      margin-left: auto;
-      margin-bottom: 20px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(160px, 190px);
+      margin: 6px 0;
+      font-size: 11px;
+      column-gap: 8px;
+      align-items: start;
+    }
+    .totals-left {
+      width: 100%;
+    }
+    .totals-right {
+      width: auto;
+      text-align: right;
+      justify-self: end;
     }
     .totals-row {
       display: flex;
       justify-content: space-between;
-      font-size: 13px;
+      align-items: center;
+      margin: 2px 0;
+      line-height: 1.2;
+    }
+    .totals-row.grand-total {
       font-weight: 700;
-      margin-bottom: 4px;
-    }
-    .totals-line {
-      height: 1px;
-      background: #5b1225;
-      margin: 5px 0;
-    }
-    .grand-total {
-      font-size: 16px;
-      font-weight: 800;
+      font-size: 13px;
+      padding: 5px 0;
+      background: transparent;
       color: #5b1225;
+      border-top: 1px solid #5b1225;
+      margin-top: 2px;
     }
-    .auth-row {
+    .bottom-stack {
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .terms-signature-row {
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
-      margin-top: 10px;
+      gap: 10px;
     }
-    .no-exchange {
-      font-size: 11px;
-      font-weight: 800;
+    .terms-block {
+      flex: 1;
+      font-size: 9px;
+      color: #5b1225;
+      line-height: 1.3;
+      font-weight: 600;
+    }
+    .terms-title {
+      font-size: 10px;
+      font-weight: 700;
+      margin-bottom: 2px;
+      text-transform: uppercase;
+    }
+    .terms-list {
+      margin: 0;
+      padding-left: 14px;
+    }
+    .terms-list li {
+      margin-bottom: 3px;
+    }
+    .notes {
+      font-size: 9px;
+      color: #5b1225;
+      font-weight: 700;
+      line-height: 1.3;
+      text-align: left;
+    }
+    .signature-section {
+      display: flex;
+      justify-content: flex-end;
+      min-width: 170px;
+      font-size: 9px;
+      font-weight: 700;
       color: #5b1225;
     }
-    .signature-box {
+    .signature-line {
+      min-width: 160px;
       text-align: center;
-      width: 200px;
-      font-size: 11px;
-      font-weight: 800;
-      color: #5b1225;
-    }
-    .sig-line {
-      border-top: 1.5px solid #5b1225;
-      margin-bottom: 5px;
+      border-top: 1px solid #5b1225;
+      padding-top: 5px;
     }
   `;
 
@@ -695,28 +875,29 @@ function printInvoice(invoice, options = {}) {
         const isSilent = options.silent !== false;
         let deviceName = options.deviceName || undefined;
 
-        // For direct invoice generation prints, auto-target default printer.
+        // For direct invoice generation prints, auto-target a physical printer only.
         if (isSilent && !deviceName) {
           const printers = await hiddenWin.webContents.getPrintersAsync();
-          const physicalPrinter = (printers || []).find((printer) => printer && printer.name && !isPdfPrinterName(printer.name));
-          const defaultPrinter = physicalPrinter || (printers || []).find((printer) => printer && printer.isDefault) || (printers || [])[0];
-          if (defaultPrinter && defaultPrinter.name) {
-            deviceName = defaultPrinter.name;
+          const physicalPrinters = (printers || []).filter((printer) => printer && printer.name && !isPdfPrinterName(printer.name));
+          const defaultPhysical = physicalPrinters.find((printer) => printer && printer.isDefault);
+          const pickedPrinter = defaultPhysical || physicalPrinters[0];
+
+          if (!pickedPrinter || !pickedPrinter.name) {
+            hiddenWin.close();
+            safeDeleteFile(tempHtmlPath);
+            resolve({ ok: false, error: 'No physical printer available for auto print.' });
+            return;
           }
+
+          deviceName = pickedPrinter.name;
         }
 
         hiddenWin.webContents.print(
           {
             silent: isSilent,
             printBackground: true,
-            pageSize: {
-                width: 148000,
-                height: 210000
-            },
-            scaleFactor: 100,
-            margins: {
-                marginType: 'none'
-            },
+            pageSize: options.pageSize || 'A5',
+            margins: options.margins || { marginType: 'printableArea' },
             deviceName,
           },
           (success, errorType) => {
@@ -764,8 +945,8 @@ function saveInvoicePdf(invoice, filename, options = {}) {
         await hiddenWin.webContents.executeJavaScript('new Promise((resolve) => requestAnimationFrame(() => resolve(true)))');
 
         const pdfData = await hiddenWin.webContents.printToPDF({
-          pageSize: 'A5',
-          preferCSSPageSize: false,
+          pageSize: options.pageSize || 'A5',
+          preferCSSPageSize: true,
           printBackground: true,
           margins: { top: 0, bottom: 0, left: 0, right: 0 },
         });
@@ -816,8 +997,8 @@ function saveMonthlyInvoicesPdf(invoices, filename, options = {}) {
         await hiddenWin.webContents.executeJavaScript('new Promise((resolve) => requestAnimationFrame(() => resolve(true)))');
 
         const pdfData = await hiddenWin.webContents.printToPDF({
-          pageSize: 'A5',
-          preferCSSPageSize: false,
+          pageSize: options.pageSize || 'A5',
+          preferCSSPageSize: true,
           printBackground: true,
           margins: { top: 0, bottom: 0, left: 0, right: 0 },
         });
@@ -868,8 +1049,8 @@ function saveInvoicesPdf(invoices, filename, title, options = {}) {
         await hiddenWin.webContents.executeJavaScript('new Promise((resolve) => requestAnimationFrame(() => resolve(true)))');
 
         const pdfData = await hiddenWin.webContents.printToPDF({
-          pageSize: 'A5',
-          preferCSSPageSize: false,
+          pageSize: options.pageSize || 'A5',
+          preferCSSPageSize: true,
           printBackground: true,
           margins: { top: 0, bottom: 0, left: 0, right: 0 },
         });
@@ -920,8 +1101,8 @@ function saveReportPdf(report, filename, options = {}) {
         await hiddenWin.webContents.executeJavaScript('new Promise((resolve) => requestAnimationFrame(() => resolve(true)))');
 
         const pdfData = await hiddenWin.webContents.printToPDF({
-          pageSize: 'A5',
-          preferCSSPageSize: false,
+          pageSize: options.pageSize || 'A5',
+          preferCSSPageSize: true,
           printBackground: true,
           margins: { top: 0, bottom: 0, left: 0, right: 0 },
         });
@@ -967,6 +1148,207 @@ function createWindow() {
 
   Menu.setApplicationMenu(null);
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+}
+
+function buildPurchasePrintHtml(purchase) {
+  const rows = (purchase.items || [])
+    .map((item, idx) => `
+      <tr>
+        <td style="text-align:center;">${idx + 1}</td>
+        <td>${escapeHtml(String(item.name || '').toUpperCase())}</td>
+        <td style="text-align:center;">${Number(item.quantity || 0)}</td>
+        <td style="text-align:right;">Rs. ${Number(item.price || 0).toFixed(2)}</td>
+        <td style="text-align:right;">${Number(item.tax || 0)}%</td>
+        <td style="text-align:right;">Rs. ${(Number(item.quantity || 0) * Number(item.price || 0) * (1 + Number(item.tax || 0) / 100)).toFixed(2)}</td>
+      </tr>
+    `)
+    .join('');
+
+  const subtotal = Number(purchase.subtotal || 0);
+  const totalTax = Number(purchase.tax || 0);
+  const total = Number(purchase.total_amount || 0);
+  const createdAt = purchase.created_at || new Date().toISOString();
+  const companyName = escapeHtml(String(purchase.company_name || '').toUpperCase()) || '-';
+
+  const bodyHtml = `
+    <div class="invoice-main-content">
+      <div class="bill-title">PURCHASE BILL</div>
+      <div class="invoice-info" style="margin-bottom: 18px;">
+        <div class="invoice-info-left">
+          <div class="invoice-info-label">From Company :</div>
+          <div class="invoice-info-content party-box">
+            <div class="party-line">
+              <span class="party-value" style="font-weight: 700;">${companyName}</span>
+            </div>
+          </div>
+        </div>
+        <div class="invoice-info-right">
+          <div class="meta-box">
+            <div class="meta-line">
+              <span class="meta-label">Invoice No.</span>
+              <span class="meta-fill"><span class="meta-value">: ${escapeHtml(purchase.invoice_number || '')}</span></span>
+            </div>
+            <div class="meta-line">
+              <span class="meta-label">Date</span>
+              <span class="meta-fill"><span class="meta-value">: ${formatDateDDMMYYYY(createdAt)}</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th style="width: 8%;">NO</th>
+            <th style="width: 35%;">PRODUCT</th>
+            <th style="width: 12%;">QTY</th>
+            <th style="width: 15%;">PRICE</th>
+            <th style="width: 12%;">TAX</th>
+            <th style="width: 18%;">TOTAL</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+
+      <div class="totals-section">
+        <div class="totals-left"></div>
+        <div class="totals-right">
+          <div class="totals-row">
+            <span>Sub Total :</span>
+            <span>Rs. ${subtotal.toFixed(2)}</span>
+          </div>
+          <div class="totals-row">
+            <span>Tax :</span>
+            <span>Rs. ${totalTax.toFixed(2)}</span>
+          </div>
+          <div class="totals-row grand-total">
+            <span>TOTAL :</span>
+            <span>Rs. ${total.toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-stack">
+        <div class="notes">
+          <div>${escapeHtml(purchase.notes || 'Purchase record maintained')}</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const css = buildPrintBaseStyles();
+  return buildPrintPageHtml(bodyHtml, css);
+}
+
+function savePurchasePdf(purchase, filename, options = {}) {
+  return new Promise((resolve) => {
+    const hiddenWin = new BrowserWindow({
+      width: 820,
+      height: 1160,
+      show: false,
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+    });
+
+    const tempHtmlPath = createTempHtmlFile(buildPurchasePrintHtml(purchase));
+
+    hiddenWin.webContents.once('did-finish-load', async () => {
+      try {
+        await hiddenWin.webContents.executeJavaScript('document.fonts ? document.fonts.ready.then(() => true) : Promise.resolve(true)');
+        await hiddenWin.webContents.executeJavaScript('new Promise((resolve) => requestAnimationFrame(() => resolve(true)))');
+
+        const pdfData = await hiddenWin.webContents.printToPDF({
+          pageSize: options.pageSize || 'A5',
+          preferCSSPageSize: true,
+          printBackground: true,
+          margins: { top: 0, bottom: 0, left: 0, right: 0 },
+        });
+
+        const filepath = getPdfSavePath(filename, options.folder || 'purchases');
+
+        fs.writeFile(filepath, pdfData, (err) => {
+          hiddenWin.close();
+          safeDeleteFile(tempHtmlPath);
+          if (err) {
+            resolve({ success: false, error: 'Failed to save PDF' });
+          } else {
+            resolve({ success: true, path: filepath });
+          }
+        });
+      } catch (err) {
+        hiddenWin.close();
+        safeDeleteFile(tempHtmlPath);
+        resolve({ success: false, error: err.message || 'Failed to convert to PDF' });
+      }
+    });
+
+    hiddenWin.loadFile(tempHtmlPath).catch((error) => {
+      hiddenWin.close();
+      safeDeleteFile(tempHtmlPath);
+      resolve({ success: false, error: error.message || 'Failed to load purchase PDF template' });
+    });
+  });
+}
+
+function savePurchasesBundlePdf(purchases, filename, options = {}) {
+  return new Promise((resolve) => {
+    const hiddenWin = new BrowserWindow({
+      width: 820,
+      height: 1160,
+      show: false,
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+    });
+
+    const bundleHtml = purchases
+      .map((p, idx) => `<section class="month-page" style="page-break-after: always; ${idx === purchases.length - 1 ? 'page-break-after: avoid;' : ''}">${extractBodyBlock(buildPurchasePrintHtml(p))}</section>`)
+      .join('');
+
+    const fullHtml = buildPrintPageHtml(bundleHtml, buildPrintBaseStyles());
+    const tempHtmlPath = createTempHtmlFile(fullHtml);
+
+    hiddenWin.webContents.once('did-finish-load', async () => {
+      try {
+        await hiddenWin.webContents.executeJavaScript('document.fonts ? document.fonts.ready.then(() => true) : Promise.resolve(true)');
+        await hiddenWin.webContents.executeJavaScript('new Promise((resolve) => requestAnimationFrame(() => resolve(true)))');
+
+        const pdfData = await hiddenWin.webContents.printToPDF({
+          pageSize: options.pageSize || 'A5',
+          preferCSSPageSize: true,
+          printBackground: true,
+          margins: { top: 0, bottom: 0, left: 0, right: 0 },
+        });
+
+        const filepath = getPdfSavePath(filename, options.folder || 'purchases');
+
+        fs.writeFile(filepath, pdfData, (err) => {
+          hiddenWin.close();
+          safeDeleteFile(tempHtmlPath);
+          if (err) {
+            resolve({ success: false, error: 'Failed to save PDF' });
+          } else {
+            resolve({ success: true, path: filepath });
+          }
+        });
+      } catch (err) {
+        hiddenWin.close();
+        safeDeleteFile(tempHtmlPath);
+        resolve({ success: false, error: err.message || 'Failed to convert purchases to PDF' });
+      }
+    });
+
+    hiddenWin.loadFile(tempHtmlPath).catch((error) => {
+      hiddenWin.close();
+      safeDeleteFile(tempHtmlPath);
+      resolve({ success: false, error: error.message || 'Failed to load purchases PDF template' });
+    });
+  });
 }
 
 app.whenReady().then(() => {
@@ -1034,6 +1416,26 @@ app.whenReady().then(() => {
       createWindow();
     }
   });
+});
+
+ipcMain.handle('purchases:download-pdf', async (_event, payload) => {
+  try {
+    const purchase = payload.purchase || {};
+    const filename = `Purchase_${purchase.invoice_number}_${new Date().getTime()}.pdf`;
+    return await savePurchasePdf(purchase, filename, payload.options || {});
+  } catch (error) {
+    return { success: false, error: error.message || 'Purchase PDF save error' };
+  }
+});
+
+ipcMain.handle('purchases:download-bundle-pdf', async (_event, payload) => {
+  try {
+    const purchases = payload.purchases || [];
+    const filename = payload.filename || `Purchases_${new Date().getTime()}.pdf`;
+    return await savePurchasesBundlePdf(purchases, filename, payload.options || {});
+  } catch (error) {
+    return { success: false, error: error.message || 'Purchases bundle PDF save error' };
+  }
 });
 
 app.on('window-all-closed', () => {

@@ -81,7 +81,7 @@
     };
   }
 
-  async function downloadPdfA4(invoice) {
+  async function downloadPdfA5(invoice) {
     if (!window.billingApp) {
       showToast('Desktop bridge is not available. Please restart the app and try again.', 'error');
       return;
@@ -103,7 +103,7 @@
       }
     }
 
-    // Fallback: open print dialog in A4 and let user choose "Save as PDF".
+    // Fallback: open print dialog in A5 and let user choose "Save as PDF".
     if (typeof window.billingApp.printInvoice === 'function') {
       const printResult = await window.billingApp.printInvoice(printableInvoice, {
         silent: false,
@@ -205,7 +205,7 @@
     downloadBtn.className = 'btn-primary';
     downloadBtn.textContent = 'Download PDF (A5)';
     downloadBtn.onclick = async () => {
-      await downloadPdfA4(invoice);
+      await downloadPdfA5(invoice);
     };
 
     const closeDetailBtn = document.createElement('button');

@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import '../models/card_model.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
+import '../services/image_upload_service.dart';
 
 class AddEditProductScreen extends StatefulWidget {
   final CardModel? card;
@@ -41,11 +42,27 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     }
   }
 
-    Future<void> _pickImage() async {
-    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (picked != null) {
+  Future<void> _pickImage() async {
+    try {
+      final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+      if (picked != null) {
+        if (!mounted) return;
+        
+        // Show loading
+        setState(() => _isSubmitting = true);
+        
+        final processed = await ImageUploadService.processImage(File(picked.path));
+        
+        if (!mounted) return;
+        setState(() {
+          _imageFile = processed;
+          _isSubmitting = false;
+        });
+      }
+    } catch (e) {
+      setState(() => _isSubmitting = false);
       if (!mounted) return;
-      setState(() => _imageFile = File(picked.path));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 

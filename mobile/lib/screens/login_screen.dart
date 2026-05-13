@@ -19,30 +19,41 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _showPassword = false;
 
   void _login() async {
+    final name = _nameController.text.trim();
+    final phone = _phoneController.text.trim();
+
+    if (name.isEmpty || phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all fields.')));
+      return;
+    }
+
     setState(() => _isLoading = true);
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final api = ApiService();
 
-    final name = _nameController.text.trim();
-    final phone = _phoneController.text.trim();
-
-    // 1. Try Admin Login first
-    final isAdminSuccess = await auth.loginAdmin(name, phone, api);
-    if (!mounted) return;
-
-    if (isAdminSuccess) {
-      context.go('/');
-    } else {
-      // 2. Try Press Login
-      final error = await auth.loginPress(name, phone, api);
+    try {
+      // 1. Try Admin Login first
+      final isAdminSuccess = await auth.loginAdmin(name, phone, api);
       if (!mounted) return;
-      if (error == null) {
-         context.go('/');
+
+      if (isAdminSuccess) {
+        context.go('/');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Invalid name or phone number.\n$error')));
+        // 2. Try Press Login
+        final error = await auth.loginPress(name, phone, api);
+        if (!mounted) return;
+        if (error == null) {
+           context.go('/');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+        }
       }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
-    setState(() => _isLoading = false);
   }
 
   @override

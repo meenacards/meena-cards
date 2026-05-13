@@ -113,10 +113,10 @@ window.BillingActions = {
 
   computeTotals(taxConfig = {}, chargesConfig = {}) {
     const cartSubtotal = window.BillingState.cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const transportationCharge = Number.isFinite(Number(chargesConfig.transportationCharge))
+    const transportationCharge = (typeof chargesConfig.transportationCharge === 'number' && Number.isFinite(Number(chargesConfig.transportationCharge)))
       ? Math.max(0, Number(chargesConfig.transportationCharge))
-      : 0;
-    const subtotal = cartSubtotal + transportationCharge;
+      : (chargesConfig.transportationCharge === null ? null : 0);
+    const subtotal = cartSubtotal + (transportationCharge ? transportationCharge : 0);
     const cgstPercent = Number.isFinite(Number(taxConfig.cgstPercent))
       ? Math.max(0, Number(taxConfig.cgstPercent))
       : Number(window.BillingState.cgstPercent || 0);
@@ -148,7 +148,7 @@ window.BillingActions = {
       is_custom: Boolean(c.is_custom),
     }));
 
-    if (transportationCharge > 0) {
+    if (transportationCharge !== null && transportationCharge > 0) {
       invoiceItems.push({
         name: 'TRANSPORTATION CHARGE',
         quantity: 0,

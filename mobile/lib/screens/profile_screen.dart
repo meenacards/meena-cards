@@ -33,7 +33,7 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: 48),
             _buildInfoCard('Business / Press Name', auth.userName ?? 'N/A'),
             const SizedBox(height: 16),
-            _buildInfoCard('Phone Number (Login Key)', auth.password ?? 'N/A'),
+            _buildInfoCard('Phone Number (Login Key)', auth.phoneNumber ?? 'N/A'),
             const Spacer(),
             SizedBox(
               width: double.infinity,

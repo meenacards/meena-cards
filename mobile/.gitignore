@@ -100,3 +100,5 @@ app.*.map.json
 
 # Exceptions to above rules
 !.keep
+.env
+android/key.properties
