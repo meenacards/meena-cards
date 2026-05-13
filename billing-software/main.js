@@ -161,36 +161,35 @@ function formatTime12Hour(dateValue) {
 function buildPrintHeaderComponent() {
   return `
     <div class="print-header">
-      <div class="header-left">
-        <div class="logo-section">
-          ${LOGO_DATA_URI ? `<img src="${LOGO_DATA_URI}" alt="Meena Cards"/>` : ''}
+      <div class="header-main">
+        <div class="header-logo">
+          ${LOGO_DATA_URI ? `<img src="${LOGO_DATA_URI}" alt="Logo"/>` : ''}
+        </div>
+        <div class="header-company-info">
+          <div class="company-name">MEENA CARDS</div>
+          <div class="company-name-tamil">மீனா கார்ட்ஸ்</div>
+          <div class="company-address-tamil">62/1, MANJANAKARA ST., MADURAI - 625001</div>
+          <div class="company-contact-row">
+            <span>Ph: 8248723726</span> | <span>www.meenacards.com</span>
+          </div>
+          <div class="company-gstin">GSTIN: 33AIPPJ2536H1ZA</div>
         </div>
       </div>
-      <div class="company-center">
-        <div class="company-name">MEENA CARDS</div>
-        <div class="company-name-tamil">மீனா கார்ட்ஸ்</div>
-        <div class="company-address-tamil">62/1, மஞ்சணக்காரத் தெரு., மதுரை - 625001</div>
-      </div>
-      <div class="header-right">
-        <div class="website-line"><img class="website-icon" src="${PHONE_ICON}" alt="Mobile"/><span class="company-detail">8248723726</span></div>
-        <div class="website-line"><img class="website-icon" src="${WEBSITE_ICON}" alt="Website"/><span class="company-detail">https://www.meenacards.com</span></div>
-        <div class="company-detail">GSTIN: 33AIPPJ2536H1ZA</div>
-      </div>
+      <div class="header-separator"></div>
     </div>
   `;
 }
 
 function buildPrintFooterComponent() {
   return `
-    <div class="print-footer">
-      <div class="footer-contact">
-        <img src="${LANE_ICON}" alt="Lane number"/><span class="company-detail">0452-7964782</span>
-      </div>
-      <div class="footer-contact">
-        <img src="${EMAIL_ICON}" alt="Email"/><span class="company-detail">meenacards.mdu@gmail.com</span>
-      </div>
-      <div class="footer-contact">
-        <img src="${ADDRESS_ICON}" alt="Address"/><span class="company-detail">62/1, MANJANAKARA ST., MADURAI - 625001</span>
+    <div class="print-footer-container">
+      <div class="footer-separator"></div>
+      <div class="print-footer">
+        <span>8248723726 | 0452-7964782</span>
+        <span>|</span>
+        <span>meenacards.mdu@gmail.com</span>
+        <span>|</span>
+        <span>62/1, MANJANAKARA ST., MADURAI - 625001</span>
       </div>
     </div>
   `;
@@ -198,135 +197,110 @@ function buildPrintFooterComponent() {
 
 function buildPrintBaseStyles(extraCss = '') {
   return `
-    @page { size: A5; margin: 0; }
-    body { font-family: Arial, sans-serif; margin: 0; color: #222; }
+    @page {
+        size: A5 portrait;
+        margin: 0;
+    }
+    html, body {
+        width: 148mm;
+        height: 210mm;
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+        background: white;
+    }
     .page {
-      position: relative;
-      min-height: 100vh;
-      padding: 4mm;
-      box-sizing: border-box;
+        width: 138mm;
+        min-height: 200mm;
+        margin: 0 auto;
+        padding: 5mm;
+        box-sizing: border-box;
+        background: white;
+        position: relative;
     }
     .watermark {
-      position: absolute;
+      position: fixed;
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
       display: flex;
       align-items: center;
       justify-content: center;
-      opacity: 0.08;
+      opacity: 0.05;
       z-index: 1;
       pointer-events: none;
     }
     .watermark img {
-      width: 500px;
-      height: 500px;
+      width: 400px;
+      height: 400px;
       object-fit: contain;
     }
     .content {
       position: relative;
       z-index: 2;
-      flex: 1;
       display: flex;
       flex-direction: column;
     }
-    .print-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 14px;
-      border-bottom: 2px solid #5b1225;
-      padding-bottom: 10px;
-    }
-    .header-left {
+    .header-main {
       display: flex;
       align-items: center;
-      width: 33%;
+      gap: 15px;
+      padding-bottom: 5px;
     }
-    .logo-section img {
-      max-width: 120px;
+    .header-logo img {
+      max-width: 50px;
       height: auto;
-      display: block;
     }
-    .company-center {
-      width: 34%;
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2px;
+    .header-company-info {
+      flex: 1;
     }
     .company-name {
-      font-size: 27px;
+      font-size: 24px;
       font-weight: 800;
-      color: #5b1225;
-      letter-spacing: 0.02em;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .company-name-tamil {
-      font-size: 19px;
-      font-weight: 700;
       color: #5b1225;
       line-height: 1.1;
     }
+    .company-name-tamil {
+      font-size: 16px;
+      font-weight: 700;
+      color: #5b1225;
+      margin-top: 2px;
+    }
     .company-address-tamil {
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
       color: #5b1225;
-      line-height: 1.2;
-      white-space: nowrap;
     }
-    .header-right {
-      width: 33%;
-      text-align: right;
-      font-size: 13px;
-      color: #5b1225;
-      font-weight: 700;
-      line-height: 1.5;
-    }
-    .website-line {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 6px;
-    }
-    .website-icon {
-      width: 13px;
-      height: 13px;
-      object-fit: contain;
-    }
-    .company-detail {
+    .company-contact-row {
+      font-size: 11px;
       font-weight: 700;
       color: #5b1225;
+      margin-top: 3px;
+    }
+    .company-gstin {
+      font-size: 11px;
+      font-weight: 700;
+      color: #5b1225;
+    }
+    .header-separator, .footer-separator {
+      height: 1.5px;
+      background: #5b1225;
+      margin: 5px 0;
     }
     .print-body {
       flex: 1;
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
+    }
+    .print-footer-container {
+      margin-top: auto;
     }
     .print-footer {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 14px;
-      padding-top: 10px;
-      border-top: 2px solid #5b1225;
-      font-size: 13px;
+      justify-content: center;
+      gap: 10px;
+      font-size: 10px;
       color: #5b1225;
       font-weight: 700;
-      gap: 8px;
-    }
-    .footer-contact {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .footer-contact img {
-      width: 14px;
-      height: 14px;
+      padding: 5px 0;
     }
     ${extraCss}
   `;
@@ -495,8 +469,8 @@ function buildInvoicePrintHtml(invoice) {
         <td style="text-align:center;">${idx + 1}</td>
         <td>${escapeHtml(String(item.name || '').toUpperCase())}</td>
         <td style="text-align:center;">${item.is_transportation ? '-' : Number(item.quantity || 0)}</td>
-        <td style="text-align:right;">${item.is_transportation ? '-' : `Rs. ${Number(item.price || 0).toFixed(2)}`}</td>
-        <td style="text-align:right;">Rs. ${Number(item.line_total ?? (Number(item.price || 0) * Number(item.quantity || 0))).toFixed(2)}</td>
+        <td style="text-align:right;">${item.is_transportation ? '-' : Number(item.price || 0).toFixed(2)}</td>
+        <td style="text-align:right;">${Number(item.line_total ?? (Number(item.price || 0) * Number(item.quantity || 0))).toFixed(2)}</td>
       </tr>
     `)
     .join('');
@@ -513,58 +487,32 @@ function buildInvoicePrintHtml(invoice) {
   const customerPhone = escapeHtml(String(invoice.to_phone || '').toUpperCase()) || '-';
   const customerGstin = escapeHtml(String(invoice.gstin || '').toUpperCase()) || '-';
 
-  const termsHtml = invoice.apply_terms_conditions ? '<div class="terms-full-width">Terms and Conditions</div>' : '';
   const bodyHtml = `
-    <div class="invoice-main-content">
-      <div class="bill-title">CASH/CREDIT BILL</div>
-        <div class="invoice-info" style="margin-bottom: 18px;">
-        <div class="invoice-info-left">
-          <div class="invoice-info-label">Invoice to :</div>
-          <div class="invoice-info-content party-box">
-            <div class="party-line">
-              <span class="party-label">Name</span>
-              <span class="party-colon">:</span>
-              <span class="party-value">${customerName}</span>
-            </div>
-            <div class="party-line">
-              <span class="party-label">Address</span>
-              <span class="party-colon">:</span>
-              <span class="party-value">${customerAddress}</span>
-            </div>
-            <div class="party-line">
-              <span class="party-label">Mobile</span>
-              <span class="party-colon">:</span>
-              <span class="party-value">${customerPhone}</span>
-            </div>
-            <div class="party-line">
-              <span class="party-label">GSTIN</span>
-              <span class="party-colon">:</span>
-              <span class="party-value">${customerGstin}</span>
-            </div>
-          </div>
+    <div class="invoice-container">
+      <div class="bill-title">CASH / CREDIT BILL</div>
+      
+      <div class="info-section">
+        <div class="info-left">
+          <div class="info-header">Invoice To:</div>
+          <div class="info-row"><span class="info-label">Name</span><span class="info-val">: ${customerName}</span></div>
+          <div class="info-row"><span class="info-label">Address</span><span class="info-val">: ${customerAddress}</span></div>
+          <div class="info-row"><span class="info-label">Mobile</span><span class="info-val">: ${customerPhone}</span></div>
+          <div class="info-row"><span class="info-label">GSTIN</span><span class="info-val">: ${customerGstin}</span></div>
         </div>
-        <div class="invoice-info-right">
-          <div class="meta-box">
-            <div class="meta-line">
-              <span class="meta-label">Invoice No.</span>
-              <span class="meta-fill"><span class="meta-value">: ${escapeHtml(invoice.invoice_number || '')}</span></span>
-            </div>
-            <div class="meta-line">
-              <span class="meta-label">Date</span>
-              <span class="meta-fill"><span class="meta-value">: ${formatDateDDMMYYYY(createdAt)}</span></span>
-            </div>
-          </div>
+        <div class="info-right">
+          <div class="info-row"><span class="info-label">Invoice No.</span><span class="info-val">: ${escapeHtml(invoice.invoice_number || '')}</span></div>
+          <div class="info-row"><span class="info-label">Date</span><span class="info-val">: ${formatDateDDMMYYYY(createdAt)}</span></div>
         </div>
       </div>
 
       <table class="items-table">
         <thead>
           <tr>
-            <th style="width: 8%;">NO</th>
-            <th style="width: 40%;">DESCRIPTION</th>
-            <th style="width: 15%;">QTY</th>
-            <th style="width: 18%;">PRICE</th>
-            <th style="width: 19%;">TOTAL</th>
+            <th style="width: 50px;">NO</th>
+            <th>DESCRIPTION</th>
+            <th style="width: 60px; text-align:center;">QTY</th>
+            <th style="width: 100px; text-align:right;">PRICE (Rs.)</th>
+            <th style="width: 110px; text-align:right;">TOTAL (Rs.)</th>
           </tr>
         </thead>
         <tbody>
@@ -572,36 +520,23 @@ function buildInvoicePrintHtml(invoice) {
         </tbody>
       </table>
 
-      <div class="totals-section">
-        <div class="totals-left"></div>
-        <div class="totals-right">
-          <div class="totals-row">
-            <span>Sub Total :</span>
-            <span>Rs. ${subtotal.toFixed(2)}</span>
-          </div>
-          <div class="totals-row">
-            <span>CGST (${cgstPercent}%) :</span>
-            <span>Rs. ${cgst.toFixed(2)}</span>
-          </div>
-          <div class="totals-row">
-            <span>SGST (${sgstPercent}%) :</span>
-            <span>Rs. ${sgst.toFixed(2)}</span>
-          </div>
-          <div class="totals-row grand-total">
-            <span>GRAND TOTAL :</span>
-            <span>Rs. ${total.toFixed(2)}</span>
-          </div>
+      <div class="footer-stack">
+        <div class="totals-section">
+          <div class="totals-row"><span>Sub Total</span><span>${subtotal.toFixed(2)}</span></div>
+          <div class="totals-row"><span>CGST (${cgstPercent}%)</span><span>${cgst.toFixed(2)}</span></div>
+          <div class="totals-row"><span>SGST (${sgstPercent}%)</span><span>${sgst.toFixed(2)}</span></div>
+          <div class="totals-line"></div>
+          <div class="totals-row grand-total"><span>GRAND TOTAL</span><span>${total.toFixed(2)}</span></div>
         </div>
-      </div>
 
-      <div class="bottom-stack">
-        <div class="terms-signature-row">
-          <div class="notes">
+        <div class="auth-row">
+          <div class="no-exchange">
             <div>No Refund | No Exchange</div>
             <div>Thank you for shopping with Meena Cards</div>
           </div>
-          <div class="signature-section">
-            <div class="signature-line">Authorized Signature</div>
+          <div class="signature-box">
+            <div class="sig-line"></div>
+            <div>Authorized Signature</div>
           </div>
         </div>
       </div>
@@ -609,235 +544,108 @@ function buildInvoicePrintHtml(invoice) {
   `;
 
   const invoiceCss = `
-    .invoice-main-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
+    .bill-title {
+      text-align: center;
+      font-size: 18px;
+      font-weight: 800;
+      margin: 15px 0;
+      color: #5b1225;
+      text-transform: uppercase;
+      letter-spacing: 2px;
     }
-    .invoice-info {
+    .info-section {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 12px;
-      font-size: 15px;
-      gap: 8px;
-    }
-    .invoice-info-left {
-      width: 55%;
-    }
-    .invoice-info-right {
-      width: 45%;
-      display: flex;
-      justify-content: flex-end;
-      margin-top: -2px;
-    }
-    .invoice-info-label {
-      font-weight: 700;
-      margin-bottom: 3px;
-      text-transform: uppercase;
-    }
-    .invoice-info-content {
-      margin-bottom: 6px;
-      line-height: 1.4;
-      text-transform: uppercase;
-    }
-    .party-box {
-      display: flex;
-      flex-direction: column;
-      gap: 1px;
-    }
-    .party-line {
-      display: flex;
-      align-items: baseline;
-      min-height: 18px;
-      margin: 0;
-      padding: 0;
-    }
-    .party-label {
-      width: 82px;
-      font-weight: 700;
-      white-space: nowrap;
-      text-align: left;
-      line-height: 1.2;
-    }
-    .party-colon {
-      width: 10px;
-      text-align: center;
-      font-weight: 700;
-      line-height: 1.2;
-    }
-    .party-value {
-      flex: 1;
-      text-align: left;
-      line-height: 1.2;
-      word-break: break-word;
-    }
-    .meta-box {
-      font-size: 15px;
-      width: 248px;
-      display: flex;
-      flex-direction: column;
-      gap: 1px;
-    }
-    .meta-line {
-      display: flex;
-      align-items: center;
-      min-height: 18px;
-      margin: 0;
-      padding: 0;
-    }
-    .meta-label,
-    .meta-fill {
-      vertical-align: middle;
-    }
-    .meta-label {
-      font-weight: 700;
-      padding-right: 8px;
-      width: 98px;
-      text-align: left;
-      white-space: nowrap;
-      line-height: 1;
-      text-transform: uppercase;
-    }
-    .meta-fill {
-      width: 150px;
-      padding-left: 4px;
-      text-align: left;
-      line-height: 1;
-      border: none !important;
-      box-shadow: none !important;
-      background: transparent !important;
-    }
-    .meta-value {
-      font-weight: 700;
-      text-align: left;
-      display: inline-block;
-      min-width: 1px;
-      line-height: 1;
-      text-decoration: none;
-      text-transform: uppercase;
-    }
-    .bill-title {
-      margin: 0 0 18px;
-      text-align: center;
-      font-size: 21px;
-      font-weight: 800;
-      color: #5b1225;
-      letter-spacing: 0.08em;
-    }
-    table.items-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 10px 0;
+      margin-bottom: 15px;
       font-size: 12px;
     }
-    .items-table th {
-      background: #f8eef1;
+    .info-left { width: 65%; }
+    .info-right { width: 35%; }
+    .info-header {
+      font-weight: 800;
+      text-decoration: underline;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+    }
+    .info-row {
+      display: flex;
+      margin-bottom: 2px;
+    }
+    .info-label {
+      width: 80px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .info-val {
+      flex: 1;
+      font-weight: 700;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 15px;
+      font-size: 12px;
+    }
+    th {
+      border: 1.5px solid #5b1225;
+      background: #fdf2f4;
+      padding: 6px;
+      font-weight: 800;
+      text-transform: uppercase;
       color: #5b1225;
-      padding: 8px;
-      text-align: left;
-      font-weight: bold;
-      border: 1px solid #ddd;
     }
-    .items-table td {
-      border: 1px solid #ddd;
-      padding: 7px;
+    td {
+      border: 1px solid #5b1225;
+      padding: 5px 8px;
+      font-weight: 700;
+      vertical-align: middle;
     }
-    .items-table tr:nth-child(even) {
-      background: #f8eef1;
+    .footer-stack {
+      margin-top: 5px;
     }
     .totals-section {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(260px, 290px);
-      margin: 10px 0;
-      font-size: 17px;
-      column-gap: 12px;
-      align-items: start;
-    }
-    .totals-left {
-      width: 100%;
-    }
-    .totals-right {
-      width: auto;
-      text-align: right;
-      justify-self: end;
+      width: 280px;
+      margin-left: auto;
+      margin-bottom: 20px;
     }
     .totals-row {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      margin: 3px 0;
-      line-height: 1.2;
-    }
-    .totals-row.grand-total {
+      font-size: 13px;
       font-weight: 700;
-      font-size: 18px;
-      padding: 8px 0;
-      background: transparent;
+      margin-bottom: 4px;
+    }
+    .totals-line {
+      height: 1px;
+      background: #5b1225;
+      margin: 5px 0;
+    }
+    .grand-total {
+      font-size: 16px;
+      font-weight: 800;
       color: #5b1225;
-      border-top: 1px solid #5b1225;
-      margin-top: 4px;
     }
-    .terms-full-width {
-      grid-column: 1 / -1;
-      width: 100%;
-      margin-top: 8px;
-      font-size: 12px;
-      font-weight: 700;
-      color: #5b1225;
-      text-align: center;
-    }
-    .bottom-stack {
-      margin-top: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .terms-signature-row {
+    .auth-row {
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
-      gap: 16px;
+      margin-top: 10px;
     }
-    .terms-block {
-      flex: 1;
+    .no-exchange {
       font-size: 11px;
-      color: #5b1225;
-      line-height: 1.5;
-      font-weight: 600;
-    }
-    .terms-title {
-      font-size: 12px;
-      font-weight: 700;
-      margin-bottom: 4px;
-      text-transform: uppercase;
-    }
-    .terms-list {
-      margin: 0;
-      padding-left: 18px;
-    }
-    .terms-list li {
-      margin-bottom: 6px;
-    }
-    .notes {
-      font-size: 12px;
-      color: #5b1225;
-      font-weight: 700;
-      line-height: 1.6;
-      text-align: left;
-    }
-    .signature-section {
-      display: flex;
-      justify-content: flex-end;
-      min-width: 230px;
-      font-size: 12px;
-      font-weight: 700;
+      font-weight: 800;
       color: #5b1225;
     }
-    .signature-line {
-      min-width: 220px;
+    .signature-box {
       text-align: center;
-      border-top: 1px solid #5b1225;
-      padding-top: 8px;
+      width: 200px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #5b1225;
+    }
+    .sig-line {
+      border-top: 1.5px solid #5b1225;
+      margin-bottom: 5px;
     }
   `;
 
@@ -901,8 +709,14 @@ function printInvoice(invoice, options = {}) {
           {
             silent: isSilent,
             printBackground: true,
-            pageSize: options.pageSize || 'A5',
-            margins: options.margins || { marginType: 'none' },
+            pageSize: {
+                width: 148000,
+                height: 210000
+            },
+            scaleFactor: 100,
+            margins: {
+                marginType: 'none'
+            },
             deviceName,
           },
           (success, errorType) => {
