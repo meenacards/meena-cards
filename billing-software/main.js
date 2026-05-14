@@ -1150,6 +1150,73 @@ function createWindow() {
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 }
 
+function printPurchase(purchase, options = {}) {
+  return new Promise((resolve) => {
+    const hiddenWin = new BrowserWindow({
+      width: 820,
+      height: 1160,
+      show: false,
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+    });
+
+    const tempHtmlPath = createTempHtmlFile(buildPurchasePrintHtml(purchase));
+
+    hiddenWin.webContents.once('did-finish-load', async () => {
+      try {
+        const isSilent = options.silent !== false;
+        let deviceName = options.deviceName || undefined;
+
+        if (isSilent && !deviceName) {
+          const printers = await hiddenWin.webContents.getPrintersAsync();
+          const physicalPrinters = (printers || []).filter((p) => p && p.name && !isPdfPrinterName(p.name));
+          const defaultPhysical = physicalPrinters.find((p) => p && p.isDefault);
+          const pickedPrinter = defaultPhysical || physicalPrinters[0];
+
+          if (!pickedPrinter || !pickedPrinter.name) {
+            hiddenWin.close();
+            safeDeleteFile(tempHtmlPath);
+            resolve({ success: false, error: 'No physical printer available for auto print.' });
+            return;
+          }
+          deviceName = pickedPrinter.name;
+        }
+
+        hiddenWin.webContents.print(
+          {
+            silent: isSilent,
+            printBackground: true,
+            pageSize: options.pageSize || 'A5',
+            margins: { marginType: 'printableArea' },
+            deviceName,
+          },
+          (success, errorType) => {
+            hiddenWin.close();
+            safeDeleteFile(tempHtmlPath);
+            if (!success) {
+              resolve({ success: false, error: errorType || 'Print failed' });
+            } else {
+              resolve({ success: true });
+            }
+          }
+        );
+      } catch (error) {
+        hiddenWin.close();
+        safeDeleteFile(tempHtmlPath);
+        resolve({ success: false, error: error.message || 'Print failed' });
+      }
+    });
+
+    hiddenWin.loadFile(tempHtmlPath).catch((error) => {
+      hiddenWin.close();
+      safeDeleteFile(tempHtmlPath);
+      resolve({ success: false, error: error.message || 'Failed to load purchase print template' });
+    });
+  });
+}
+
 function buildPurchasePrintHtml(purchase) {
   const rows = (purchase.items || [])
     .map((item, idx) => `
@@ -1157,17 +1224,16 @@ function buildPurchasePrintHtml(purchase) {
         <td style="text-align:center;">${idx + 1}</td>
         <td>${escapeHtml(String(item.name || '').toUpperCase())}</td>
         <td style="text-align:center;">${Number(item.quantity || 0)}</td>
-        <td style="text-align:right;">Rs. ${Number(item.price || 0).toFixed(2)}</td>
-        <td style="text-align:right;">${Number(item.tax || 0)}%</td>
-        <td style="text-align:right;">Rs. ${(Number(item.quantity || 0) * Number(item.price || 0) * (1 + Number(item.tax || 0) / 100)).toFixed(2)}</td>
+        <td style="text-align:right;">-</td>
+        <td style="text-align:right;">-</td>
+        <td style="text-align:right;">-</td>
       </tr>
     `)
     .join('');
 
-  const subtotal = Number(purchase.subtotal || 0);
-  const totalTax = Number(purchase.tax || 0);
   const total = Number(purchase.total_amount || 0);
   const createdAt = purchase.created_at || new Date().toISOString();
+  const purchaseDate = purchase.purchase_date || createdAt;
   const companyName = escapeHtml(String(purchase.company_name || '').toUpperCase()) || '-';
 
   const bodyHtml = `
@@ -1190,7 +1256,7 @@ function buildPurchasePrintHtml(purchase) {
             </div>
             <div class="meta-line">
               <span class="meta-label">Date</span>
-              <span class="meta-fill"><span class="meta-value">: ${formatDateDDMMYYYY(createdAt)}</span></span>
+              <span class="meta-fill"><span class="meta-value">: ${formatDateDDMMYYYY(purchaseDate)}</span></span>
             </div>
           </div>
         </div>
@@ -1200,11 +1266,11 @@ function buildPurchasePrintHtml(purchase) {
         <thead>
           <tr>
             <th style="width: 8%;">NO</th>
-            <th style="width: 35%;">PRODUCT</th>
-            <th style="width: 12%;">QTY</th>
-            <th style="width: 15%;">PRICE</th>
-            <th style="width: 12%;">TAX</th>
-            <th style="width: 18%;">TOTAL</th>
+            <th style="width: 50%;">PRODUCT</th>
+            <th style="width: 15%;">QTY</th>
+            <th style="width: 9%;">PRICE</th>
+            <th style="width: 9%;">TAX</th>
+            <th style="width: 9%;">TOTAL</th>
           </tr>
         </thead>
         <tbody>
@@ -1215,17 +1281,9 @@ function buildPurchasePrintHtml(purchase) {
       <div class="totals-section">
         <div class="totals-left"></div>
         <div class="totals-right">
-          <div class="totals-row">
-            <span>Sub Total :</span>
-            <span>Rs. ${subtotal.toFixed(2)}</span>
-          </div>
-          <div class="totals-row">
-            <span>Tax :</span>
-            <span>Rs. ${totalTax.toFixed(2)}</span>
-          </div>
           <div class="totals-row grand-total">
-            <span>TOTAL :</span>
-            <span>Rs. ${total.toFixed(2)}</span>
+            <span style="font-size: 14px;">BILL TOTAL :</span>
+            <span style="font-size: 16px;">Rs. ${total.toFixed(2)}</span>
           </div>
         </div>
       </div>
@@ -1238,8 +1296,29 @@ function buildPurchasePrintHtml(purchase) {
     </div>
   `;
 
-  const css = buildPrintBaseStyles();
-  return buildPrintPageHtml(bodyHtml, css);
+  const purchaseCss = `
+    .bill-title { text-align: center; font-size: 14px; font-weight: 800; color: #5b1225; margin: 5px 0 15px; text-transform: uppercase; letter-spacing: 1px; }
+    .invoice-info { display: flex; justify-content: space-between; gap: 20px; font-size: 10px; }
+    .invoice-info-left { flex: 1; }
+    .invoice-info-right { width: 40%; text-align: right; }
+    .party-box { border: 1.5px solid #5b1225; padding: 8px; border-radius: 4px; background: #fdf2f4; min-height: 40px; }
+    .meta-box { display: flex; flex-direction: column; gap: 4px; }
+    .meta-line { display: flex; justify-content: flex-end; gap: 8px; font-weight: 700; }
+    .items-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 10px; }
+    .items-table th { background: #fdf2f4; border: 1.5px solid #5b1225; padding: 6px; font-weight: 800; color: #5b1225; }
+    .items-table td { border: 1px solid #5b1225; padding: 6px; }
+    .totals-section { display: flex; justify-content: flex-end; margin-top: 15px; }
+    .totals-right { width: 40%; border-top: 2px solid #5b1225; padding-top: 5px; }
+    .totals-row { display: flex; justify-content: space-between; font-weight: 700; padding: 3px 0; }
+    .grand-total { color: #5b1225; font-size: 13px; border-top: 1px solid #5b1225; margin-top: 2px; }
+  `;
+
+  return buildPrintDocumentHtml({
+    title: `Purchase Bill ${escapeHtml(purchase.invoice_number || '')}`,
+    bodyHtml,
+    includeWatermark: true,
+    extraCss: purchaseCss
+  });
 }
 
 function savePurchasePdf(purchase, filename, options = {}) {
@@ -1310,7 +1389,12 @@ function savePurchasesBundlePdf(purchases, filename, options = {}) {
       .map((p, idx) => `<section class="month-page" style="page-break-after: always; ${idx === purchases.length - 1 ? 'page-break-after: avoid;' : ''}">${extractBodyBlock(buildPurchasePrintHtml(p))}</section>`)
       .join('');
 
-    const fullHtml = buildPrintPageHtml(bundleHtml, buildPrintBaseStyles());
+    const fullHtml = buildPrintDocumentHtml({
+      title: filename,
+      bodyHtml: bundleHtml,
+      includeWatermark: true,
+      extraCss: buildPrintBaseStyles()
+    });
     const tempHtmlPath = createTempHtmlFile(fullHtml);
 
     hiddenWin.webContents.once('did-finish-load', async () => {
@@ -1444,6 +1528,14 @@ ipcMain.handle('purchases:download-bundle-pdf', async (_event, payload) => {
     return await savePurchasesBundlePdf(purchases, filename, payload.options || {});
   } catch (error) {
     return { success: false, error: error.message || 'Purchases bundle PDF save error' };
+  }
+});
+
+ipcMain.handle('purchases:print', async (_event, payload) => {
+  try {
+    return await printPurchase(payload.purchase || {}, payload.options || {});
+  } catch (error) {
+    return { success: false, error: error.message || 'Purchase print error' };
   }
 });
 

@@ -4,7 +4,11 @@ function sanitizeBaseUrl(url) {
   return String(url || '').trim().replace(/\/+$/, '');
 }
 
+<<<<<<< HEAD
 const resolvedBackendUrl = sanitizeBaseUrl(process.env.BACKEND_URL) || 'https://api.meenacards.com';
+=======
+const resolvedBackendUrl = null;
+>>>>>>> 0ce6dd61a5ff4da5cb4619f2863a06c77bd0daf4
 
 const billingBridge = {
   version: '1.0.0',
@@ -28,6 +32,7 @@ const billingBridge = {
   downloadReportPdf: (report, filename, options) => ipcRenderer.invoke('pdf:download-report', { report, filename, options }),
   downloadPurchasePdf: (purchase, options) => ipcRenderer.invoke('purchases:download-pdf', { purchase, options }),
   downloadPurchasesPdf: (purchases, options) => ipcRenderer.invoke('purchases:download-bundle-pdf', { purchases, options }),
+  printPurchase: (purchase, options) => ipcRenderer.invoke('purchases:print', { purchase, options }),
 };
 
 contextBridge.exposeInMainWorld('billingApp', billingBridge);

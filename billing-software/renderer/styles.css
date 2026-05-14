@@ -1511,6 +1511,51 @@ input[type="number"]:not(:disabled):focus {
   color: var(--brand-maroon);
 }
 
+/* Purchases Specific Styles */
+.suggestion-item {
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--divider);
+  transition: background 0.2s ease;
+}
+
+.suggestion-item:hover {
+  background: #fdfaf5;
+  color: var(--brand-maroon);
+}
+
+.selected-product-tag {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.company-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.company-card {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.company-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(91, 18, 37, 0.08);
+}
+
 .tab-content {
   padding: 20px 0;
 }
