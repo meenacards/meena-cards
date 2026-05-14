@@ -116,8 +116,10 @@
     let activeMain = mainKeys[0] || '';
     let activeSub = '';
     let activeSeries = '';
+    let showAllProducts = true;  // Default to All Products view
 
     function setDefaultForMain(main) {
+      showAllProducts = false;
       const value = collectionTree[main];
       if (Array.isArray(value)) {
         activeSub = '';
@@ -133,20 +135,35 @@
     function renderSidebar() {
       sidebar.innerHTML = '';
 
+      // "All Products" button at top of sidebar
+      const allProductsBtn = document.createElement('button');
+      allProductsBtn.type = 'button';
+      allProductsBtn.className = `products-main-btn ${showAllProducts ? 'active' : ''}`;
+      allProductsBtn.textContent = 'All Products';
+      allProductsBtn.onclick = () => {
+        showAllProducts = true;
+        searchInput.value = '';
+        renderSidebar();
+        renderCards();
+        setTimeout(() => searchInput.focus(), 50);
+      };
+      sidebar.appendChild(allProductsBtn);
+
       mainKeys.forEach((main) => {
         const mainBtn = document.createElement('button');
         mainBtn.type = 'button';
-        mainBtn.className = `products-main-btn ${activeMain === main ? 'active' : ''}`;
+        mainBtn.className = `products-main-btn ${!showAllProducts && activeMain === main ? 'active' : ''}`;
         mainBtn.textContent = main;
         mainBtn.onclick = () => {
           activeMain = main;
+          showAllProducts = false;
           setDefaultForMain(main);
           renderSidebar();
           renderCards();
         };
         sidebar.appendChild(mainBtn);
 
-        if (activeMain !== main) return;
+        if (showAllProducts || activeMain !== main) return;
 
         const group = collectionTree[main];
         const subContainer = document.createElement('div');
@@ -205,12 +222,19 @@
       const term = (searchInput.value || '').trim().toLowerCase();
       const allCards = window.BillingState.products || [];
 
-      const filtered = allCards
-        .filter((card) => cardMatchesSeries(card, activeMain, activeSeries))
-        .filter((card) => !term || (card.name || '').toLowerCase().includes(term))
-        .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-
-      infoBar.textContent = `Showing ${filtered.length} card(s) for ${activeSeries || 'selected series'}`;
+      let filtered;
+      if (showAllProducts) {
+        filtered = allCards
+          .filter((card) => !term || (card.name || '').toLowerCase().includes(term))
+          .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        infoBar.textContent = `Showing ${filtered.length} card(s) — All Products`;
+      } else {
+        filtered = allCards
+          .filter((card) => cardMatchesSeries(card, activeMain, activeSeries))
+          .filter((card) => !term || (card.name || '').toLowerCase().includes(term))
+          .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        infoBar.textContent = `Showing ${filtered.length} card(s) for ${activeSeries || 'selected series'}`;
+      }
       cardsGrid.innerHTML = '';
 
       if (!filtered.length) {
@@ -262,11 +286,10 @@
         addBtn.type = 'button';
         addBtn.className = 'btn-primary';
         addBtn.textContent = 'Add To Billing';
+        addBtn.title = 'Add to current bill';
         addBtn.onclick = () => {
-          // Use wrapper which shows toast and normalizes the object
           const result = addCardToBill(card);
           if (result && result.ok) {
-            // notify billing UI to refresh if it's visible
             try {
               window.dispatchEvent(new Event('billing:cart-changed'));
             } catch (e) {
@@ -275,7 +298,57 @@
           }
         };
 
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'btn-secondary';
+        editBtn.textContent = '✏️ Edit';
+        editBtn.title = 'Edit this card';
+        editBtn.onclick = (e) => {
+          e.stopPropagation();
+          // Directly open update modal — skip the detail overlay
+          onOpenDetail(card, true);
+        };
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'btn-danger';
+        deleteBtn.textContent = '🗑️ Delete';
+        deleteBtn.title = 'Delete this card';
+        deleteBtn.onclick = async (e) => {
+          e.stopPropagation();
+          // Use a simple confirm to avoid complex overlay inside buildProductsLayout
+          const confirmed = window.confirm(`Delete card "${card.name || 'Unnamed card'}"? This cannot be undone.`);
+          if (!confirmed) return;
+          try {
+            await window.ApiService.deleteProduct(card.id);
+            const latest = await window.ApiService.fetchProducts();
+            window.BillingActions.setProducts(latest);
+            renderCards();
+            if (window.Toastify) {
+              window.Toastify({
+                text: `Card "${card.name}" deleted.`,
+                duration: 3000,
+                gravity: 'top',
+                position: 'right',
+                style: { background: 'linear-gradient(135deg, #b85b5b, #8e3f3f)', color: '#fff', borderRadius: '10px', fontWeight: '600' },
+              }).showToast();
+            }
+          } catch (err) {
+            if (window.Toastify) {
+              window.Toastify({
+                text: 'Failed to delete card.',
+                duration: 4000,
+                gravity: 'top',
+                position: 'right',
+                style: { background: 'linear-gradient(135deg, #b85b5b, #8e3f3f)', color: '#fff', borderRadius: '10px', fontWeight: '600' },
+              }).showToast();
+            }
+          }
+        };
+
         actions.appendChild(addBtn);
+        actions.appendChild(editBtn);
+        actions.appendChild(deleteBtn);
         body.appendChild(title);
         body.appendChild(description);
         body.appendChild(meta);
@@ -290,13 +363,12 @@
       // debug overlay removed
     }
 
-    if (activeMain) {
-      setDefaultForMain(activeMain);
-    }
-
+    // Default: All Products mode, search bar always visible in content area
     searchInput.addEventListener('input', renderCards);
     renderSidebar();
     renderCards();
+    // Focus the search box immediately
+    setTimeout(() => searchInput.focus(), 80);
   }
 
   function renderAdminView(container) {

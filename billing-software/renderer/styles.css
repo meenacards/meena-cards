@@ -231,10 +231,13 @@ button {
   text-transform: uppercase;
 }
 
+/* Make the view-container a flex column so children can fill height */
 .view-container {
   flex: 1;
   padding: 22px;
   overflow: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .billing-layout {
@@ -412,6 +415,47 @@ input[type="number"]:not(:disabled):focus {
   min-height: 30px;
   padding: 4px 6px;
   text-align: center;
+}
+
+.input-price-edit {
+  width: 80px;
+  min-height: 30px;
+  padding: 4px 6px;
+  text-align: right;
+  font-weight: 600;
+  color: var(--brand-maroon);
+}
+
+.product-card-actions {
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.product-card-actions .btn-primary,
+.product-card-actions .btn-secondary {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  padding: 7px 8px;
+  text-align: center;
+}
+
+.btn-danger {
+  border-radius: 10px;
+  padding: 7px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 150ms ease;
+  background: transparent;
+  border: 1px solid #b85b5b;
+  color: #b85b5b;
+}
+
+.btn-danger:hover {
+  background: rgba(184, 91, 91, 0.12);
 }
 
 .btn-primary,
@@ -631,8 +675,15 @@ input[type="number"]:not(:disabled):focus {
   display: flex;
   gap: 16px;
   align-items: flex-start;
-  /* left: fixed-width sidebar, right: flexible content */
   min-height: 0;
+}
+
+/* Admin overrides: sidebar fixed, content scrolls independently */
+.admin-products-layout {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  align-items: stretch;
 }
 
 .products-sidebar {
@@ -641,12 +692,17 @@ input[type="number"]:not(:disabled):focus {
   border-radius: 12px;
   padding: 12px;
   width: 260px;
-  /* Keep sidebar stationary and independently scrollable */
-  position: sticky;
-  top: 94px;
-  align-self: flex-start;
-  max-height: calc(100vh - 140px);
-  overflow: auto;
+  min-width: 260px;
+  /* Sidebar scrolls independently — does NOT scroll with the content */
+  overflow-y: auto;
+  align-self: stretch;
+}
+
+/* Admin products: sidebar fills full column height and never scrolls with content */
+.admin-products-layout .products-sidebar {
+  position: static;
+  max-height: none;
+  height: 100%;
 }
 
 .products-main-btn,
@@ -707,12 +763,16 @@ input[type="number"]:not(:disabled):focus {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  /* Right pane scrolls independently of the sidebar */
-  overflow: auto;
   min-height: 0;
   padding-right: 6px;
   align-items: stretch;
   min-width: 0;
+}
+
+/* Admin products: content fills height and scrolls independently */
+.admin-products-layout .products-content {
+  overflow-y: auto;
+  height: 100%;
 }
 
 .products-info-bar {
@@ -831,9 +891,6 @@ input[type="number"]:not(:disabled):focus {
   padding: 5px 7px;
 }
 
-.product-card-actions {
-  margin-top: 4px;
-}
 
 .empty-products-state {
   grid-column: 1 / -1;

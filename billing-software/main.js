@@ -161,36 +161,35 @@ function formatTime12Hour(dateValue) {
 function buildPrintHeaderComponent() {
   return `
     <div class="print-header">
-      <div class="header-left">
-        <div class="logo-section">
-          ${LOGO_DATA_URI ? `<img src="${LOGO_DATA_URI}" alt="Meena Cards"/>` : ''}
+      <div class="header-main">
+        <div class="header-logo">
+          ${LOGO_DATA_URI ? `<img src="${LOGO_DATA_URI}" alt="Logo"/>` : ''}
+        </div>
+        <div class="header-company-info">
+          <div class="company-name">MEENA CARDS</div>
+          <div class="company-name-tamil">மீனா கார்ட்ஸ்</div>
+          <div class="company-address-tamil">62/1, MANJANAKARA ST., MADURAI - 625001</div>
+          <div class="company-contact-row">
+            <span>Ph: 8248723726</span> | <span>www.meenacards.com</span>
+          </div>
+          <div class="company-gstin">GSTIN: 33AIPPJ2536H1ZA</div>
         </div>
       </div>
-      <div class="company-center">
-        <div class="company-name">MEENA CARDS</div>
-        <div class="company-name-tamil">மீனா கார்ட்ஸ்</div>
-        <div class="company-address-tamil">62/1, மஞ்சணக்காரத் தெரு., மதுரை - 625001</div>
-      </div>
-      <div class="header-right">
-        <div class="website-line"><img class="website-icon" src="${PHONE_ICON}" alt="Mobile"/><span class="company-detail">8248723726</span></div>
-        <div class="website-line"><img class="website-icon" src="${WEBSITE_ICON}" alt="Website"/><span class="company-detail">https://www.meenacards.com</span></div>
-        <div class="company-detail">GSTIN: 33AIPPJ2536H1ZA</div>
-      </div>
+      <div class="header-separator"></div>
     </div>
   `;
 }
 
 function buildPrintFooterComponent() {
   return `
-    <div class="print-footer">
-      <div class="footer-contact">
-        <img src="${LANE_ICON}" alt="Lane number"/><span class="company-detail">0452-7964782</span>
-      </div>
-      <div class="footer-contact">
-        <img src="${EMAIL_ICON}" alt="Email"/><span class="company-detail">meenacards.mdu@gmail.com</span>
-      </div>
-      <div class="footer-contact">
-        <img src="${ADDRESS_ICON}" alt="Address"/><span class="company-detail">62/1, MANJANAKARA ST., MADURAI - 625001</span>
+    <div class="print-footer-container">
+      <div class="footer-separator"></div>
+      <div class="print-footer">
+        <span>8248723726 | 0452-7964782</span>
+        <span>|</span>
+        <span>meenacards.mdu@gmail.com</span>
+        <span>|</span>
+        <span>62/1, MANJANAKARA ST., MADURAI - 625001</span>
       </div>
     </div>
   `;
@@ -210,7 +209,7 @@ function buildPrintBaseStyles(extraCss = '') {
       overflow: hidden;
     }
     .watermark {
-      position: absolute;
+      position: fixed;
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
@@ -229,7 +228,6 @@ function buildPrintBaseStyles(extraCss = '') {
     .content {
       position: relative;
       z-index: 2;
-      height: 100%;
       display: flex;
       flex-direction: column;
     }
@@ -244,42 +242,32 @@ function buildPrintBaseStyles(extraCss = '') {
     .header-left {
       display: flex;
       align-items: center;
-      width: 33%;
+      gap: 15px;
+      padding-bottom: 5px;
     }
     .logo-section img {
       max-width: 72px;
       height: auto;
-      display: block;
     }
-    .company-center {
-      width: 34%;
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2px;
+    .header-company-info {
+      flex: 1;
     }
     .company-name {
       font-size: 15px;
       font-weight: 800;
       color: #5b1225;
-      letter-spacing: 0.02em;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      line-height: 1.1;
     }
     .company-name-tamil {
       font-size: 10px;
       font-weight: 700;
       color: #5b1225;
-      line-height: 1.1;
+      margin-top: 2px;
     }
     .company-address-tamil {
       font-size: 8px;
       font-weight: 600;
       color: #5b1225;
-      line-height: 1.2;
-      white-space: nowrap;
     }
     .header-right {
       width: 33%;
@@ -303,12 +291,23 @@ function buildPrintBaseStyles(extraCss = '') {
     .company-detail {
       font-weight: 700;
       color: #5b1225;
+      margin-top: 3px;
+    }
+    .company-gstin {
+      font-size: 11px;
+      font-weight: 700;
+      color: #5b1225;
+    }
+    .header-separator, .footer-separator {
+      height: 1.5px;
+      background: #5b1225;
+      margin: 5px 0;
     }
     .print-body {
       flex: 1;
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
+    }
+    .print-footer-container {
+      margin-top: auto;
     }
     .print-footer {
       display: flex;
@@ -498,8 +497,8 @@ function buildInvoicePrintHtml(invoice) {
         <td style="text-align:center;">${idx + 1}</td>
         <td>${escapeHtml(String(item.name || '').toUpperCase())}</td>
         <td style="text-align:center;">${item.is_transportation ? '-' : Number(item.quantity || 0)}</td>
-        <td style="text-align:right;">${item.is_transportation ? '-' : `Rs. ${Number(item.price || 0).toFixed(2)}`}</td>
-        <td style="text-align:right;">Rs. ${Number(item.line_total ?? (Number(item.price || 0) * Number(item.quantity || 0))).toFixed(2)}</td>
+        <td style="text-align:right;">${item.is_transportation ? '-' : Number(item.price || 0).toFixed(2)}</td>
+        <td style="text-align:right;">${Number(item.line_total ?? (Number(item.price || 0) * Number(item.quantity || 0))).toFixed(2)}</td>
       </tr>
     `)
     .join('');
@@ -516,56 +515,31 @@ function buildInvoicePrintHtml(invoice) {
   const customerPhone = escapeHtml(String(invoice.to_phone || '').toUpperCase()) || '-';
   const customerGstin = escapeHtml(String(invoice.gstin || '').toUpperCase()) || '-';
   const bodyHtml = `
-    <div class="invoice-main-content">
-      <div class="bill-title">CASH/CREDIT BILL</div>
-        <div class="invoice-info" style="margin-bottom: 18px;">
-        <div class="invoice-info-left">
-          <div class="invoice-info-label">Invoice to :</div>
-          <div class="invoice-info-content party-box">
-            <div class="party-line">
-              <span class="party-label">Name</span>
-              <span class="party-colon">:</span>
-              <span class="party-value">${customerName}</span>
-            </div>
-            <div class="party-line">
-              <span class="party-label">Address</span>
-              <span class="party-colon">:</span>
-              <span class="party-value">${customerAddress}</span>
-            </div>
-            <div class="party-line">
-              <span class="party-label">Mobile</span>
-              <span class="party-colon">:</span>
-              <span class="party-value">${customerPhone}</span>
-            </div>
-            <div class="party-line">
-              <span class="party-label">GSTIN</span>
-              <span class="party-colon">:</span>
-              <span class="party-value">${customerGstin}</span>
-            </div>
-          </div>
+    <div class="invoice-container">
+      <div class="bill-title">CASH / CREDIT BILL</div>
+      
+      <div class="info-section">
+        <div class="info-left">
+          <div class="info-header">Invoice To:</div>
+          <div class="info-row"><span class="info-label">Name</span><span class="info-val">: ${customerName}</span></div>
+          <div class="info-row"><span class="info-label">Address</span><span class="info-val">: ${customerAddress}</span></div>
+          <div class="info-row"><span class="info-label">Mobile</span><span class="info-val">: ${customerPhone}</span></div>
+          <div class="info-row"><span class="info-label">GSTIN</span><span class="info-val">: ${customerGstin}</span></div>
         </div>
-        <div class="invoice-info-right">
-          <div class="meta-box">
-            <div class="meta-line">
-              <span class="meta-label">Invoice No.</span>
-              <span class="meta-fill"><span class="meta-value">: ${escapeHtml(invoice.invoice_number || '')}</span></span>
-            </div>
-            <div class="meta-line">
-              <span class="meta-label">Date</span>
-              <span class="meta-fill"><span class="meta-value">: ${formatDateDDMMYYYY(createdAt)}</span></span>
-            </div>
-          </div>
+        <div class="info-right">
+          <div class="info-row"><span class="info-label">Invoice No.</span><span class="info-val">: ${escapeHtml(invoice.invoice_number || '')}</span></div>
+          <div class="info-row"><span class="info-label">Date</span><span class="info-val">: ${formatDateDDMMYYYY(createdAt)}</span></div>
         </div>
       </div>
 
       <table class="items-table">
         <thead>
           <tr>
-            <th style="width: 8%;">NO</th>
-            <th style="width: 40%;">DESCRIPTION</th>
-            <th style="width: 15%;">QTY</th>
-            <th style="width: 18%;">PRICE</th>
-            <th style="width: 19%;">TOTAL</th>
+            <th style="width: 50px;">NO</th>
+            <th>DESCRIPTION</th>
+            <th style="width: 60px; text-align:center;">QTY</th>
+            <th style="width: 100px; text-align:right;">PRICE (Rs.)</th>
+            <th style="width: 110px; text-align:right;">TOTAL (Rs.)</th>
           </tr>
         </thead>
         <tbody>
@@ -573,55 +547,40 @@ function buildInvoicePrintHtml(invoice) {
         </tbody>
       </table>
 
-      <div class="totals-section">
-        <div class="totals-left"></div>
-        <div class="totals-right">
-          <div class="totals-row">
-            <span>Sub Total :</span>
-            <span>Rs. ${subtotal.toFixed(2)}</span>
-          </div>
-          <div class="totals-row">
-            <span>CGST (${cgstPercent}%) :</span>
-            <span>Rs. ${cgst.toFixed(2)}</span>
-          </div>
-          <div class="totals-row">
-            <span>SGST (${sgstPercent}%) :</span>
-            <span>Rs. ${sgst.toFixed(2)}</span>
-          </div>
-          <div class="totals-row grand-total">
-            <span>GRAND TOTAL :</span>
-            <span>Rs. ${total.toFixed(2)}</span>
-          </div>
+      <div class="footer-stack">
+        <div class="totals-section">
+          <div class="totals-row"><span>Sub Total</span><span>${subtotal.toFixed(2)}</span></div>
+          <div class="totals-row"><span>CGST (${cgstPercent}%)</span><span>${cgst.toFixed(2)}</span></div>
+          <div class="totals-row"><span>SGST (${sgstPercent}%)</span><span>${sgst.toFixed(2)}</span></div>
+          <div class="totals-line"></div>
+          <div class="totals-row grand-total"><span>GRAND TOTAL</span><span>${total.toFixed(2)}</span></div>
         </div>
-      </div>
 
-      <div class="bottom-stack">
-        <div class="terms-signature-row">
-          <div class="terms-block">
-            <div class="terms-title">Terms and Conditions</div>
-            <ol class="terms-list">
-              <li>Goods once sold will not be taken back or exchanged. Cancellation of orders is not permitted once the invoice is generated, unless explicitly agreed upon in writing by the company.</li>
-            </ol>
+        <div class="auth-row">
+          <div class="no-exchange">
+            <div>No Refund | No Exchange</div>
+            <div>Thank you for shopping with Meena Cards</div>
           </div>
-          <div class="signature-section">
-            <div class="signature-line">Authorized Signature</div>
+          <div class="signature-box">
+            <div class="sig-line"></div>
+            <div>Authorized Signature</div>
           </div>
-        </div>
-        <div class="notes">
-          <div>No Refund | No Exchange</div>
-          <div>Thank you for shopping with Meena Cards</div>
         </div>
       </div>
     </div>
   `;
 
   const invoiceCss = `
-    .invoice-main-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
+    .bill-title {
+      text-align: center;
+      font-size: 18px;
+      font-weight: 800;
+      margin: 15px 0;
+      color: #5b1225;
+      text-transform: uppercase;
+      letter-spacing: 2px;
     }
-    .invoice-info {
+    .info-section {
       display: flex;
       justify-content: space-between;
       margin-bottom: 8px;
@@ -737,8 +696,39 @@ function buildInvoicePrintHtml(invoice) {
       margin: 6px 0;
       font-size: 9px;
     }
-    .items-table th {
-      background: #f8eef1;
+    .info-left { width: 65%; }
+    .info-right { width: 35%; }
+    .info-header {
+      font-weight: 800;
+      text-decoration: underline;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+    }
+    .info-row {
+      display: flex;
+      margin-bottom: 2px;
+    }
+    .info-label {
+      width: 80px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .info-val {
+      flex: 1;
+      font-weight: 700;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 15px;
+      font-size: 12px;
+    }
+    th {
+      border: 1.5px solid #5b1225;
+      background: #fdf2f4;
+      padding: 6px;
+      font-weight: 800;
+      text-transform: uppercase;
       color: #5b1225;
       padding: 5px;
       text-align: center;
@@ -749,8 +739,8 @@ function buildInvoicePrintHtml(invoice) {
       border: 1px solid #ddd;
       padding: 4px;
     }
-    .items-table tr:nth-child(even) {
-      background: #f8eef1;
+    .footer-stack {
+      margin-top: 5px;
     }
     .totals-section {
       display: grid;
@@ -1179,7 +1169,7 @@ function buildPurchasePrintHtml(purchase) {
   const total = Number(purchase.total_amount || 0);
   const createdAt = purchase.created_at || new Date().toISOString();
   const companyName = escapeHtml(String(purchase.company_name || '').toUpperCase()) || '-';
-  
+
   const bodyHtml = `
     <div class="invoice-main-content">
       <div class="bill-title">PURCHASE BILL</div>
@@ -1437,25 +1427,25 @@ app.whenReady().then(() => {
   });
 });
 
-  ipcMain.handle('purchases:download-pdf', async (_event, payload) => {
-    try {
-      const purchase = payload.purchase || {};
-      const filename = `Purchase_${purchase.invoice_number}_${new Date().getTime()}.pdf`;
-      return await savePurchasePdf(purchase, filename, payload.options || {});
-    } catch (error) {
-      return { success: false, error: error.message || 'Purchase PDF save error' };
-    }
-  });
+ipcMain.handle('purchases:download-pdf', async (_event, payload) => {
+  try {
+    const purchase = payload.purchase || {};
+    const filename = `Purchase_${purchase.invoice_number}_${new Date().getTime()}.pdf`;
+    return await savePurchasePdf(purchase, filename, payload.options || {});
+  } catch (error) {
+    return { success: false, error: error.message || 'Purchase PDF save error' };
+  }
+});
 
-  ipcMain.handle('purchases:download-bundle-pdf', async (_event, payload) => {
-    try {
-      const purchases = payload.purchases || [];
-      const filename = payload.filename || `Purchases_${new Date().getTime()}.pdf`;
-      return await savePurchasesBundlePdf(purchases, filename, payload.options || {});
-    } catch (error) {
-      return { success: false, error: error.message || 'Purchases bundle PDF save error' };
-    }
-  });
+ipcMain.handle('purchases:download-bundle-pdf', async (_event, payload) => {
+  try {
+    const purchases = payload.purchases || [];
+    const filename = payload.filename || `Purchases_${new Date().getTime()}.pdf`;
+    return await savePurchasesBundlePdf(purchases, filename, payload.options || {});
+  } catch (error) {
+    return { success: false, error: error.message || 'Purchases bundle PDF save error' };
+  }
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

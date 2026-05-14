@@ -348,14 +348,7 @@ const Collections = ({ filterCategory }) => {
                     <div style={{ padding: '24px' }}>
                       <h3 style={{ fontSize: '1.2rem', marginBottom: '12px', color: '#1f2937' }}>{card.name}</h3>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '1.3rem', fontWeight: 'bold', color: 'var(--primary-color)' }}>{card.price ? `₹${card.price}` : 'Price on request'}</span>
-                        {isBrandSeries ? (
-                           <span style={{ fontSize: '0.8rem', color: '#1E3A8A', fontWeight: 'bold', background: '#E0F2FE', padding: '4px 8px', borderRadius: '4px' }}>Contact For Stock</span>
-                        ) : (
-                           <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: stockVal > 0 ? 'var(--success-color)' : 'var(--danger-color)' }}>
-                             {stockVal > 0 ? 'IN STOCK' : 'PRE-ORDER'}
-                           </span>
-                        )}
+                        {/* Price and stock hidden for website */}
                       </div>
                       <button 
                         onClick={(e) => { e.stopPropagation(); window.location.href = `/product/${card.id}`; }}

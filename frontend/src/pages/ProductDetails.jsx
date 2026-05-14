@@ -116,22 +116,7 @@ const ProductDetails = () => {
             <h1 style={{ fontSize: '2.5rem', color: 'var(--primary-color)', margin: '0 0 16px 0', lineHeight: 1.2 }}>{product.name}</h1>
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginTop: '10px' }}>
-              <span style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--primary-color)' }}>₹{product.price}</span>
-              {(() => {
-                const cats = Array.isArray(product.category) ? product.category : [product.category];
-                const isBrandSeries = cats.some(c => c.toLowerCase().includes('brand series')) ||
-                                     product.name.toLowerCase().includes('brand series');
-                
-                if (isBrandSeries) {
-                  return <span style={{ color: '#1E3A8A', fontWeight: 'bold', background: '#E0F2FE', padding: '4px 12px', borderRadius: '6px', fontSize: '0.9rem' }}>Contact us for Stock availability</span>;
-                }
-                
-                if (product.stock > 0) {
-                  return <span style={{ color: 'var(--success-color)', fontWeight: 'bold', background: '#ECFDF5', padding: '4px 12px', borderRadius: '6px', fontSize: '0.9rem' }}>In Stock ({product.stock})</span>;
-                }
-                
-                return <span style={{ color: 'var(--danger-color)', fontWeight: 'bold', background: '#FEF2F2', padding: '4px 12px', borderRadius: '6px', fontSize: '0.9rem' }}>Out of Stock</span>;
-              })()}
+              {/* Price and stock hidden for website */}
             </div>
           </div>
 
