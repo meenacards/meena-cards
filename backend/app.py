@@ -868,9 +868,68 @@ def get_purchases_by_company(company_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route("/purchases/<purchase_id>", methods=["GET"])
-def get_purchase(purchase_id):
-    if purchases_collection is None:
+@app.route("/purchases/<purchase_id>", methods=["PUT"])
+def update_purchase(purchase_id):
+    if purchases_collection is None or cards_collection is None:
+        return jsonify({"error": "Database not configured"}), 500
+    
+    oid = parse_object_id(purchase_id)
+    if oid is None:
+        return jsonify({"error": "Invalid purchase ID format"}), 400
+    
+    try:
+        old_purchase = purchases_collection.find_one({"_id": oid})
+        if not old_purchase:
+            return jsonify({"error": "Purchase not found"}), 404
+        
+        data = request.get_json()
+        items = data.get("items", [])
+        total_amount = data.get("total_amount", 0)
+        
+        # Calculate stock adjustments
+        # First, map old items by product_id
+        old_items_map = {str(item["product_id"]): item["quantity"] for item in old_purchase.get("items", [])}
+        
+        # Apply adjustments for new/updated items
+        for item in items:
+            p_id = str(item.get("product_id"))
+            new_qty = int(item.get("quantity", 0))
+            old_qty = old_items_map.get(p_id, 0)
+            
+            diff = new_qty - old_qty
+            if diff != 0:
+                prod_oid = parse_object_id(p_id)
+                if prod_oid:
+                    cards_collection.update_one({"_id": prod_oid}, {"$inc": {"stock": diff}})
+            
+            # Remove from map so we know which ones were removed from the bill
+            if p_id in old_items_map:
+                del old_items_map[p_id]
+        
+        # For items that were in the old bill but NOT in the new one, decrease stock by their old quantity
+        for p_id, old_qty in old_items_map.items():
+            prod_oid = parse_object_id(p_id)
+            if prod_oid:
+                cards_collection.update_one({"_id": prod_oid}, {"$inc": {"stock": -old_qty}})
+        
+        # Update purchase document
+        update_data = {
+            "invoice_number": data.get("invoice_number", old_purchase.get("invoice_number")),
+            "purchase_date": data.get("purchase_date", old_purchase.get("purchase_date")),
+            "items": items,
+            "total_amount": float(total_amount),
+            "updated_at": datetime.now()
+        }
+        
+        purchases_collection.update_one({"_id": oid}, {"$set": update_data})
+        
+        return jsonify({"message": "Purchase updated successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/purchases/<purchase_id>", methods=["DELETE"])
+def delete_purchase(purchase_id):
+    if purchases_collection is None or cards_collection is None:
         return jsonify({"error": "Database not configured"}), 500
     
     oid = parse_object_id(purchase_id)
@@ -882,7 +941,16 @@ def get_purchase(purchase_id):
         if not purchase:
             return jsonify({"error": "Purchase not found"}), 404
         
-        return jsonify(format_purchase(purchase)), 200
+        # Reverse stock changes
+        for item in purchase.get("items", []):
+            p_id = item.get("product_id")
+            qty = int(item.get("quantity", 0))
+            prod_oid = parse_object_id(p_id)
+            if prod_oid:
+                cards_collection.update_one({"_id": prod_oid}, {"$inc": {"stock": -qty}})
+        
+        purchases_collection.delete_one({"_id": oid})
+        return jsonify({"message": "Purchase deleted and stock adjusted"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
