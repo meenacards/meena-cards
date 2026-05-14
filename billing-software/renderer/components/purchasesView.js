@@ -10,20 +10,12 @@ window.PurchasesView = (function () {
     config: {},
     data: null
   };
+  let editingPurchaseId = null;
 
   function getProducts() {
     if (window.BillingState && Array.isArray(window.BillingState.products)) {
       return window.BillingState.products;
     }
-
-    return [];
-  }
-
-  function getProducts() {
-    if (window.BillingState && Array.isArray(window.BillingState.products)) {
-      return window.BillingState.products;
-    }
-
     return [];
   }
 
@@ -89,7 +81,6 @@ window.PurchasesView = (function () {
         method: 'GET'
       });
       purchases = Array.isArray(response) ? response : [];
-      renderCompanyPurchases();
     } catch (err) {
       console.error('Failed to load company purchases:', err);
       showToast('Failed to load purchases for company', 'error');
@@ -111,6 +102,74 @@ window.PurchasesView = (function () {
           ${activeTab === 'companies' ? renderCompaniesContent() : ''}
           ${activeTab === 'add-bill' ? renderAddBillContent() : ''}
           ${activeTab === 'reports' ? renderReportsContent() : ''}
+        </div>
+
+        <!-- Persistence Modals -->
+        <div id="add-company-form-container" class="modal" style="display: none;">
+          <div class="modal-overlay"></div>
+          <div class="modal-content">
+            <h3>Add New Company</h3>
+            <form id="add-company-form">
+              <div class="form-group">
+                <label>Company Name *</label>
+                <input type="text" id="company-name" placeholder="e.g., ABC Prints" required />
+              </div>
+              <div class="form-group">
+                <label>Contact Person</label>
+                <input type="text" id="company-contact" placeholder="Contact person name" />
+              </div>
+              <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="company-email" placeholder="email@company.com" />
+              </div>
+              <div class="form-group">
+                <label>Phone</label>
+                <input type="tel" id="company-phone" placeholder="Phone number" />
+              </div>
+              <div class="form-group">
+                <label>Address</label>
+                <textarea id="company-address" placeholder="Company address" rows="3"></textarea>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Add Company</button>
+                <button type="button" class="btn btn-secondary" id="cancel-add-company">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div id="edit-company-form-container" class="modal" style="display: none;">
+          <div class="modal-overlay"></div>
+          <div class="modal-content">
+            <h3>Edit Company</h3>
+            <form id="edit-company-form">
+              <input type="hidden" id="edit-company-id" />
+              <div class="form-group">
+                <label>Company Name *</label>
+                <input type="text" id="edit-company-name" required />
+              </div>
+              <div class="form-group">
+                <label>Contact Person</label>
+                <input type="text" id="edit-company-contact" />
+              </div>
+              <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="edit-company-email" />
+              </div>
+              <div class="form-group">
+                <label>Phone</label>
+                <input type="tel" id="edit-company-phone" />
+              </div>
+              <div class="form-group">
+                <label>Address</label>
+                <textarea id="edit-company-address" rows="3"></textarea>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+                <button type="button" class="btn btn-secondary" id="cancel-edit-company">Cancel</button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     `;
@@ -173,7 +232,7 @@ window.PurchasesView = (function () {
       return renderCompanyDetail();
     }
 
-    const companiesListHtml = `
+    return `
       <div class="companies-container">
         <div class="companies-header">
           <h3>Purchase Companies</h3>
@@ -199,78 +258,8 @@ window.PurchasesView = (function () {
             </div>
           `).join('')}
         </div>
-
-        <div id="add-company-form-container" class="modal hidden" style="display: none;">
-          <div class="modal-overlay"></div>
-          <div class="modal-content">
-            <h3>Add New Company</h3>
-            <form id="add-company-form">
-              <div class="form-group">
-                <label>Company Name *</label>
-                <input type="text" id="company-name" placeholder="e.g., ABC Prints" required />
-              </div>
-              <div class="form-group">
-                <label>Contact Person</label>
-                <input type="text" id="company-contact" placeholder="Contact person name" />
-              </div>
-              <div class="form-group">
-                <label>Email</label>
-                <input type="email" id="company-email" placeholder="email@company.com" />
-              </div>
-              <div class="form-group">
-                <label>Phone</label>
-                <input type="tel" id="company-phone" placeholder="Phone number" />
-              </div>
-              <div class="form-group">
-                <label>Address</label>
-                <textarea id="company-address" placeholder="Company address" rows="3"></textarea>
-              </div>
-              <div class="form-actions">
-                <button type="submit" class="btn btn-primary">Add Company</button>
-                <button type="button" class="btn btn-secondary" id="cancel-add-company">Cancel</button>
-              </div>
-            </form>
-          </div>
-        </div>
-
-        <div id="edit-company-form-container" class="modal hidden" style="display: none;">
-          <div class="modal-overlay"></div>
-          <div class="modal-content">
-            <h3>Edit Company</h3>
-            <form id="edit-company-form">
-              <input type="hidden" id="edit-company-id" />
-              <div class="form-group">
-                <label>Company Name *</label>
-                <input type="text" id="edit-company-name" required />
-              </div>
-              <div class="form-group">
-                <label>Contact Person</label>
-                <input type="text" id="edit-company-contact" />
-              </div>
-              <div class="form-group">
-                <label>Email</label>
-                <input type="email" id="edit-company-email" />
-              </div>
-              <div class="form-group">
-                <label>Phone</label>
-                <input type="tel" id="edit-company-phone" />
-              </div>
-              <div class="form-group">
-                <label>Address</label>
-                <textarea id="edit-company-address" rows="3"></textarea>
-              </div>
-              <div class="form-actions">
-                <button type="submit" class="btn btn-primary">Save Changes</button>
-                <button type="button" class="btn btn-secondary" id="cancel-edit-company">Cancel</button>
-              </div>
-            </form>
-          </div>
-        </div>
       </div>
     `;
-
-
-    return companiesListHtml;
   }
 
   function renderCompanyDetail() {
@@ -301,11 +290,24 @@ window.PurchasesView = (function () {
           </div>
         </div>
 
-        <div class="download-controls" style="display: flex; gap: 10px; margin-bottom: 20px;">
-          <button id="download-today-btn" class="btn btn-primary btn-small">Download Today</button>
-          <button id="download-month-btn" class="btn btn-primary btn-small">Download Month</button>
-          <button id="download-year-btn" class="btn btn-primary btn-small">Download Year</button>
-          <button id="download-range-btn" class="btn btn-primary btn-small">Download Range</button>
+        <div class="download-controls" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; background: #fdfaf5; padding: 16px; border-radius: 8px; border: 1px solid #eee;">
+          <div style="display: flex; gap: 10px;">
+            <button id="download-today-btn" class="btn btn-primary btn-small">Download Today</button>
+            <button id="download-month-btn" class="btn btn-primary btn-small">Download Month</button>
+            <button id="download-year-btn" class="btn btn-primary btn-small">Download Year</button>
+          </div>
+          
+          <div style="display: flex; align-items: center; gap: 10px; margin-top: 5px;">
+            <div class="form-group" style="margin: 0;">
+              <label style="font-size: 11px; margin-bottom: 2px;">From Date</label>
+              <input type="date" id="range-start-date" class="input btn-small" style="padding: 4px 8px; height: 32px;" />
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label style="font-size: 11px; margin-bottom: 2px;">To Date</label>
+              <input type="date" id="range-end-date" class="input btn-small" style="padding: 4px 8px; height: 32px;" />
+            </div>
+            <button id="download-range-btn" class="btn btn-secondary btn-small" style="margin-top: 18px;">Download Date Range</button>
+          </div>
         </div>
 
         <div class="purchases-list">
@@ -357,7 +359,7 @@ window.PurchasesView = (function () {
 
             <div class="form-group">
               <label>Purchase Date *</label>
-              <input type="date" id="bill-purchase-date" required />
+              <input type="date" id="bill-purchase-date" max="${new Date().toLocaleDateString('en-CA')}" required />
             </div>
 
             <div class="form-group">
@@ -389,18 +391,8 @@ window.PurchasesView = (function () {
                   <input type="number" id="product-quantity" placeholder="0" min="1" value="1" />
                 </div>
 
-                <div class="form-group small">
-                  <label>Price per Unit *</label>
-                  <input type="number" id="product-price" placeholder="0" step="0.01" value="0" />
-                </div>
-
-                <div class="form-group small">
-                  <label>Tax (%)</label>
-                  <input type="number" id="product-tax" placeholder="0" step="0.01" value="0" />
-                </div>
-
-                <div class="form-actions-inline">
-                  <button type="button" id="add-product-btn" class="btn btn-primary">Add to Bill</button>
+                <div class="form-actions-inline" style="display: flex; align-items: flex-end;">
+                  <button type="button" id="add-product-btn" class="btn btn-primary" style="height: 38px;">Add to Bill</button>
                 </div>
               </div>
             </div>
@@ -489,6 +481,7 @@ window.PurchasesView = (function () {
               <tr style="background: #f9f2e6; color: var(--brand-maroon);">
                 <th style="padding: 12px; text-align: left;">Invoice No.</th>
                 <th style="padding: 12px; text-align: left;">Company</th>
+                <th style="padding: 12px; text-align: left;">Products</th>
                 <th style="padding: 12px; text-align: left;">Date</th>
                 <th style="padding: 12px; text-align: center;">Items</th>
                 <th style="padding: 12px; text-align: right;">Total</th>
@@ -496,16 +489,18 @@ window.PurchasesView = (function () {
               </tr>
             </thead>
             <tbody>
-              ${report.purchases.length === 0 ? '<tr><td colspan="5" style="text-align: center; padding: 20px;">No purchases found.</td></tr>' : ''}
+              ${report.purchases.length === 0 ? '<tr><td colspan="7" style="text-align: center; padding: 20px;">No purchases found.</td></tr>' : ''}
               ${report.purchases.map(p => `
                 <tr style="border-bottom: 1px solid var(--divider);">
                   <td style="padding: 12px;">${p.invoice_number}</td>
                   <td style="padding: 12px;">${p.company_name || 'N/A'}</td>
+                  <td style="padding: 12px; font-size: 11px; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${(p.items || []).map(i => i.name).join(', ')}">
+                    ${(p.items || []).map(i => i.name).join(', ')}
+                  </td>
                   <td style="padding: 12px;">${new Date(p.purchase_date).toLocaleDateString()}</td>
                   <td style="padding: 12px; text-align: center;">${(p.items || []).length}</td>
                   <td style="padding: 12px; text-align: right; font-weight: 600;">Rs. ${parseFloat(p.total_amount).toFixed(2)}</td>
                   <td style="padding: 12px; text-align: center; display: flex; gap: 8px; justify-content: center;">
-                    <button class="btn btn-small btn-warning edit-purchase-btn" data-purchase-id="${p.id}">Edit</button>
                     <button class="btn btn-small btn-primary download-print-bill-btn" data-purchase-id="${p.id}">Print</button>
                   </td>
                 </tr>
@@ -534,7 +529,7 @@ window.PurchasesView = (function () {
     const now = new Date();
 
     if (scope === 'today') {
-      const today = now.toISOString().split('T')[0];
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       filtered = purchases.filter(p => p.purchase_date && p.purchase_date.startsWith(today));
     } else if (scope === 'month') {
       const month = config.month || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -635,15 +630,23 @@ window.PurchasesView = (function () {
     // Tab switching
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        activeTab = e.target.dataset.tab;
+        const targetTab = e.target.dataset.tab;
+        
+        // If clicking companies tab, reset company selection to show list
+        if (targetTab === 'companies') {
+          selectedCompany = null;
+        }
+
+        activeTab = targetTab;
+
         if (activeTab === 'add-bill') {
           cartItems = [];
+          editingPurchaseId = null;
           // Reset submit button if it was in edit mode
           setTimeout(() => {
             const submitBtn = document.querySelector('#add-bill-form button[type="submit"]');
             if (submitBtn) {
               submitBtn.textContent = 'Save Purchase Bill';
-              delete submitBtn.dataset.editId;
             }
           }, 0);
         }
@@ -695,6 +698,7 @@ window.PurchasesView = (function () {
             document.getElementById('add-company-form-container').style.display = 'none';
             addForm.reset();
             await loadCompanies();
+            renderCompaniesTab();
           } catch (err) {
             console.error('Failed to add company:', err);
             showToast('Failed to add company', 'error');
@@ -705,7 +709,7 @@ window.PurchasesView = (function () {
       // View company purchases
       document.querySelectorAll('.view-company-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
-          const companyId = e.target.dataset.companyId;
+          const companyId = e.currentTarget.dataset.companyId;
           selectedCompany = companies.find(c => c.id === companyId);
           await loadPurchasesByCompany(companyId);
           renderCompaniesTab();
@@ -715,17 +719,26 @@ window.PurchasesView = (function () {
       // Edit company
       document.querySelectorAll('.edit-company-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-          const companyId = e.target.dataset.companyId;
+          const companyId = e.currentTarget.dataset.companyId;
           const company = companies.find(c => c.id === companyId);
           if (company) {
             editingCompany = company;
-            document.getElementById('edit-company-id').value = company.id;
-            document.getElementById('edit-company-name').value = company.name || '';
-            document.getElementById('edit-company-contact').value = company.contact_person || '';
-            document.getElementById('edit-company-email').value = company.email || '';
-            document.getElementById('edit-company-phone').value = company.phone || '';
-            document.getElementById('edit-company-address').value = company.address || '';
-            document.getElementById('edit-company-form-container').style.display = 'flex';
+            const idEl = document.getElementById('edit-company-id');
+            const nameEl = document.getElementById('edit-company-name');
+            const contactEl = document.getElementById('edit-company-contact');
+            const emailEl = document.getElementById('edit-company-email');
+            const phoneEl = document.getElementById('edit-company-phone');
+            const addrEl = document.getElementById('edit-company-address');
+            
+            if (idEl) idEl.value = company.id || '';
+            if (nameEl) nameEl.value = company.name || '';
+            if (contactEl) contactEl.value = company.contact_person || '';
+            if (emailEl) emailEl.value = company.email || '';
+            if (phoneEl) phoneEl.value = company.phone || '';
+            if (addrEl) addrEl.value = company.address || '';
+            
+            const modal = document.getElementById('edit-company-form-container');
+            if (modal) modal.style.display = 'flex';
           }
         });
       });
@@ -769,7 +782,7 @@ window.PurchasesView = (function () {
       // Delete company
       document.querySelectorAll('.delete-company-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
-          const companyId = e.target.dataset.companyId;
+          const companyId = e.currentTarget.dataset.companyId;
           if (confirm('Are you sure you want to delete this company?')) {
             try {
               await window.ApiService.fetchFromBackend(`/companies/${companyId}`, {
@@ -777,6 +790,7 @@ window.PurchasesView = (function () {
               });
               showToast('Company deleted', 'success');
               await loadCompanies();
+              renderCompaniesTab();
             } catch (err) {
               console.error('Failed to delete company:', err);
               showToast('Failed to delete company', 'error');
@@ -797,41 +811,75 @@ window.PurchasesView = (function () {
 
       // Download buttons
       document.getElementById('download-today-btn')?.addEventListener('click', async () => {
-        const today = new Date().toISOString().split('T')[0];
-        const todayPurchases = purchases.filter(p => p.purchase_date.startsWith(today));
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const todayPurchases = purchases.filter(p => p.purchase_date && p.purchase_date.startsWith(today));
         if (todayPurchases.length === 0) {
           showToast('No purchases for today', 'info');
           return;
         }
-        await downloadPurchasesPdf(todayPurchases, 'today');
+        
+        const totalAmount = todayPurchases.reduce((sum, p) => sum + parseFloat(p.total_amount || 0), 0);
+        const itemsCount = todayPurchases.reduce((sum, p) => sum + (p.items || []).length, 0);
+        
+        await downloadPurchasesReport({
+          totalBills: todayPurchases.length,
+          totalAmount,
+          itemsCount,
+          purchases: todayPurchases,
+          title: `Today's Purchases - ${selectedCompany.name}`
+        }, 'today');
       });
 
       document.getElementById('download-month-btn')?.addEventListener('click', async () => {
         const now = new Date();
         const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-        const monthPurchases = purchases.filter(p => p.purchase_date.startsWith(monthStr));
+        const monthPurchases = purchases.filter(p => p.purchase_date && p.purchase_date.startsWith(monthStr));
         if (monthPurchases.length === 0) {
           showToast('No purchases this month', 'info');
           return;
         }
-        await downloadPurchasesPdf(monthPurchases, 'monthly');
+        
+        const totalAmount = monthPurchases.reduce((sum, p) => sum + parseFloat(p.total_amount || 0), 0);
+        const itemsCount = monthPurchases.reduce((sum, p) => sum + (p.items || []).length, 0);
+
+        await downloadPurchasesReport({
+          totalBills: monthPurchases.length,
+          totalAmount,
+          itemsCount,
+          purchases: monthPurchases,
+          title: `Monthly Purchases - ${selectedCompany.name}`
+        }, 'monthly');
       });
 
       document.getElementById('download-year-btn')?.addEventListener('click', async () => {
         const year = new Date().getFullYear().toString();
-        const yearPurchases = purchases.filter(p => p.purchase_date.startsWith(year));
+        const yearPurchases = purchases.filter(p => p.purchase_date && p.purchase_date.startsWith(year));
         if (yearPurchases.length === 0) {
           showToast('No purchases this year', 'info');
           return;
         }
-        await downloadPurchasesPdf(yearPurchases, 'yearly');
+        
+        const totalAmount = yearPurchases.reduce((sum, p) => sum + parseFloat(p.total_amount || 0), 0);
+        const itemsCount = yearPurchases.reduce((sum, p) => sum + (p.items || []).length, 0);
+
+        await downloadPurchasesReport({
+          totalBills: yearPurchases.length,
+          totalAmount,
+          itemsCount,
+          purchases: yearPurchases,
+          title: `Yearly Purchases - ${selectedCompany.name}`
+        }, 'yearly');
       });
 
-      document.getElementById('download-range-btn')?.addEventListener('click', () => {
-        const startDate = prompt('Enter start date (YYYY-MM-DD):');
-        if (!startDate) return;
-        const endDate = prompt('Enter end date (YYYY-MM-DD):');
-        if (!endDate) return;
+      document.getElementById('download-range-btn')?.addEventListener('click', async () => {
+        const startDate = document.getElementById('range-start-date')?.value;
+        const endDate = document.getElementById('range-end-date')?.value;
+        
+        if (!startDate || !endDate) {
+          showToast('Please select both start and end dates', 'warning');
+          return;
+        }
 
         const rangePurchases = purchases.filter(p =>
           p.purchase_date >= startDate && p.purchase_date <= endDate
@@ -840,13 +888,23 @@ window.PurchasesView = (function () {
           showToast('No purchases in selected date range', 'info');
           return;
         }
-        downloadPurchasesPdf(rangePurchases, `${startDate}_to_${endDate}`);
+        
+        const totalAmount = rangePurchases.reduce((sum, p) => sum + parseFloat(p.total_amount || 0), 0);
+        const itemsCount = rangePurchases.reduce((sum, p) => sum + (p.items || []).length, 0);
+
+        await downloadPurchasesReport({
+          totalBills: rangePurchases.length,
+          totalAmount,
+          itemsCount,
+          purchases: rangePurchases,
+          title: `Purchases Range: ${startDate} to ${endDate}`
+        }, `${startDate}_to_${endDate}`);
       });
 
       // Download individual bill
       document.querySelectorAll('.download-bill-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-          const purchaseId = e.target.dataset.purchaseId;
+          const purchaseId = e.currentTarget.dataset.purchaseId;
           downloadSingleBillPdf(purchaseId);
         });
       });
@@ -935,8 +993,6 @@ window.PurchasesView = (function () {
           }
 
           const quantity = Math.max(1, parseInt(document.getElementById('product-quantity').value) || 1);
-          const price = parseFloat(document.getElementById('product-price').value) || 0;
-          const tax = parseFloat(document.getElementById('product-tax').value) || 0;
 
           if (quantity <= 0) {
             showToast('Quantity must be greater than 0', 'warning');
@@ -947,8 +1003,8 @@ window.PurchasesView = (function () {
             product_id: productId,
             name: product.name,
             quantity,
-            price,
-            tax
+            price: 0,
+            tax: 0
           });
 
           renderBillItems();
@@ -979,7 +1035,7 @@ window.PurchasesView = (function () {
           const companyId = document.getElementById('bill-company-select').value;
           const invoiceNo = document.getElementById('bill-invoice-no').value;
           const purchaseDate = document.getElementById('bill-purchase-date').value;
-          const targetQty = parseInt(targetQtyInput?.value) || 0;
+          const targetQty = parseInt(document.getElementById('bill-total-qty')?.value) || 0;
           const totalPrizeInput = document.getElementById('bill-total-prize');
           const totalPrize = parseFloat(totalPrizeInput?.value) || 0;
 
@@ -999,10 +1055,8 @@ window.PurchasesView = (function () {
           const totalAmount = totalPrize;
 
           try {
-            const submitBtn = form.querySelector('button[type="submit"]');
-            const editId = submitBtn?.dataset.editId;
-            const endpoint = editId ? `/purchases/${editId}` : '/purchases';
-            const method = editId ? 'PUT' : 'POST';
+            const endpoint = editingPurchaseId ? `/purchases/${editingPurchaseId}` : '/purchases';
+            const method = editingPurchaseId ? 'PUT' : 'POST';
 
             await window.ApiService.fetchFromBackend(endpoint, {
               method,
@@ -1016,13 +1070,20 @@ window.PurchasesView = (function () {
               })
             });
 
-            showToast(editId ? 'Purchase bill updated successfully' : 'Purchase bill saved successfully', 'success');
-            if (editId) {
-              submitBtn.textContent = 'Save Purchase Bill';
-              delete submitBtn.dataset.editId;
+            showToast(editingPurchaseId ? 'Purchase bill updated successfully' : 'Purchase bill saved successfully', 'success');
+            
+            // Refresh products to sync stocks in UI
+            try {
+              const updatedProducts = await window.ApiService.fetchProducts();
+              window.BillingActions.setProducts(updatedProducts);
+            } catch (err) {
+              console.warn('Failed to refresh products after purchase:', err);
             }
+
+            editingPurchaseId = null;
             cartItems = [];
             form.reset();
+            await loadPurchases();
             renderCompaniesTab();
           } catch (err) {
             console.error('Failed to save purchase:', err);
@@ -1055,14 +1116,20 @@ window.PurchasesView = (function () {
 
       document.getElementById('download-purchase-report-btn')?.addEventListener('click', async () => {
         if (!purchasesReport.data) return showToast('Generate report first', 'info');
-        await downloadPurchasesPdf(purchasesReport.data.purchases, `Purchase_Report_${purchasesReport.scope}`);
+        
+        const reportData = {
+          ...purchasesReport.data,
+          title: `${purchasesReport.scope.toUpperCase()} Purchases Report`
+        };
+        
+        await downloadPurchasesReport(reportData, purchasesReport.scope);
       });
     }
 
     // Purchase Actions (Edit / Print) - Available in both Detail view and Reports view
     document.querySelectorAll('.edit-purchase-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        const purchaseId = e.target.dataset.purchaseId;
+        const purchaseId = e.currentTarget.dataset.purchaseId;
         const purchase = purchases.find(p => p.id === purchaseId);
         if (purchase) {
           editPurchase(purchase);
@@ -1072,7 +1139,7 @@ window.PurchasesView = (function () {
 
     document.querySelectorAll('.download-print-bill-btn').forEach(btn => {
       btn.addEventListener('click', async (e) => {
-        const purchaseId = e.target.dataset.purchaseId;
+        const purchaseId = e.currentTarget.dataset.purchaseId;
         await printAndDownloadSingleBill(purchaseId);
       });
     });
@@ -1109,11 +1176,12 @@ window.PurchasesView = (function () {
     renderBillItems();
     updateBillTotals();
 
+    editingPurchaseId = purchase.id;
+
     // Change submit button text
     const submitBtn = document.querySelector('#add-bill-form button[type="submit"]');
     if (submitBtn) {
       submitBtn.textContent = 'Update Purchase Bill';
-      submitBtn.dataset.editId = purchase.id;
     }
 
     showToast('Loaded purchase for editing', 'info');
@@ -1126,11 +1194,19 @@ window.PurchasesView = (function () {
 
       showToast('Processing print and download...', 'info');
 
-      // 1. Download
+      // 1. Fetch company info for better print UI
+      const company = companies.find(c => c.id === purchase.company_id);
+      const enhancedPurchase = {
+        ...purchase,
+        company_address: company ? company.address : '-',
+        company_phone: company ? company.phone : '-'
+      };
+
+      // 2. Download
       await downloadSingleBillPdf(purchaseId);
 
-      // 2. Print
-      const printResult = await window.billingApp.printPurchase(purchase, {
+      // 3. Print
+      const printResult = await window.billingApp.printPurchase(enhancedPurchase, {
         silent: true,
         pageSize: 'A5'
       });
@@ -1146,15 +1222,53 @@ window.PurchasesView = (function () {
     }
   }
 
-  async function downloadPurchasesPdf(purchaseList, type) {
+  async function downloadPurchasesReport(reportData, type) {
     try {
-      const result = await window.billingApp.downloadPurchasesPdf(purchaseList, {
-        type,
-        folder: 'purchases',
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      
+      let filename = `purchase_report_${type}_${dateStr}.pdf`;
+      if (type === 'monthly') filename = `purchase_report_month_${dateStr.slice(0, 7)}.pdf`;
+      else if (type === 'yearly') filename = `purchase_report_year_${dateStr.slice(0, 4)}.pdf`;
+      else if (type === 'today') filename = `purchase_report_today_${dateStr}.pdf`;
+      else if (type.includes('_to_')) filename = `purchase_report_range_${type}.pdf`;
+
+      const result = await window.billingApp.downloadPurchasesReportPdf(reportData, filename, {
+        folder: 'purchase-reports',
+        pageSize: 'A5'
       });
 
       if (result && (result.success || result.ok)) {
-        showToast(`Downloaded purchase report successfully`, 'success');
+        showToast(`Downloaded report: ${filename}`, 'success');
+      } else {
+        showToast(result.error || 'Failed to download report', 'error');
+      }
+    } catch (err) {
+      console.error('Failed to download report PDF:', err);
+      showToast('Failed to download report', 'error');
+    }
+  }
+
+  async function downloadPurchasesPdf(purchaseList, type) {
+    try {
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+      const monthStr = dateStr.slice(0, 7);
+      const yearStr = dateStr.slice(0, 4);
+
+      let filename = `purchase_bill_${type}_${dateStr}.pdf`;
+      if (type === 'monthly') filename = `purchase_bill_month_${monthStr}.pdf`;
+      else if (type === 'yearly') filename = `purchase_bill_year_${yearStr}.pdf`;
+      else if (type === 'today') filename = `purchase_bill_today_${dateStr}.pdf`;
+      else if (type.includes('_to_')) filename = `purchase_bill_range_${type}.pdf`;
+
+      const result = await window.billingApp.downloadPurchasesPdf(purchaseList, {
+        filename,
+        folder: 'purchase-reports',
+      });
+
+      if (result && (result.success || result.ok)) {
+        showToast(`Downloaded report: ${filename}`, 'success');
       } else {
         showToast(result.error || 'Failed to download purchases', 'error');
       }
@@ -1172,12 +1286,24 @@ window.PurchasesView = (function () {
         return;
       }
 
-      const result = await window.billingApp.downloadPurchasePdf(purchase, {
-        folder: 'purchases',
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+      const filename = `purchase_bill_${purchase.invoice_number}_${dateStr}.pdf`;
+
+      const company = companies.find(c => c.id === purchase.company_id);
+      const enhancedPurchase = {
+        ...purchase,
+        company_address: company ? company.address : '-',
+        company_phone: company ? company.phone : '-'
+      };
+
+      const result = await window.billingApp.downloadPurchasePdf(enhancedPurchase, {
+        filename,
+        folder: 'purchase-reports',
       });
 
       if (result && (result.success || result.ok)) {
-        showToast(`Bill downloaded successfully`, 'success');
+        showToast(`Bill downloaded: ${filename}`, 'success');
       } else {
         showToast(result.error || 'Failed to download bill', 'error');
       }

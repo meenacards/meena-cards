@@ -28,6 +28,7 @@ const billingBridge = {
   downloadReportPdf: (report, filename, options) => ipcRenderer.invoke('pdf:download-report', { report, filename, options }),
   downloadPurchasePdf: (purchase, options) => ipcRenderer.invoke('purchases:download-pdf', { purchase, options }),
   downloadPurchasesPdf: (purchases, options) => ipcRenderer.invoke('purchases:download-bundle-pdf', { purchases, options }),
+  downloadPurchasesReportPdf: (report, filename, options) => ipcRenderer.invoke('purchases:download-report-pdf', { report, filename, options }),
   printPurchase: (purchase, options) => ipcRenderer.invoke('purchases:print', { purchase, options }),
 };
 

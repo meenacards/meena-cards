@@ -57,7 +57,7 @@ function createTempHtmlFile(html) {
 }
 
 const STORAGE_ROOT_DIR_NAME = 'meen-cards';
-const STORAGE_SUBDIRS = ['bill', 'reports', 'invoices', 'purchases'];
+const STORAGE_SUBDIRS = ['bill', 'reports', 'invoices', 'purchases', 'purchase-reports'];
 
 function getStorageRootDir() {
   return path.join(app.getPath('documents'), STORAGE_ROOT_DIR_NAME);
@@ -74,8 +74,15 @@ function ensureStorageDirectories() {
 
 function getPdfSavePath(filename, folderName = 'invoices') {
   const rootDir = ensureStorageDirectories();
-  const safeFolder = STORAGE_SUBDIRS.includes(folderName) ? folderName : 'invoices';
-  return path.join(rootDir, safeFolder, path.basename(filename || 'document.pdf'));
+  const safeFolder = (STORAGE_SUBDIRS || []).includes(folderName) ? folderName : 'invoices';
+  const finalDir = path.join(rootDir, safeFolder);
+  
+  // Extra safety: ensure the specific subdirectory exists right before returning path
+  if (!fs.existsSync(finalDir)) {
+    fs.mkdirSync(finalDir, { recursive: true });
+  }
+  
+  return path.join(finalDir, path.basename(filename || 'document.pdf'));
 }
 
 function safeDeleteFile(filePath) {
@@ -161,35 +168,36 @@ function formatTime12Hour(dateValue) {
 function buildPrintHeaderComponent() {
   return `
     <div class="print-header">
-      <div class="header-main">
-        <div class="header-logo">
-          ${LOGO_DATA_URI ? `<img src="${LOGO_DATA_URI}" alt="Logo"/>` : ''}
-        </div>
-        <div class="header-company-info">
-          <div class="company-name">MEENA CARDS</div>
-          <div class="company-name-tamil">மீனா கார்ட்ஸ்</div>
-          <div class="company-address-tamil">62/1, MANJANAKARA ST., MADURAI - 625001</div>
-          <div class="company-contact-row">
-            <span>Ph: 8248723726</span> | <span>www.meenacards.com</span>
-          </div>
-          <div class="company-gstin">GSTIN: 33AIPPJ2536H1ZA</div>
+      <div class="header-left">
+        <div class="logo-section">
+          ${LOGO_DATA_URI ? `<img src="${LOGO_DATA_URI}" alt="Meena Cards"/>` : ''}
         </div>
       </div>
-      <div class="header-separator"></div>
+      <div class="company-center">
+        <div class="company-name">MEENA CARDS</div>
+        <div class="company-name-tamil">மீனா கார்ட்ஸ்</div>
+        <div class="company-address-tamil">62/1, மஞ்சணக்காரத் தெரு., மதுரை - 625001</div>
+      </div>
+      <div class="header-right">
+        <div class="website-line"><img class="website-icon" src="${PHONE_ICON}" alt="Mobile"/><span class="company-detail">8248723726</span></div>
+        <div class="website-line"><img class="website-icon" src="${WEBSITE_ICON}" alt="Website"/><span class="company-detail">https://www.meenacards.com</span></div>
+        <div class="company-detail">GSTIN: 33AIPPJ2536H1ZA</div>
+      </div>
     </div>
   `;
 }
 
 function buildPrintFooterComponent() {
   return `
-    <div class="print-footer-container">
-      <div class="footer-separator"></div>
-      <div class="print-footer">
-        <span>8248723726 | 0452-7964782</span>
-        <span>|</span>
-        <span>meenacards.mdu@gmail.com</span>
-        <span>|</span>
-        <span>62/1, MANJANAKARA ST., MADURAI - 625001</span>
+    <div class="print-footer">
+      <div class="footer-contact">
+        <img src="${LANE_ICON}" alt="Lane number"/><span class="company-detail">0452-7964782</span>
+      </div>
+      <div class="footer-contact">
+        <img src="${EMAIL_ICON}" alt="Email"/><span class="company-detail">meenacards.mdu@gmail.com</span>
+      </div>
+      <div class="footer-contact">
+        <img src="${ADDRESS_ICON}" alt="Address"/><span class="company-detail">62/1, MANJANAKARA ST., MADURAI - 625001</span>
       </div>
     </div>
   `;
@@ -201,15 +209,15 @@ function buildPrintBaseStyles(extraCss = '') {
     body { font-family: Arial, sans-serif; margin: 0; color: #222; font-size: 12px; }
     .page {
       position: relative;
-      width: 148mm;
+      width: 147mm; /* Slightly reduced width to avoid printer edge issues */
       min-height: 210mm;
       height: 210mm;
-      padding: 8mm 6mm 6mm;
+      padding: 8mm 10mm 6mm 8mm; /* Increased right padding to prevent cutting */
       box-sizing: border-box;
       overflow: hidden;
     }
     .watermark {
-      position: fixed;
+      position: absolute;
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
@@ -228,6 +236,7 @@ function buildPrintBaseStyles(extraCss = '') {
     .content {
       position: relative;
       z-index: 2;
+      height: 100%;
       display: flex;
       flex-direction: column;
     }
@@ -242,32 +251,42 @@ function buildPrintBaseStyles(extraCss = '') {
     .header-left {
       display: flex;
       align-items: center;
-      gap: 15px;
-      padding-bottom: 5px;
+      width: 33%;
     }
     .logo-section img {
       max-width: 72px;
       height: auto;
+      display: block;
     }
-    .header-company-info {
-      flex: 1;
+    .company-center {
+      width: 34%;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
     }
     .company-name {
       font-size: 15px;
       font-weight: 800;
       color: #5b1225;
-      line-height: 1.1;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .company-name-tamil {
       font-size: 10px;
       font-weight: 700;
       color: #5b1225;
-      margin-top: 2px;
+      line-height: 1.1;
     }
     .company-address-tamil {
       font-size: 8px;
       font-weight: 600;
       color: #5b1225;
+      line-height: 1.2;
+      white-space: nowrap;
     }
     .header-right {
       width: 33%;
@@ -291,23 +310,12 @@ function buildPrintBaseStyles(extraCss = '') {
     .company-detail {
       font-weight: 700;
       color: #5b1225;
-      margin-top: 3px;
-    }
-    .company-gstin {
-      font-size: 11px;
-      font-weight: 700;
-      color: #5b1225;
-    }
-    .header-separator, .footer-separator {
-      height: 1.5px;
-      background: #5b1225;
-      margin: 5px 0;
     }
     .print-body {
       flex: 1;
-    }
-    .print-footer-container {
-      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
     }
     .print-footer {
       display: flex;
@@ -357,6 +365,15 @@ function buildPrintDocumentHtml({ title, bodyHtml, includeWatermark = true, extr
   `;
 }
 
+function buildPrintPageHtml(bodyHtml, extraCss = '') {
+  return buildPrintDocumentHtml({
+    title: 'Print',
+    bodyHtml,
+    includeWatermark: true,
+    extraCss
+  });
+}
+
 function buildReportPrintHtml(report) {
   const summaryCards = [
     { label: 'Total Bills', value: Number(report.totalBills || 0) },
@@ -367,8 +384,40 @@ function buildReportPrintHtml(report) {
     { label: 'Average Bill', value: `Rs. ${Number(report.averageBill || 0).toFixed(2)}` },
   ];
 
-  const rows = (report.invoices || [])
-    .map((invoice) => {
+  const invoices = report.invoices || [];
+  const ROWS_PER_PAGE = 8;
+  const pagesData = [];
+
+  for (let i = 0; i < invoices.length; i += ROWS_PER_PAGE) {
+    pagesData.push(invoices.slice(i, i + ROWS_PER_PAGE));
+  }
+
+  if (pagesData.length === 0) {
+    pagesData.push([]);
+  }
+
+  const generatedAt = report.generatedAt || Date.now();
+  const dateStr = formatDateDDMMYYYY(generatedAt);
+  const timeStr = formatTime12Hour(generatedAt);
+
+  const reportCss = `
+    ${buildPrintBaseStyles()}
+    .page { page-break-after: always; }
+    .page:last-child { page-break-after: avoid; }
+    .report-title { font-size: 14px; color: #5b1225; font-weight: 700; margin-bottom: 2px; }
+    .report-subtitle { font-size: 11px; color: #666; margin-bottom: 10px; }
+    .summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+    .summary-card { border: 1px solid #ddcfba; background: #fffdf9; border-radius: 12px; padding: 10px; }
+    .summary-label { font-size: 10px; color: #4b3a34; text-transform: uppercase; font-weight: 700; }
+    .summary-value { margin-top: 4px; font-size: 14px; font-weight: 700; color: #5b1225; }
+    .summary-note { margin-top: 2px; font-size: 8px; color: #6d5f4c; }
+    .report-table { width: 100%; border-collapse: collapse; margin-top: 4px; table-layout: fixed; }
+    .report-table th { background: #f8eef1; color: #5b1225; padding: 10px 6px; border: 1px solid #ddd; font-size: 11px; text-align: center; }
+    .report-table td { border: 1px solid #ddd; padding: 10px 6px; font-size: 11px; text-align: center; line-height: 1.5; word-wrap: break-word; }
+  `;
+
+  const pagesHtml = pagesData.map((chunk, pageIdx) => {
+    const rows = chunk.map((invoice) => {
       const stocksSold = (invoice.items || []).reduce((sum, item) => {
         if (item && item.is_transportation) return sum;
         return sum + Number(item.quantity || 0);
@@ -379,86 +428,70 @@ function buildReportPrintHtml(report) {
           <td>${escapeHtml(invoice.invoice_number || '')}</td>
           <td>${formatDateDDMMYYYY(invoice.created_at)}</td>
           <td style="text-align:right;">${stocksSold}</td>
-          <td style="text-align:right;">Rs. ${Number(invoice.total_amount || 0).toFixed(2)}</td>
-          <td style="text-align:right;">Rs. ${Number(invoice.tax || 0).toFixed(2)}</td>
+          <td style="text-align:right;">${Number(invoice.total_amount || 0).toFixed(2)}</td>
+          <td style="text-align:right;">${Number(invoice.tax || 0).toFixed(2)}</td>
         </tr>
       `;
-    })
-    .join('');
+    }).join('');
 
-  const generatedAt = report.generatedAt || Date.now();
+    const isFirstPage = pageIdx === 0;
 
-  const bodyHtml = `
-    <div class="report-title">${escapeHtml(report.title || 'Report')}</div>
-    <div class="report-subtitle">Generated on ${formatDateDDMMYYYY(generatedAt)} ${formatTime12Hour(generatedAt)}</div>
+    return `
+      <div class="page">
+        <div class="watermark"><img src="${WATERMARK_DATA_URI}" alt="Watermark"/></div>
+        <div class="content">
+          ${buildPrintHeaderComponent()}
+          
+          <div style="flex: 1;">
+            ${isFirstPage ? `
+              <div class="report-title">${escapeHtml(report.title || 'Sales Report')}</div>
+              <div class="report-subtitle">Generated on ${dateStr} ${timeStr}</div>
+              <div class="summary-grid">
+                ${summaryCards.map(card => `
+                  <div class="summary-card">
+                    <div class="summary-label">${escapeHtml(card.label)}</div>
+                    <div class="summary-value">${escapeHtml(String(card.value))}</div>
+                    <div class="summary-note">${escapeHtml(report.title || '')}</div>
+                  </div>
+                `).join('')}
+              </div>
+            ` : `<div class="report-title" style="margin-bottom: 10px;">${escapeHtml(report.title || 'Sales Report')} (Page ${pageIdx + 1})</div>`}
 
-    <div class="summary-grid">
-      ${summaryCards.map((card) => `
-        <div class="summary-card">
-          <div class="summary-label">${escapeHtml(card.label)}</div>
-          <div class="summary-value">${escapeHtml(String(card.value))}</div>
-          <div class="summary-note">${escapeHtml(report.title || '')}</div>
+            <table class="report-table">
+              <thead>
+                <tr>
+                  <th style="width: 20%;">Invoice No.</th>
+                  <th style="width: 25%;">Date</th>
+                  <th style="width: 15%; text-align:right;">Stocks</th>
+                  <th style="width: 20%; text-align:right;">Revenue</th>
+                  <th style="width: 20%; text-align:right;">Tax</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows || '<tr><td colspan="5">No invoices found for this page.</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+
+          ${buildPrintFooterComponent()}
         </div>
-      `).join('')}
-    </div>
+      </div>
+    `;
+  }).join('');
 
-    <table class="report-table">
-      <thead>
-        <tr>
-          <th>Invoice No.</th>
-          <th>Date</th>
-          <th style="text-align:right;">Stocks Sold</th>
-          <th style="text-align:right;">Revenue</th>
-          <th style="text-align:right;">Tax</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rows || '<tr><td colspan="5">No invoices found for this report.</td></tr>'}
-      </tbody>
-    </table>
-
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8" />
+        <title>Sales Report</title>
+        <style>${reportCss}</style>
+      </head>
+      <body style="margin: 0; padding: 0; background: #fff;">
+        ${pagesHtml}
+      </body>
+    </html>
   `;
-
-  const reportCss = `
-    .report-title {
-      text-align: left;
-      font-size: 14px;
-      color: #5b1225;
-      font-weight: 700;
-      margin-bottom: 2px;
-    }
-    .report-subtitle {
-      text-align: left;
-      font-size: 11px;
-      color: #666;
-      margin-bottom: 10px;
-    }
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-    .summary-card {
-      border: 1px solid #ddcfba;
-      background: #fffdf9;
-      border-radius: 12px;
-      padding: 12px;
-    }
-    .summary-label { font-size: 11px; color: #4b3a34; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
-    .summary-value { margin-top: 6px; font-size: 16px; font-weight: 700; color: #5b1225; }
-    .summary-note { margin-top: 5px; font-size: 11px; color: #6d5f4c; }
-    .report-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-    .report-table th, .report-table td { border: 1px solid #ddd; padding: 7px; font-size: 12px; }
-    .report-table th { background: #f8eef1; color: #5b1225; text-align: left; }
-  `;
-
-  return buildPrintDocumentHtml({
-    title: `Report ${escapeHtml(report.title || '')}`,
-    bodyHtml,
-    includeWatermark: true,
-    extraCss: reportCss,
-  });
 }
 
 function buildInvoicesBundleHtml(invoices, title) {
@@ -480,7 +513,7 @@ function buildInvoicesBundleHtml(invoices, title) {
         <meta charset="utf-8" />
         <title>${escapeHtml(title || 'Invoices')}</title>
         <style>
-          ${style}
+          ${buildPrintBaseStyles()}
           .month-page { page-break-after: always; }
           .month-page:last-child { page-break-after: auto; }
         </style>
@@ -491,17 +524,14 @@ function buildInvoicesBundleHtml(invoices, title) {
 }
 
 function buildInvoicePrintHtml(invoice) {
-  const rows = (invoice.items || [])
-    .map((item, idx) => `
-      <tr>
-        <td style="text-align:center;">${idx + 1}</td>
-        <td>${escapeHtml(String(item.name || '').toUpperCase())}</td>
-        <td style="text-align:center;">${item.is_transportation ? '-' : Number(item.quantity || 0)}</td>
-        <td style="text-align:right;">${item.is_transportation ? '-' : Number(item.price || 0).toFixed(2)}</td>
-        <td style="text-align:right;">${Number(item.line_total ?? (Number(item.price || 0) * Number(item.quantity || 0))).toFixed(2)}</td>
-      </tr>
-    `)
-    .join('');
+  const items = invoice.items || [];
+  const ROWS_PER_PAGE = 12;
+  const pagesData = [];
+
+  for (let i = 0; i < items.length; i += ROWS_PER_PAGE) {
+    pagesData.push(items.slice(i, i + ROWS_PER_PAGE));
+  }
+  if (pagesData.length === 0) pagesData.push([]);
 
   const subtotal = Number(invoice.subtotal || 0);
   const cgstPercent = Number.isFinite(Number(invoice.cgst_percent)) ? Math.max(0, Number(invoice.cgst_percent)) : 9;
@@ -510,331 +540,150 @@ function buildInvoicePrintHtml(invoice) {
   const sgst = subtotal * (sgstPercent / 100);
   const total = Number(invoice.total_amount || 0);
   const createdAt = invoice.created_at || Date.now();
+  
   const customerName = escapeHtml(String(invoice.to_name || '').toUpperCase()) || '-';
   const customerAddress = escapeHtml(String(invoice.to_address || '').toUpperCase()) || '-';
   const customerPhone = escapeHtml(String(invoice.to_phone || '').toUpperCase()) || '-';
   const customerGstin = escapeHtml(String(invoice.gstin || '').toUpperCase()) || '-';
-  const bodyHtml = `
-    <div class="invoice-container">
-      <div class="bill-title">CASH / CREDIT BILL</div>
-      
-      <div class="info-section">
-        <div class="info-left">
-          <div class="info-header">Invoice To:</div>
-          <div class="info-row"><span class="info-label">Name</span><span class="info-val">: ${customerName}</span></div>
-          <div class="info-row"><span class="info-label">Address</span><span class="info-val">: ${customerAddress}</span></div>
-          <div class="info-row"><span class="info-label">Mobile</span><span class="info-val">: ${customerPhone}</span></div>
-          <div class="info-row"><span class="info-label">GSTIN</span><span class="info-val">: ${customerGstin}</span></div>
-        </div>
-        <div class="info-right">
-          <div class="info-row"><span class="info-label">Invoice No.</span><span class="info-val">: ${escapeHtml(invoice.invoice_number || '')}</span></div>
-          <div class="info-row"><span class="info-label">Date</span><span class="info-val">: ${formatDateDDMMYYYY(createdAt)}</span></div>
-        </div>
-      </div>
-
-      <table class="items-table">
-        <thead>
-          <tr>
-            <th style="width: 50px;">NO</th>
-            <th>DESCRIPTION</th>
-            <th style="width: 60px; text-align:center;">QTY</th>
-            <th style="width: 100px; text-align:right;">PRICE (Rs.)</th>
-            <th style="width: 110px; text-align:right;">TOTAL (Rs.)</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows}
-        </tbody>
-      </table>
-
-      <div class="footer-stack">
-        <div class="totals-section">
-          <div class="totals-row"><span>Sub Total</span><span>${subtotal.toFixed(2)}</span></div>
-          <div class="totals-row"><span>CGST (${cgstPercent}%)</span><span>${cgst.toFixed(2)}</span></div>
-          <div class="totals-row"><span>SGST (${sgstPercent}%)</span><span>${sgst.toFixed(2)}</span></div>
-          <div class="totals-line"></div>
-          <div class="totals-row grand-total"><span>GRAND TOTAL</span><span>${total.toFixed(2)}</span></div>
-        </div>
-
-        <div class="auth-row">
-          <div class="no-exchange">
-            <div>No Refund | No Exchange</div>
-            <div>Thank you for shopping with Meena Cards</div>
-          </div>
-          <div class="signature-box">
-            <div class="sig-line"></div>
-            <div>Authorized Signature</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
 
   const invoiceCss = `
-    .bill-title {
-      text-align: center;
-      font-size: 18px;
-      font-weight: 800;
-      margin: 15px 0;
-      color: #5b1225;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-    }
-    .info-section {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 8px;
-      font-size: 10px;
-      gap: 6px;
-    }
-    .invoice-info-left {
-      width: 55%;
-    }
-    .invoice-info-right {
-      width: 45%;
-      display: flex;
-      justify-content: flex-end;
-      margin-top: -2px;
-    }
-    .invoice-info-label {
-      font-weight: 700;
-      margin-bottom: 3px;
-      text-transform: uppercase;
-    }
-    .invoice-info-content {
-      margin-bottom: 4px;
-      line-height: 1.25;
-      text-transform: uppercase;
-    }
-    .party-box {
-      display: flex;
-      flex-direction: column;
-      gap: 1px;
-    }
-    .party-line {
-      display: flex;
-      align-items: baseline;
-      min-height: 14px;
-      margin: 0;
-      padding: 0;
-    }
-    .party-label {
-      width: 66px;
-      font-weight: 700;
-      white-space: nowrap;
-      text-align: left;
-      line-height: 1.2;
-    }
-    .party-colon {
-      width: 8px;
-      text-align: center;
-      font-weight: 700;
-      line-height: 1.2;
-    }
-    .party-value {
-      flex: 1;
-      text-align: left;
-      line-height: 1.2;
-      word-break: break-word;
-    }
-    .meta-box {
-      font-size: 10px;
-      width: 170px;
-      display: flex;
-      flex-direction: column;
-      gap: 1px;
-    }
-    .meta-line {
-      display: flex;
-      align-items: center;
-      min-height: 14px;
-      margin: 0;
-      padding: 0;
-    }
-    .meta-label,
-    .meta-fill {
-      vertical-align: middle;
-    }
-    .meta-label {
-      font-weight: 700;
-      padding-right: 6px;
-      width: 74px;
-      text-align: left;
-      white-space: nowrap;
-      line-height: 1;
-      text-transform: uppercase;
-    }
-    .meta-fill {
-      width: 96px;
-      padding-left: 2px;
-      text-align: left;
-      line-height: 1;
-      border: none !important;
-      box-shadow: none !important;
-      background: transparent !important;
-    }
-    .meta-value {
-      font-weight: 700;
-      text-align: left;
-      display: inline-block;
-      min-width: 1px;
-      line-height: 1;
-      text-decoration: none;
-      text-transform: uppercase;
-    }
-    .bill-title {
-      margin: 0 0 8px;
-      text-align: center;
-      font-size: 13px;
-      font-weight: 800;
-      color: #5b1225;
-      letter-spacing: 0.04em;
-    }
-    table.items-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 6px 0;
-      font-size: 9px;
-    }
-    .info-left { width: 65%; }
-    .info-right { width: 35%; }
-    .info-header {
-      font-weight: 800;
-      text-decoration: underline;
-      margin-bottom: 5px;
-      text-transform: uppercase;
-    }
-    .info-row {
-      display: flex;
-      margin-bottom: 2px;
-    }
-    .info-label {
-      width: 80px;
-      font-weight: 700;
-      text-transform: uppercase;
-    }
-    .info-val {
-      flex: 1;
-      font-weight: 700;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 15px;
-      font-size: 12px;
-    }
-    th {
-      border: 1.5px solid #5b1225;
-      background: #fdf2f4;
-      padding: 6px;
-      font-weight: 800;
-      text-transform: uppercase;
-      color: #5b1225;
-      padding: 5px;
-      text-align: center;
-      font-weight: bold;
-      border: 1px solid #ddd;
-    }
-    .items-table td {
-      border: 1px solid #ddd;
-      padding: 4px;
-    }
-    .footer-stack {
-      margin-top: 5px;
-    }
-    .totals-section {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(160px, 190px);
-      margin: 6px 0;
-      font-size: 11px;
-      column-gap: 8px;
-      align-items: start;
-    }
-    .totals-left {
-      width: 100%;
-    }
-    .totals-right {
-      width: auto;
-      text-align: right;
-      justify-self: end;
-    }
-    .totals-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin: 2px 0;
-      line-height: 1.2;
-    }
-    .totals-row.grand-total {
-      font-weight: 700;
-      font-size: 13px;
-      padding: 5px 0;
-      background: transparent;
-      color: #5b1225;
-      border-top: 1px solid #5b1225;
-      margin-top: 2px;
-    }
-    .bottom-stack {
-      margin-top: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .terms-signature-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      gap: 10px;
-    }
-    .terms-block {
-      flex: 1;
-      font-size: 9px;
-      color: #5b1225;
-      line-height: 1.3;
-      font-weight: 600;
-    }
-    .terms-title {
-      font-size: 10px;
-      font-weight: 700;
-      margin-bottom: 2px;
-      text-transform: uppercase;
-    }
-    .terms-list {
-      margin: 0;
-      padding-left: 14px;
-    }
-    .terms-list li {
-      margin-bottom: 3px;
-    }
-    .notes {
-      font-size: 9px;
-      color: #5b1225;
-      font-weight: 700;
-      line-height: 1.3;
-      text-align: left;
-    }
-    .signature-section {
-      display: flex;
-      justify-content: flex-end;
-      min-width: 170px;
-      font-size: 9px;
-      font-weight: 700;
-      color: #5b1225;
-    }
-    .signature-line {
-      min-width: 160px;
-      text-align: center;
-      border-top: 1px solid #5b1225;
-      padding-top: 5px;
-    }
+    ${buildPrintBaseStyles()}
+    .page { page-break-after: always; }
+    .page:last-child { page-break-after: avoid; }
+    .invoice-main-content { flex: 1; display: flex; flex-direction: column; }
+    .bill-title { margin: 0 0 8px; text-align: center; font-size: 13px; font-weight: 800; color: #5b1225; }
+    .invoice-info { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 10px; }
+    .party-box { display: flex; flex-direction: column; gap: 2px; }
+    .party-line { display: flex; align-items: baseline; }
+    .party-label { width: 66px; font-weight: 700; }
+    .party-colon { width: 10px; text-align: center; }
+    .meta-box { font-size: 10px; display: flex; flex-direction: column; gap: 2px; width: 170px; }
+    .meta-line { display: flex; align-items: center; }
+    .meta-label { font-weight: 700; width: 80px; }
+    
+    table.items-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 10px; table-layout: fixed; }
+    .items-table th { background: #f8eef1; color: #5b1225; padding: 8px; border: 1px solid #ddd; font-weight: 800; }
+    .items-table td { border: 1px solid #ddd; padding: 8px; text-align: center; line-height: 1.4; word-wrap: break-word; }
+    
+    .totals-section { display: flex; justify-content: flex-end; margin-top: 10px; }
+    .totals-right { min-width: 170px; }
+    .totals-row { display: flex; justify-content: space-between; padding: 2px 0; font-size: 11px; }
+    .totals-row.grand-total { font-weight: 800; font-size: 14px; color: #5b1225; border-top: 2px solid #5b1225; padding-top: 5px; margin-top: 4px; }
+    
+    .bottom-stack { margin-top: auto; padding-top: 10px; }
+    .terms-signature-row { display: flex; justify-content: space-between; align-items: flex-end; }
+    .terms-block { flex: 1; font-size: 8px; color: #5b1225; }
+    .terms-title { font-weight: 700; text-transform: uppercase; margin-bottom: 2px; }
+    .signature-section { min-width: 160px; text-align: center; font-size: 9px; font-weight: 700; }
+    .signature-line { border-top: 1px solid #5b1225; padding-top: 5px; margin-top: 30px; }
   `;
 
-  return buildPrintDocumentHtml({
-    title: `Invoice ${escapeHtml(invoice.invoice_number || '')}`,
-    bodyHtml,
-    includeWatermark: true,
-    extraCss: invoiceCss,
-  });
+  const pagesHtml = pagesData.map((chunk, pageIdx) => {
+    const rows = chunk.map((item, localIdx) => {
+      const idx = pageIdx * ROWS_PER_PAGE + localIdx;
+      return `
+        <tr>
+          <td style="width: 8%;">${idx + 1}</td>
+          <td style="width: 40%; text-align: left;">${escapeHtml(String(item.name || '').toUpperCase())}</td>
+          <td style="width: 15%;">${item.is_transportation ? '-' : Number(item.quantity || 0)}</td>
+          <td style="width: 18%; text-align: right;">${item.is_transportation ? '-' : Number(item.price || 0).toFixed(2)}</td>
+          <td style="width: 19%; text-align: right;">${Number(item.line_total ?? (Number(item.price || 0) * Number(item.quantity || 0))).toFixed(2)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const isFirstPage = pageIdx === 0;
+    const isLastPage = pageIdx === pagesData.length - 1;
+
+    return `
+      <div class="page">
+        <div class="watermark"><img src="${WATERMARK_DATA_URI}" alt="Watermark"/></div>
+        <div class="content">
+          ${buildPrintHeaderComponent()}
+          
+          <div class="invoice-main-content">
+            <div class="bill-title">CASH/CREDIT BILL ${pagesData.length > 1 ? `(Page ${pageIdx + 1})` : ''}</div>
+            
+            ${isFirstPage ? `
+              <div class="invoice-info">
+                <div class="invoice-info-left">
+                  <div class="invoice-info-label">Invoice to :</div>
+                  <div class="party-box">
+                    <div class="party-line"><span class="party-label">Name</span><span class="party-colon">:</span><span class="party-value">${customerName}</span></div>
+                    <div class="party-line"><span class="party-label">Address</span><span class="party-colon">:</span><span class="party-value">${customerAddress}</span></div>
+                    <div class="party-line"><span class="party-label">Mobile</span><span class="party-colon">:</span><span class="party-value">${customerPhone}</span></div>
+                    <div class="party-line"><span class="party-label">GSTIN</span><span class="party-colon">:</span><span class="party-value">${customerGstin}</span></div>
+                  </div>
+                </div>
+                <div class="invoice-info-right">
+                  <div class="meta-box">
+                    <div class="meta-line"><span class="meta-label">Invoice No.</span><span class="meta-fill">: ${escapeHtml(invoice.invoice_number || '')}</span></div>
+                    <div class="meta-line"><span class="meta-label">Date</span><span class="meta-fill">: ${formatDateDDMMYYYY(createdAt)}</span></div>
+                  </div>
+                </div>
+              </div>
+            ` : ''}
+
+            <table class="items-table">
+              <thead>
+                <tr>
+                  <th style="width: 8%;">NO</th>
+                  <th style="width: 40%;">DESCRIPTION</th>
+                  <th style="width: 15%;">QTY</th>
+                  <th style="width: 18%; text-align:right;">PRICE</th>
+                  <th style="width: 19%; text-align:right;">TOTAL</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows || '<tr><td colspan="5">No items found.</td></tr>'}
+              </tbody>
+            </table>
+
+            ${isLastPage ? `
+              <div class="totals-section">
+                <div class="totals-right">
+                  <div class="totals-row"><span>Sub Total :</span><span>Rs. ${subtotal.toFixed(2)}</span></div>
+                  <div class="totals-row"><span>CGST (${cgstPercent}%) :</span><span>Rs. ${cgst.toFixed(2)}</span></div>
+                  <div class="totals-row"><span>SGST (${sgstPercent}%) :</span><span>Rs. ${sgst.toFixed(2)}</span></div>
+                  <div class="totals-row grand-total"><span>GRAND TOTAL :</span><span>Rs. ${total.toFixed(2)}</span></div>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+
+          ${isLastPage ? `
+            <div class="bottom-stack">
+              <div class="terms-signature-row">
+                <div class="terms-block">
+                  <div class="terms-title">Terms and Conditions</div>
+                  <div style="font-size: 7px; line-height: 1.2;">1. Goods once sold will not be taken back or exchanged.<br/>2. Cancellation of orders is not permitted once the invoice is generated.</div>
+                </div>
+                <div class="signature-section">
+                  <div class="signature-line">Authorized Signature</div>
+                </div>
+              </div>
+            </div>
+          ` : ''}
+          
+          ${buildPrintFooterComponent()}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8" />
+        <title>Invoice</title>
+        <style>${invoiceCss}</style>
+      </head>
+      <body style="margin: 0; padding: 0; background: #fff;">
+        ${pagesHtml}
+      </body>
+    </html>
+  `;
 }
 
 function extractStyleBlock(html) {
@@ -1218,106 +1067,309 @@ function printPurchase(purchase, options = {}) {
 }
 
 function buildPurchasePrintHtml(purchase) {
-  const rows = (purchase.items || [])
-    .map((item, idx) => `
-      <tr>
-        <td style="text-align:center;">${idx + 1}</td>
-        <td>${escapeHtml(String(item.name || '').toUpperCase())}</td>
-        <td style="text-align:center;">${Number(item.quantity || 0)}</td>
-        <td style="text-align:right;">-</td>
-        <td style="text-align:right;">-</td>
-        <td style="text-align:right;">-</td>
-      </tr>
-    `)
-    .join('');
+  const items = purchase.items || [];
+  const ROWS_PER_PAGE = 12;
+  const pagesData = [];
+
+  for (let i = 0; i < items.length; i += ROWS_PER_PAGE) {
+    pagesData.push(items.slice(i, i + ROWS_PER_PAGE));
+  }
+  if (pagesData.length === 0) pagesData.push([]);
 
   const total = Number(purchase.total_amount || 0);
   const createdAt = purchase.created_at || new Date().toISOString();
-  const purchaseDate = purchase.purchase_date || createdAt;
   const companyName = escapeHtml(String(purchase.company_name || '').toUpperCase()) || '-';
-
-  const bodyHtml = `
-    <div class="invoice-main-content">
-      <div class="bill-title">PURCHASE BILL</div>
-      <div class="invoice-info" style="margin-bottom: 18px;">
-        <div class="invoice-info-left">
-          <div class="invoice-info-label">From Company :</div>
-          <div class="invoice-info-content party-box">
-            <div class="party-line">
-              <span class="party-value" style="font-weight: 700;">${companyName}</span>
-            </div>
-          </div>
-        </div>
-        <div class="invoice-info-right">
-          <div class="meta-box">
-            <div class="meta-line">
-              <span class="meta-label">Invoice No.</span>
-              <span class="meta-fill"><span class="meta-value">: ${escapeHtml(purchase.invoice_number || '')}</span></span>
-            </div>
-            <div class="meta-line">
-              <span class="meta-label">Date</span>
-              <span class="meta-fill"><span class="meta-value">: ${formatDateDDMMYYYY(purchaseDate)}</span></span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <table class="items-table">
-        <thead>
-          <tr>
-            <th style="width: 8%;">NO</th>
-            <th style="width: 50%;">PRODUCT</th>
-            <th style="width: 15%;">QTY</th>
-            <th style="width: 9%;">PRICE</th>
-            <th style="width: 9%;">TAX</th>
-            <th style="width: 9%;">TOTAL</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows}
-        </tbody>
-      </table>
-
-      <div class="totals-section">
-        <div class="totals-left"></div>
-        <div class="totals-right">
-          <div class="totals-row grand-total">
-            <span style="font-size: 14px;">BILL TOTAL :</span>
-            <span style="font-size: 16px;">Rs. ${total.toFixed(2)}</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="bottom-stack">
-        <div class="notes">
-          <div>${escapeHtml(purchase.notes || 'Purchase record maintained')}</div>
-        </div>
-      </div>
-    </div>
-  `;
+  const companyAddress = escapeHtml(String(purchase.company_address || '').toUpperCase()) || '-';
+  const companyPhone = escapeHtml(String(purchase.company_phone || '').toUpperCase()) || '-';
 
   const purchaseCss = `
-    .bill-title { text-align: center; font-size: 14px; font-weight: 800; color: #5b1225; margin: 5px 0 15px; text-transform: uppercase; letter-spacing: 1px; }
-    .invoice-info { display: flex; justify-content: space-between; gap: 20px; font-size: 10px; }
-    .invoice-info-left { flex: 1; }
-    .invoice-info-right { width: 40%; text-align: right; }
-    .party-box { border: 1.5px solid #5b1225; padding: 8px; border-radius: 4px; background: #fdf2f4; min-height: 40px; }
-    .meta-box { display: flex; flex-direction: column; gap: 4px; }
-    .meta-line { display: flex; justify-content: flex-end; gap: 8px; font-weight: 700; }
-    .items-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 10px; }
-    .items-table th { background: #fdf2f4; border: 1.5px solid #5b1225; padding: 6px; font-weight: 800; color: #5b1225; }
-    .items-table td { border: 1px solid #5b1225; padding: 6px; }
-    .totals-section { display: flex; justify-content: flex-end; margin-top: 15px; }
-    .totals-right { width: 40%; border-top: 2px solid #5b1225; padding-top: 5px; }
-    .totals-row { display: flex; justify-content: space-between; font-weight: 700; padding: 3px 0; }
-    .grand-total { color: #5b1225; font-size: 13px; border-top: 1px solid #5b1225; margin-top: 2px; }
+    ${buildPrintBaseStyles()}
+    .page { page-break-after: always; }
+    .page:last-child { page-break-after: avoid; }
+    .invoice-main-content { flex: 1; display: flex; flex-direction: column; }
+    .bill-title { margin: 0 0 8px; text-align: center; font-size: 13px; font-weight: 800; color: #5b1225; }
+    .invoice-info { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 10px; }
+    .party-box { display: flex; flex-direction: column; gap: 2px; }
+    .party-line { display: flex; align-items: baseline; }
+    .party-label { width: 66px; font-weight: 700; }
+    .party-colon { width: 10px; text-align: center; }
+    .meta-box { font-size: 10px; display: flex; flex-direction: column; gap: 2px; width: 170px; }
+    .meta-line { display: flex; align-items: center; }
+    .meta-label { font-weight: 700; width: 80px; }
+    
+    table.items-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 10px; table-layout: fixed; }
+    .items-table th { background: #f8eef1; color: #5b1225; padding: 8px; border: 1px solid #ddd; font-weight: 800; }
+    .items-table td { border: 1px solid #ddd; padding: 8px; text-align: center; line-height: 1.4; word-wrap: break-word; }
+    
+    .totals-section { display: flex; justify-content: flex-end; margin-top: 10px; }
+    .totals-right { min-width: 170px; }
+    .totals-row.grand-total { font-weight: 800; font-size: 14px; color: #5b1225; border-top: 2px solid #5b1225; padding-top: 5px; display: flex; justify-content: space-between; }
+    
+    .bottom-stack { margin-top: auto; padding-top: 10px; }
+    .notes { font-size: 8px; color: #666; font-style: italic; }
   `;
 
-  return buildPrintDocumentHtml({
-    title: `Purchase Bill ${escapeHtml(purchase.invoice_number || '')}`,
-    bodyHtml,
-    includeWatermark: true,
-    extraCss: purchaseCss
+  const pagesHtml = pagesData.map((chunk, pageIdx) => {
+    const rows = chunk.map((item, localIdx) => {
+      const idx = pageIdx * ROWS_PER_PAGE + localIdx;
+      return `
+        <tr>
+          <td style="width: 10%; text-align:center;">${idx + 1}</td>
+          <td style="width: 65%; text-align:center;">${escapeHtml(String(item.name || '').toUpperCase())}</td>
+          <td style="width: 25%; text-align:center;">${Number(item.quantity || 0)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const isFirstPage = pageIdx === 0;
+    const isLastPage = pageIdx === pagesData.length - 1;
+
+    return `
+      <div class="page">
+        <div class="watermark"><img src="${WATERMARK_DATA_URI}" alt="Watermark"/></div>
+        <div class="content">
+          ${buildPrintHeaderComponent()}
+          
+          <div class="invoice-main-content">
+            <div class="bill-title">PURCHASE BILL ${pagesData.length > 1 ? `(Page ${pageIdx + 1})` : ''}</div>
+            
+            ${isFirstPage ? `
+              <div class="invoice-info">
+                <div class="invoice-info-left">
+                  <div class="invoice-info-label">From Company :</div>
+                  <div class="party-box">
+                    <div class="party-line"><span class="party-label">Name</span><span class="party-colon">:</span><span class="party-value">${companyName}</span></div>
+                    <div class="party-line"><span class="party-label">Address</span><span class="party-colon">:</span><span class="party-value">${companyAddress}</span></div>
+                    <div class="party-line"><span class="party-label">Mobile</span><span class="party-colon">:</span><span class="party-value">${companyPhone}</span></div>
+                  </div>
+                </div>
+                <div class="invoice-info-right">
+                  <div class="meta-box">
+                    <div class="meta-line"><span class="meta-label">Invoice No.</span><span class="meta-fill">: ${escapeHtml(purchase.invoice_number || '')}</span></div>
+                    <div class="meta-line"><span class="meta-label">Date</span><span class="meta-fill">: ${formatDateDDMMYYYY(createdAt)}</span></div>
+                  </div>
+                </div>
+              </div>
+            ` : ''}
+
+            <table class="items-table">
+              <thead>
+                <tr>
+                  <th style="width: 10%; text-align:center;">NO</th>
+                  <th style="width: 65%; text-align:center;">PRODUCT</th>
+                  <th style="width: 25%; text-align:center;">QTY</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows || '<tr><td colspan="3">No items found.</td></tr>'}
+              </tbody>
+            </table>
+
+            ${isLastPage ? `
+              <div class="totals-section">
+                <div class="totals-right">
+                  <div class="totals-row grand-total">
+                    <span>TOTAL (Rs.):</span>
+                    <span>${total.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+
+          ${isLastPage ? `
+            <div class="bottom-stack">
+              <div class="notes">
+                <div>${escapeHtml(purchase.notes || 'Purchase record maintained')}</div>
+              </div>
+            </div>
+          ` : ''}
+          
+          ${buildPrintFooterComponent()}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8" />
+        <title>Purchase Bill</title>
+        <style>${purchaseCss}</style>
+      </head>
+      <body style="margin: 0; padding: 0; background: #fff;">
+        ${pagesHtml}
+      </body>
+    </html>
+  `;
+}
+
+function buildPurchasesReportPrintHtml(report) {
+  const summaryCards = [
+    { label: 'Total Bills', value: Number(report.totalBills || 0) },
+    { label: 'Items Purchased', value: Number(report.itemsCount || 0) },
+    { label: 'Total Amount', value: `Rs. ${Number(report.totalAmount || 0).toFixed(2)}` },
+  ];
+
+  const purchases = report.purchases || [];
+  const ROWS_PER_PAGE = 8;
+  const pagesData = [];
+
+  for (let i = 0; i < purchases.length; i += ROWS_PER_PAGE) {
+    pagesData.push(purchases.slice(i, i + ROWS_PER_PAGE));
+  }
+
+  if (pagesData.length === 0) {
+    pagesData.push([]); // At least one page for empty report
+  }
+
+  const generatedAt = Date.now();
+  const timeStr = formatTime12Hour(generatedAt);
+  const dateStr = formatDateDDMMYYYY(generatedAt);
+
+  const reportCss = `
+    ${buildPrintBaseStyles()}
+    .page { page-break-after: always; }
+    .page:last-child { page-break-after: avoid; }
+    .report-title { font-size: 14px; color: #5b1225; font-weight: 700; margin-bottom: 2px; }
+    .report-subtitle { font-size: 11px; color: #666; margin-bottom: 10px; }
+    .summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+    .summary-card { border: 1px solid #ddcfba; background: #fffdf9; border-radius: 12px; padding: 10px; }
+    .summary-label { font-size: 10px; color: #4b3a34; text-transform: uppercase; font-weight: 700; }
+    .summary-value { margin-top: 4px; font-size: 14px; font-weight: 700; color: #5b1225; }
+    .report-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+    .report-table th { background: #f8eef1; color: #5b1225; padding: 10px 6px; border: 1px solid #ddd; font-size: 11px; text-align: center; }
+    .report-table td { border: 1px solid #ddd; padding: 10px 6px; font-size: 11px; text-align: center; line-height: 1.5; }
+    .report-table td.amount { text-align: right; font-weight: 700; }
+  `;
+
+  const pagesHtml = pagesData.map((chunk, pageIdx) => {
+    const rows = chunk.map((p) => {
+      const productNames = (p.items || []).map(item => item.name).join(', ');
+      return `
+        <tr>
+          <td>${escapeHtml(p.invoice_number || '')}</td>
+          <td>${escapeHtml(p.company_name || 'N/A')}</td>
+          <td>${formatDateDDMMYYYY(p.purchase_date)}</td>
+          <td>${escapeHtml(productNames)}</td>
+          <td>${(p.items || []).length}</td>
+          <td class="amount">${Number(p.total_amount || 0).toFixed(2)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const isFirstPage = pageIdx === 0;
+
+    return `
+      <div class="page">
+        <div class="watermark"><img src="${WATERMARK_DATA_URI}" alt="Watermark"/></div>
+        <div class="content">
+          ${buildPrintHeaderComponent()}
+          
+          <div style="flex: 1;">
+            ${isFirstPage ? `
+              <div class="report-title">${escapeHtml(report.title || 'Purchases Report')}</div>
+              <div class="report-subtitle">Generated on ${dateStr} ${timeStr}</div>
+              <div class="summary-grid">
+                ${summaryCards.map(card => `
+                  <div class="summary-card">
+                    <div class="summary-label">${escapeHtml(card.label)}</div>
+                    <div class="summary-value">${escapeHtml(String(card.value))}</div>
+                  </div>
+                `).join('')}
+              </div>
+            ` : `<div class="report-title" style="margin-bottom: 10px;">${escapeHtml(report.title || 'Purchases Report')} (Page ${pageIdx + 1})</div>`}
+
+            <table class="report-table">
+              <thead>
+                <tr>
+                  <th>Invoice No.</th>
+                  <th>Company</th>
+                  <th>Date</th>
+                  <th>Products</th>
+                  <th>Items Qty</th>
+                  <th style="text-align:right;">Total (Rs.)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows || '<tr><td colspan="6">No purchases found for this page.</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+
+          ${buildPrintFooterComponent()}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8" />
+        <title>Report</title>
+        <style>${reportCss}</style>
+      </head>
+      <body style="margin: 0; padding: 0; background: #fff;">
+        ${pagesHtml}
+      </body>
+    </html>
+  `;
+}
+
+function savePurchasesReportPdf(report, filename, options = {}) {
+  return new Promise((resolve) => {
+    const hiddenWin = new BrowserWindow({
+      width: 820,
+      height: 1160,
+      show: false,
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+    });
+
+    const tempHtmlPath = createTempHtmlFile(buildPurchasesReportPrintHtml(report));
+
+    hiddenWin.webContents.once('did-finish-load', async () => {
+      try {
+        await hiddenWin.webContents.executeJavaScript('document.fonts ? document.fonts.ready.then(() => true) : Promise.resolve(true)');
+        await hiddenWin.webContents.executeJavaScript('new Promise((resolve) => requestAnimationFrame(() => resolve(true)))');
+
+        const pdfData = await hiddenWin.webContents.printToPDF({
+          pageSize: options.pageSize || 'A5',
+          preferCSSPageSize: true,
+          printBackground: true,
+          margins: { top: 0, bottom: 0, left: 0, right: 0 },
+        });
+
+        const filepath = getPdfSavePath(filename, options.folder || 'purchase-reports');
+
+        fs.writeFile(filepath, pdfData, (err) => {
+          hiddenWin.close();
+          safeDeleteFile(tempHtmlPath);
+          if (err) {
+            console.error(`[PDF Save Error] Path: ${filepath}`, err);
+            resolve({ success: false, error: `Failed to save PDF: ${err.message}` });
+          } else {
+            resolve({ success: true, path: filepath });
+          }
+        });
+      } catch (err) {
+        hiddenWin.close();
+        safeDeleteFile(tempHtmlPath);
+        resolve({ success: false, error: err.message || 'Failed to convert report to PDF' });
+      }
+    });
+
+    hiddenWin.loadFile(tempHtmlPath).catch((error) => {
+      hiddenWin.close();
+      safeDeleteFile(tempHtmlPath);
+      resolve({ success: false, error: error.message || 'Failed to load report print template' });
+    });
   });
 }
 
@@ -1347,13 +1399,14 @@ function savePurchasePdf(purchase, filename, options = {}) {
           margins: { top: 0, bottom: 0, left: 0, right: 0 },
         });
 
-        const filepath = getPdfSavePath(filename, options.folder || 'purchases');
+        const filepath = getPdfSavePath(filename, options.folder || 'purchase-reports');
 
         fs.writeFile(filepath, pdfData, (err) => {
           hiddenWin.close();
           safeDeleteFile(tempHtmlPath);
           if (err) {
-            resolve({ success: false, error: 'Failed to save PDF' });
+            console.error(`[PDF Save Error] Path: ${filepath}`, err);
+            resolve({ success: false, error: `Failed to save PDF: ${err.message}` });
           } else {
             resolve({ success: true, path: filepath });
           }
@@ -1386,15 +1439,39 @@ function savePurchasesBundlePdf(purchases, filename, options = {}) {
     });
 
     const bundleHtml = purchases
-      .map((p, idx) => `<section class="month-page" style="page-break-after: always; ${idx === purchases.length - 1 ? 'page-break-after: avoid;' : ''}">${extractBodyBlock(buildPurchasePrintHtml(p))}</section>`)
+      .map((p) => {
+        const singleHtml = buildPurchasePrintHtml(p);
+        const bodyContent = extractBodyBlock(singleHtml);
+        // The bodyContent already contains <div class="page">...</div>
+        return bodyContent;
+      })
       .join('');
 
-    const fullHtml = buildPrintDocumentHtml({
-      title: filename,
-      bodyHtml: bundleHtml,
-      includeWatermark: true,
-      extraCss: buildPrintBaseStyles()
-    });
+    const css = `
+      ${buildPrintBaseStyles()}
+      .page { 
+        page-break-after: always; 
+        position: relative;
+        margin: 0 auto;
+      }
+      .page:last-child { 
+        page-break-after: avoid; 
+      }
+    `;
+
+    const fullHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8" />
+          <title>${escapeHtml(filename)}</title>
+          <style>${css}</style>
+        </head>
+        <body style="margin: 0; padding: 0; background: #fff;">
+          ${bundleHtml}
+        </body>
+      </html>
+    `;
     const tempHtmlPath = createTempHtmlFile(fullHtml);
 
     hiddenWin.webContents.once('did-finish-load', async () => {
@@ -1409,13 +1486,14 @@ function savePurchasesBundlePdf(purchases, filename, options = {}) {
           margins: { top: 0, bottom: 0, left: 0, right: 0 },
         });
 
-        const filepath = getPdfSavePath(filename, options.folder || 'purchases');
+        const filepath = getPdfSavePath(filename, options.folder || 'purchase-reports');
 
         fs.writeFile(filepath, pdfData, (err) => {
           hiddenWin.close();
           safeDeleteFile(tempHtmlPath);
           if (err) {
-            resolve({ success: false, error: 'Failed to save PDF' });
+            console.error(`[PDF Save Error] Path: ${filepath}`, err);
+            resolve({ success: false, error: `Failed to save PDF: ${err.message}` });
           } else {
             resolve({ success: true, path: filepath });
           }
@@ -1514,8 +1592,9 @@ app.whenReady().then(() => {
 ipcMain.handle('purchases:download-pdf', async (_event, payload) => {
   try {
     const purchase = payload.purchase || {};
-    const filename = `Purchase_${purchase.invoice_number}_${new Date().getTime()}.pdf`;
-    return await savePurchasePdf(purchase, filename, payload.options || {});
+    const options = payload.options || {};
+    const filename = payload.filename || options.filename || `Purchase_${purchase.invoice_number}_${new Date().getTime()}.pdf`;
+    return await savePurchasePdf(purchase, filename, options);
   } catch (error) {
     return { success: false, error: error.message || 'Purchase PDF save error' };
   }
@@ -1523,11 +1602,26 @@ ipcMain.handle('purchases:download-pdf', async (_event, payload) => {
 
 ipcMain.handle('purchases:download-bundle-pdf', async (_event, payload) => {
   try {
-    const purchases = payload.purchases || [];
-    const filename = payload.filename || `Purchases_${new Date().getTime()}.pdf`;
-    return await savePurchasesBundlePdf(purchases, filename, payload.options || {});
+    const purchasesList = payload.purchases || [];
+    console.log(`[IPC] Generating purchase bundle PDF for ${purchasesList.length} items`);
+    const options = payload.options || {};
+    const filename = payload.filename || options.filename || `Purchases_${new Date().getTime()}.pdf`;
+    return await savePurchasesBundlePdf(purchasesList, filename, options);
   } catch (error) {
+    console.error('[IPC] Purchase bundle PDF error:', error);
     return { success: false, error: error.message || 'Purchases bundle PDF save error' };
+  }
+});
+
+ipcMain.handle('purchases:download-report-pdf', async (_event, payload) => {
+  try {
+    const report = payload.report || {};
+    const options = payload.options || {};
+    const filename = payload.filename || options.filename || `Purchases_Report_${new Date().getTime()}.pdf`;
+    return await savePurchasesReportPdf(report, filename, options);
+  } catch (error) {
+    console.error('[IPC] Purchase report PDF error:', error);
+    return { success: false, error: error.message || 'Purchases report PDF save error' };
   }
 });
 
