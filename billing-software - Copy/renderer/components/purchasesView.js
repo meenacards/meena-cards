@@ -4,20 +4,6 @@ window.PurchasesView = (function () {
   let selectedCompany = null;
   let activeTab = 'companies';
   let cartItems = [];
-  let editingCompany = null;
-  let purchasesReport = {
-    scope: 'today',
-    config: {},
-    data: null
-  };
-
-  function getProducts() {
-    if (window.BillingState && Array.isArray(window.BillingState.products)) {
-      return window.BillingState.products;
-    }
-
-    return [];
-  }
 
   function getProducts() {
     if (window.BillingState && Array.isArray(window.BillingState.products)) {
@@ -98,19 +84,17 @@ window.PurchasesView = (function () {
 
   function renderCompaniesTab() {
     const container = document.getElementById('view-container');
-
+    
     const companiesHtml = `
       <div class="purchases-view">
         <div class="purchases-tabs">
           <button class="tab-btn ${activeTab === 'companies' ? 'active' : ''}" data-tab="companies">Companies</button>
           <button class="tab-btn ${activeTab === 'add-bill' ? 'active' : ''}" data-tab="add-bill">Add Purchase Bill</button>
-          <button class="tab-btn ${activeTab === 'reports' ? 'active' : ''}" data-tab="reports">Purchases Reports</button>
         </div>
 
         <div class="tab-content">
           ${activeTab === 'companies' ? renderCompaniesContent() : ''}
           ${activeTab === 'add-bill' ? renderAddBillContent() : ''}
-          ${activeTab === 'reports' ? renderReportsContent() : ''}
         </div>
       </div>
     `;
@@ -232,50 +216,15 @@ window.PurchasesView = (function () {
             </form>
           </div>
         </div>
-
-        <div id="edit-company-form-container" class="modal hidden" style="display: none;">
-          <div class="modal-overlay"></div>
-          <div class="modal-content">
-            <h3>Edit Company</h3>
-            <form id="edit-company-form">
-              <input type="hidden" id="edit-company-id" />
-              <div class="form-group">
-                <label>Company Name *</label>
-                <input type="text" id="edit-company-name" required />
-              </div>
-              <div class="form-group">
-                <label>Contact Person</label>
-                <input type="text" id="edit-company-contact" />
-              </div>
-              <div class="form-group">
-                <label>Email</label>
-                <input type="email" id="edit-company-email" />
-              </div>
-              <div class="form-group">
-                <label>Phone</label>
-                <input type="tel" id="edit-company-phone" />
-              </div>
-              <div class="form-group">
-                <label>Address</label>
-                <textarea id="edit-company-address" rows="3"></textarea>
-              </div>
-              <div class="form-actions">
-                <button type="submit" class="btn btn-primary">Save Changes</button>
-                <button type="button" class="btn btn-secondary" id="cancel-edit-company">Cancel</button>
-              </div>
-            </form>
-          </div>
-        </div>
       </div>
     `;
-
 
     return companiesListHtml;
   }
 
   function renderCompanyDetail() {
     const companyPurchases = purchases.filter(p => p.company_id === selectedCompany.id);
-
+    
     // Group by month
     const groupedByMonth = {};
     companyPurchases.forEach(purchase => {
@@ -301,11 +250,11 @@ window.PurchasesView = (function () {
           </div>
         </div>
 
-        <div class="download-controls" style="display: flex; gap: 10px; margin-bottom: 20px;">
-          <button id="download-today-btn" class="btn btn-primary btn-small">Download Today</button>
-          <button id="download-month-btn" class="btn btn-primary btn-small">Download Month</button>
-          <button id="download-year-btn" class="btn btn-primary btn-small">Download Year</button>
-          <button id="download-range-btn" class="btn btn-primary btn-small">Download Range</button>
+        <div class="download-controls">
+          <button id="download-today-btn" class="btn btn-small">Download Today</button>
+          <button id="download-month-btn" class="btn btn-small">Download Month</button>
+          <button id="download-year-btn" class="btn btn-small">Download Year</button>
+          <button id="download-range-btn" class="btn btn-small">Download Date Range</button>
         </div>
 
         <div class="purchases-list">
@@ -321,9 +270,8 @@ window.PurchasesView = (function () {
                     <p><strong>Items:</strong> ${purchase.items.length}</p>
                     <p><strong>Total:</strong> ₹${parseFloat(purchase.total_amount).toFixed(2)}</p>
                   </div>
-                  <div class="purchase-actions" style="display: flex; gap: 8px;">
-                    <button class="btn btn-small btn-warning edit-purchase-btn" data-purchase-id="${purchase.id}">Edit</button>
-                    <button class="btn btn-small btn-primary download-print-bill-btn" data-purchase-id="${purchase.id}">Print & Download</button>
+                  <div class="purchase-actions">
+                    <button class="btn btn-small download-bill-btn" data-purchase-id="${purchase.id}">Download Bill</button>
                   </div>
                 </div>
               `).join('')}
@@ -336,12 +284,13 @@ window.PurchasesView = (function () {
 
   function renderAddBillContent() {
     const products = getProducts();
+    
     return `
       <div class="add-bill-container">
         <h3>Record New Purchase Bill</h3>
         
         <form id="add-bill-form" class="add-bill-form">
-          <div class="form-section" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+          <div class="form-section">
             <div class="form-group">
               <label>Select Company *</label>
               <select id="bill-company-select" required>
@@ -359,16 +308,6 @@ window.PurchasesView = (function () {
               <label>Purchase Date *</label>
               <input type="date" id="bill-purchase-date" required />
             </div>
-
-            <div class="form-group">
-              <label>Total Bill Quantity *</label>
-              <input type="number" id="bill-total-qty" placeholder="e.g., 10000" min="1" required />
-            </div>
-
-            <div class="form-group">
-              <label>Total Prize *</label>
-              <input type="number" id="bill-total-prize" placeholder="e.g., 50000" min="0" step="0.01" required />
-            </div>
           </div>
 
           <div class="form-section">
@@ -383,6 +322,7 @@ window.PurchasesView = (function () {
                   <!-- product cards appear here -->
                 </div>
               </div>
+
               <div class="product-controls-row">
                 <div class="form-group small">
                   <label>Quantity *</label>
@@ -409,22 +349,32 @@ window.PurchasesView = (function () {
               <table class="items-table">
                 <thead>
                   <tr>
-                    <th style="width: 70%;">Product</th>
-                    <th style="width: 20%;">Qty</th>
-                    <th style="width: 10%;">Action</th>
+                    <th>Product</th>
+                    <th>Qty</th>
+                    <th>Price</th>
+                    <th>Tax %</th>
+                    <th>Total</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody id="bill-items-tbody">
                   <!-- Items will be added here -->
                 </tbody>
               </table>
-              <div id="bill-totals" class="bill-totals" style="margin-top: 10px; display: flex; flex-direction: column; align-items: flex-end;">
-                <p><strong>Running Qty Sum:</strong> <span id="bill-qty-sum">0</span> / <span id="bill-target-qty">0</span></p>
-                <p style="font-size: 18px; color: var(--brand-maroon);"><strong>Total Bill Prize:</strong> ₹<span id="bill-total">0.00</span></p>
+              <div id="bill-totals" class="bill-totals">
+                <p><strong>Subtotal:</strong> ₹<span id="bill-subtotal">0.00</span></p>
+                <p><strong>Tax:</strong> ₹<span id="bill-tax">0.00</span></p>
+                <p><strong>Total:</strong> ₹<span id="bill-total">0.00</span></p>
               </div>
             </div>
           </div>
 
+          <div class="form-section">
+            <div class="form-group">
+              <label>Notes</label>
+              <textarea id="bill-notes" placeholder="Any additional notes..." rows="3"></textarea>
+            </div>
+          </div>
 
           <div class="form-actions">
             <button type="submit" class="btn btn-primary">Save Purchase Bill</button>
@@ -435,136 +385,6 @@ window.PurchasesView = (function () {
     `;
   }
 
-  function renderReportsContent() {
-    const report = purchasesReport.data || { totalBills: 0, totalAmount: 0, itemsCount: 0, purchases: [] };
-    const now = new Date();
-
-    return `
-      <div class="reports-page">
-        <div class="report-controls">
-          <div class="report-control-group">
-            <div class="field-label">Report Type</div>
-            <select id="purchase-report-scope" class="input report-control">
-              <option value="today" ${purchasesReport.scope === 'today' ? 'selected' : ''}>Today</option>
-              <option value="month" ${purchasesReport.scope === 'month' ? 'selected' : ''}>Month</option>
-              <option value="year" ${purchasesReport.scope === 'year' ? 'selected' : ''}>Year</option>
-              <option value="custom" ${purchasesReport.scope === 'custom' ? 'selected' : ''}>Date Range</option>
-            </select>
-          </div>
-          
-          <div id="purchase-month-field" class="report-control-group" style="${purchasesReport.scope === 'month' ? '' : 'display:none;'}">
-            <div class="field-label">Month</div>
-            <input type="month" id="purchase-report-month" class="input report-control" value="${purchasesReport.config.month || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`}" />
-          </div>
-
-          <div id="purchase-year-field" class="report-control-group" style="${purchasesReport.scope === 'year' ? '' : 'display:none;'}">
-            <div class="field-label">Year</div>
-            <input type="number" id="purchase-report-year" class="input report-control" min="2000" max="2100" value="${purchasesReport.config.year || now.getFullYear()}" />
-          </div>
-
-          <div id="purchase-from-field" class="report-control-group" style="${purchasesReport.scope === 'custom' ? '' : 'display:none;'}">
-            <div class="field-label">From</div>
-            <input type="date" id="purchase-report-from" class="input report-control" value="${purchasesReport.config.from || ''}" />
-          </div>
-
-          <div id="purchase-to-field" class="report-control-group" style="${purchasesReport.scope === 'custom' ? '' : 'display:none;'}">
-            <div class="field-label">To</div>
-            <input type="date" id="purchase-report-to" class="input report-control" value="${purchasesReport.config.to || ''}" />
-          </div>
-
-          <button id="generate-purchase-report-btn" class="btn btn-primary">Generate Report</button>
-          <button id="download-purchase-report-btn" class="btn btn-secondary">Download PDF</button>
-        </div>
-
-        <div class="report-overview-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px;">
-           ${buildPurchasesMetricCard('Total Bills', String(report.totalBills), 'Purchase count')}
-           ${buildPurchasesMetricCard('Items Purchased', String(report.itemsCount), 'Quantity received')}
-           ${buildPurchasesMetricCard('Total Amount', `Rs. ${report.totalAmount.toFixed(2)}`, 'Total purchase cost')}
-        </div>
-
-        <div class="report-detail-card" style="margin-top: 24px; background: var(--surface); border: 1px solid var(--border-soft); padding: 20px; border-radius: 12px;">
-          <div class="report-detail-heading" style="font-size: 24px; color: var(--brand-maroon); font-weight: 700; margin-bottom: 16px;">${purchasesReport.scope.toUpperCase()} Purchases Report</div>
-          <table class="report-table" style="width: 100%; border-collapse: collapse;">
-            <thead>
-              <tr style="background: #f9f2e6; color: var(--brand-maroon);">
-                <th style="padding: 12px; text-align: left;">Invoice No.</th>
-                <th style="padding: 12px; text-align: left;">Company</th>
-                <th style="padding: 12px; text-align: left;">Date</th>
-                <th style="padding: 12px; text-align: center;">Items</th>
-                <th style="padding: 12px; text-align: right;">Total</th>
-                <th style="padding: 12px; text-align: center;">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${report.purchases.length === 0 ? '<tr><td colspan="5" style="text-align: center; padding: 20px;">No purchases found.</td></tr>' : ''}
-              ${report.purchases.map(p => `
-                <tr style="border-bottom: 1px solid var(--divider);">
-                  <td style="padding: 12px;">${p.invoice_number}</td>
-                  <td style="padding: 12px;">${p.company_name || 'N/A'}</td>
-                  <td style="padding: 12px;">${new Date(p.purchase_date).toLocaleDateString()}</td>
-                  <td style="padding: 12px; text-align: center;">${(p.items || []).length}</td>
-                  <td style="padding: 12px; text-align: right; font-weight: 600;">Rs. ${parseFloat(p.total_amount).toFixed(2)}</td>
-                  <td style="padding: 12px; text-align: center; display: flex; gap: 8px; justify-content: center;">
-                    <button class="btn btn-small btn-warning edit-purchase-btn" data-purchase-id="${p.id}">Edit</button>
-                    <button class="btn btn-small btn-primary download-print-bill-btn" data-purchase-id="${p.id}">Print</button>
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    `;
-  }
-
-  function buildPurchasesMetricCard(title, value, subtitle) {
-    return `
-      <div class="report-metric-card" style="background: var(--surface); border: 1px solid var(--border-soft); padding: 20px; border-radius: 12px;">
-        <div class="report-metric-title" style="font-size: 14px; color: var(--text-secondary); margin-bottom: 8px;">${title}</div>
-        <div class="report-metric-value" style="font-size: 32px; color: var(--brand-maroon); font-weight: 700;">${value}</div>
-        <div class="report-metric-subtitle" style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${subtitle}</div>
-      </div>
-    `;
-  }
-
-  function computePurchasesReport() {
-    const scope = purchasesReport.scope;
-    const config = purchasesReport.config;
-    let filtered = purchases;
-    const now = new Date();
-
-    if (scope === 'today') {
-      const today = now.toISOString().split('T')[0];
-      filtered = purchases.filter(p => p.purchase_date && p.purchase_date.startsWith(today));
-    } else if (scope === 'month') {
-      const month = config.month || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      filtered = purchases.filter(p => p.purchase_date && p.purchase_date.startsWith(month));
-    } else if (scope === 'year') {
-      const year = String(config.year || now.getFullYear());
-      filtered = purchases.filter(p => p.purchase_date && p.purchase_date.startsWith(year));
-    } else if (scope === 'custom') {
-      if (config.from && config.to) {
-        filtered = purchases.filter(p => p.purchase_date >= config.from && p.purchase_date <= config.to);
-      }
-    }
-
-    const totalBills = filtered.length;
-    let totalAmount = 0;
-    let itemsCount = 0;
-
-    filtered.forEach(p => {
-      totalAmount += parseFloat(p.total_amount || 0);
-      itemsCount += (p.items || []).reduce((sum, item) => sum + parseInt(item.quantity || 0), 0);
-    });
-
-    purchasesReport.data = {
-      totalBills,
-      totalAmount,
-      itemsCount,
-      purchases: filtered.sort((a, b) => new Date(b.purchase_date) - new Date(a.purchase_date))
-    };
-  }
-
   function renderCompanyPurchases() {
     const container = document.getElementById('view-container');
     if (activeTab === 'companies' && selectedCompany) {
@@ -573,44 +393,35 @@ window.PurchasesView = (function () {
   }
 
   function updateBillTotals() {
-    let totalAmount = 0;
-    let qtySum = 0;
+    let subtotal = 0;
+    let totalTax = 0;
 
     cartItems.forEach(item => {
-      qtySum += item.quantity;
+      const itemTotal = item.quantity * item.price;
+      const itemTax = (itemTotal * item.tax) / 100;
+      subtotal += itemTotal;
+      totalTax += itemTax;
     });
 
-    const targetQtyInput = document.getElementById('bill-total-qty');
-    const targetQty = parseInt(targetQtyInput?.value) || 0;
-    const totalPrizeInput = document.getElementById('bill-total-prize');
-    const totalPrize = parseFloat(totalPrizeInput?.value) || 0;
+    const total = subtotal + totalTax;
 
-    const qtySumEl = document.getElementById('bill-qty-sum');
-    const targetQtyEl = document.getElementById('bill-target-qty');
-    const totalEl = document.getElementById('bill-total');
-
-    if (qtySumEl) qtySumEl.textContent = qtySum;
-    if (targetQtyEl) targetQtyEl.textContent = targetQty;
-    if (totalEl) totalEl.textContent = totalPrize.toFixed(2);
-
-    if (qtySum > targetQty) {
-      qtySumEl.style.color = 'red';
-      showToast('Warning: Running quantity exceeds total bill quantity!', 'warning');
-    } else if (qtySum === targetQty && targetQty > 0) {
-      qtySumEl.style.color = 'green';
-    } else {
-      qtySumEl.style.color = 'var(--text-primary)';
-    }
+    document.getElementById('bill-subtotal').textContent = subtotal.toFixed(2);
+    document.getElementById('bill-tax').textContent = totalTax.toFixed(2);
+    document.getElementById('bill-total').textContent = total.toFixed(2);
   }
 
   function renderBillItems() {
     const tbody = document.getElementById('bill-items-tbody');
-    if (!tbody) return;
     tbody.innerHTML = cartItems.map((item, idx) => {
+      const itemTotal = item.quantity * item.price;
+      const itemTax = (itemTotal * item.tax) / 100;
       return `
         <tr>
           <td>${item.name}</td>
           <td>${item.quantity}</td>
+          <td>₹${item.price.toFixed(2)}</td>
+          <td>${item.tax}%</td>
+          <td>₹${(itemTotal + itemTax).toFixed(2)}</td>
           <td>
             <button type="button" class="btn btn-small btn-danger remove-item-btn" data-index="${idx}">Remove</button>
           </td>
@@ -619,16 +430,6 @@ window.PurchasesView = (function () {
     }).join('');
 
     updateBillTotals();
-
-    tbody.querySelectorAll('.remove-item-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const index = parseInt(e.target.dataset.index, 10);
-        if (!Number.isNaN(index)) {
-          cartItems.splice(index, 1);
-          renderBillItems();
-        }
-      });
-    });
   }
 
   function attachCompaniesEventListeners() {
@@ -636,20 +437,6 @@ window.PurchasesView = (function () {
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         activeTab = e.target.dataset.tab;
-        if (activeTab === 'add-bill') {
-          cartItems = [];
-          // Reset submit button if it was in edit mode
-          setTimeout(() => {
-            const submitBtn = document.querySelector('#add-bill-form button[type="submit"]');
-            if (submitBtn) {
-              submitBtn.textContent = 'Save Purchase Bill';
-              delete submitBtn.dataset.editId;
-            }
-          }, 0);
-        }
-        if (activeTab === 'reports') {
-          computePurchasesReport();
-        }
         renderCompaniesTab();
       });
     });
@@ -677,7 +464,7 @@ window.PurchasesView = (function () {
       if (addForm) {
         addForm.addEventListener('submit', async (e) => {
           e.preventDefault();
-
+          
           const name = document.getElementById('company-name').value;
           const contact_person = document.getElementById('company-contact').value;
           const email = document.getElementById('company-email').value;
@@ -717,54 +504,10 @@ window.PurchasesView = (function () {
         btn.addEventListener('click', (e) => {
           const companyId = e.target.dataset.companyId;
           const company = companies.find(c => c.id === companyId);
-          if (company) {
-            editingCompany = company;
-            document.getElementById('edit-company-id').value = company.id;
-            document.getElementById('edit-company-name').value = company.name || '';
-            document.getElementById('edit-company-contact').value = company.contact_person || '';
-            document.getElementById('edit-company-email').value = company.email || '';
-            document.getElementById('edit-company-phone').value = company.phone || '';
-            document.getElementById('edit-company-address').value = company.address || '';
-            document.getElementById('edit-company-form-container').style.display = 'flex';
-          }
+          // TODO: Implement edit modal
+          showToast('Edit feature coming soon', 'info');
         });
       });
-
-      const cancelEditBtn = document.getElementById('cancel-edit-company');
-      if (cancelEditBtn) {
-        cancelEditBtn.addEventListener('click', () => {
-          document.getElementById('edit-company-form-container').style.display = 'none';
-        });
-      }
-
-      const editForm = document.getElementById('edit-company-form');
-      if (editForm) {
-        editForm.addEventListener('submit', async (e) => {
-          e.preventDefault();
-          const id = document.getElementById('edit-company-id').value;
-          const name = document.getElementById('edit-company-name').value;
-          const contact_person = document.getElementById('edit-company-contact').value;
-          const email = document.getElementById('edit-company-email').value;
-          const phone = document.getElementById('edit-company-phone').value;
-          const address = document.getElementById('edit-company-address').value;
-
-          try {
-            await window.ApiService.fetchFromBackend(`/companies/${id}`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ name, contact_person, email, phone, address })
-            });
-
-            showToast('Company updated successfully', 'success');
-            document.getElementById('edit-company-form-container').style.display = 'none';
-            await loadCompanies();
-            renderCompaniesTab();
-          } catch (err) {
-            console.error('Failed to update company:', err);
-            showToast('Failed to update company', 'error');
-          }
-        });
-      }
 
       // Delete company
       document.querySelectorAll('.delete-company-btn').forEach(btn => {
@@ -832,8 +575,8 @@ window.PurchasesView = (function () {
         if (!startDate) return;
         const endDate = prompt('Enter end date (YYYY-MM-DD):');
         if (!endDate) return;
-
-        const rangePurchases = purchases.filter(p =>
+        
+        const rangePurchases = purchases.filter(p => 
           p.purchase_date >= startDate && p.purchase_date <= endDate
         );
         if (rangePurchases.length === 0) {
@@ -910,7 +653,7 @@ window.PurchasesView = (function () {
             const all = getProducts();
             const filtered = all.filter(p => {
               const name = String(p.name || '').toLowerCase();
-              const cats = Array.isArray(p.category) ? p.category.join(' ').toLowerCase() : (String(p.category || '')).toLowerCase();
+              const cats = Array.isArray(p.category) ? p.category.join(' ').toLowerCase() : (String(p.category||'')).toLowerCase();
               return name.includes(q) || cats.includes(q);
             });
             renderResults(filtered);
@@ -953,11 +696,13 @@ window.PurchasesView = (function () {
 
           renderBillItems();
 
-          // Reset selection for next pick
+            // Reset selection for next pick
           selectedIdInput.value = '';
           resultsContainer.innerHTML = '';
-          if (searchInput) searchInput.value = '';
+            if (searchInput) searchInput.value = '';
           document.getElementById('product-quantity').value = '1';
+          document.getElementById('product-price').value = '0';
+          document.getElementById('product-tax').value = '0';
         });
       }
 
@@ -979,170 +724,50 @@ window.PurchasesView = (function () {
           const companyId = document.getElementById('bill-company-select').value;
           const invoiceNo = document.getElementById('bill-invoice-no').value;
           const purchaseDate = document.getElementById('bill-purchase-date').value;
-          const targetQty = parseInt(targetQtyInput?.value) || 0;
-          const totalPrizeInput = document.getElementById('bill-total-prize');
-          const totalPrize = parseFloat(totalPrizeInput?.value) || 0;
+          const notes = document.getElementById('bill-notes').value;
 
-          const currentSum = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-
-          if (!companyId || !invoiceNo || !purchaseDate || totalPrize <= 0 || cartItems.length === 0) {
+          if (!companyId || !invoiceNo || !purchaseDate || cartItems.length === 0) {
             showToast('Please fill all required fields and add products', 'warning');
             return;
           }
 
-          if (currentSum !== targetQty) {
-            showToast(`Quantity sum (${currentSum}) must exactly match total bill quantity (${targetQty}) to proceed.`, 'warning');
-            return;
-          }
-
-          // Calculate total amount
-          const totalAmount = totalPrize;
+          // Calculate totals
+          let subtotal = 0;
+          let totalTax = 0;
+          cartItems.forEach(item => {
+            const itemTotal = item.quantity * item.price;
+            const itemTax = (itemTotal * item.tax) / 100;
+            subtotal += itemTotal;
+            totalTax += itemTax;
+          });
+          const total = subtotal + totalTax;
 
           try {
-            const submitBtn = form.querySelector('button[type="submit"]');
-            const editId = submitBtn?.dataset.editId;
-            const endpoint = editId ? `/purchases/${editId}` : '/purchases';
-            const method = editId ? 'PUT' : 'POST';
-
-            await window.ApiService.fetchFromBackend(endpoint, {
-              method,
+            await window.ApiService.fetchFromBackend('/purchases', {
+              method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 company_id: companyId,
                 invoice_number: invoiceNo,
                 purchase_date: purchaseDate,
                 items: cartItems,
-                total_amount: totalAmount
+                subtotal,
+                tax: totalTax,
+                total_amount: total,
+                notes
               })
             });
 
-            showToast(editId ? 'Purchase bill updated successfully' : 'Purchase bill saved successfully', 'success');
-            if (editId) {
-              submitBtn.textContent = 'Save Purchase Bill';
-              delete submitBtn.dataset.editId;
-            }
+            showToast('Purchase bill saved successfully', 'success');
             cartItems = [];
             form.reset();
-            renderCompaniesTab();
+            renderAddBillContent();
           } catch (err) {
             console.error('Failed to save purchase:', err);
             showToast('Failed to save purchase bill', 'error');
           }
         });
       }
-    } else if (activeTab === 'reports') {
-      const scopeSelect = document.getElementById('purchase-report-scope');
-      const monthInput = document.getElementById('purchase-report-month');
-      const yearInput = document.getElementById('purchase-report-year');
-      const fromInput = document.getElementById('purchase-report-from');
-      const toInput = document.getElementById('purchase-report-to');
-
-      scopeSelect?.addEventListener('change', (e) => {
-        purchasesReport.scope = e.target.value;
-        renderCompaniesTab();
-      });
-
-      document.getElementById('generate-purchase-report-btn')?.addEventListener('click', () => {
-        purchasesReport.config = {
-          month: monthInput?.value,
-          year: yearInput?.value,
-          from: fromInput?.value,
-          to: toInput?.value
-        };
-        computePurchasesReport();
-        renderCompaniesTab();
-      });
-
-      document.getElementById('download-purchase-report-btn')?.addEventListener('click', async () => {
-        if (!purchasesReport.data) return showToast('Generate report first', 'info');
-        await downloadPurchasesPdf(purchasesReport.data.purchases, `Purchase_Report_${purchasesReport.scope}`);
-      });
-    }
-
-    // Purchase Actions (Edit / Print) - Available in both Detail view and Reports view
-    document.querySelectorAll('.edit-purchase-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const purchaseId = e.target.dataset.purchaseId;
-        const purchase = purchases.find(p => p.id === purchaseId);
-        if (purchase) {
-          editPurchase(purchase);
-        }
-      });
-    });
-
-    document.querySelectorAll('.download-print-bill-btn').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const purchaseId = e.target.dataset.purchaseId;
-        await printAndDownloadSingleBill(purchaseId);
-      });
-    });
-  }
-
-  function editPurchase(purchase) {
-    // Switch to Add Bill tab and pre-fill data
-    activeTab = 'add-bill';
-    renderCompaniesTab();
-
-    // Fill header
-    const companySelect = document.getElementById('bill-company-select');
-    const invoiceInput = document.getElementById('bill-invoice-no');
-    const dateInput = document.getElementById('bill-purchase-date');
-    const qtyInput = document.getElementById('bill-total-qty');
-    const prizeInput = document.getElementById('bill-total-prize');
-
-    if (companySelect) companySelect.value = purchase.company_id || '';
-    if (invoiceInput) invoiceInput.value = purchase.invoice_number || '';
-    if (dateInput) dateInput.value = purchase.purchase_date ? purchase.purchase_date.split('T')[0] : '';
-    if (qtyInput) {
-      const totalQty = (purchase.items || []).reduce((sum, item) => sum + item.quantity, 0);
-      qtyInput.value = totalQty;
-    }
-    if (prizeInput) prizeInput.value = purchase.total_amount || 0;
-
-    // Load items into cart
-    cartItems = (purchase.items || []).map(item => ({
-      product_id: item.product_id,
-      name: item.name,
-      quantity: item.quantity
-    }));
-
-    renderBillItems();
-    updateBillTotals();
-
-    // Change submit button text
-    const submitBtn = document.querySelector('#add-bill-form button[type="submit"]');
-    if (submitBtn) {
-      submitBtn.textContent = 'Update Purchase Bill';
-      submitBtn.dataset.editId = purchase.id;
-    }
-
-    showToast('Loaded purchase for editing', 'info');
-  }
-
-  async function printAndDownloadSingleBill(purchaseId) {
-    try {
-      const purchase = purchases.find(p => p.id === purchaseId);
-      if (!purchase) return showToast('Purchase not found', 'error');
-
-      showToast('Processing print and download...', 'info');
-
-      // 1. Download
-      await downloadSingleBillPdf(purchaseId);
-
-      // 2. Print
-      const printResult = await window.billingApp.printPurchase(purchase, {
-        silent: true,
-        pageSize: 'A5'
-      });
-
-      if (printResult && printResult.success) {
-        showToast('Sent to printer successfully', 'success');
-      } else {
-        showToast(printResult.error || 'Printing failed', 'error');
-      }
-    } catch (err) {
-      console.error('Print/Download failed:', err);
-      showToast('Action failed', 'error');
     }
   }
 

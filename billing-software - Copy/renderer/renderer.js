@@ -59,12 +59,6 @@
       return;
     }
 
-    if (view === 'purchases') {
-      viewTitle.textContent = 'Purchases';
-      window.PurchasesView.render(viewContainer);
-      return;
-    }
-
     if (view === 'reports') {
       viewTitle.textContent = 'Reports';
       window.ReportsView.render(viewContainer);

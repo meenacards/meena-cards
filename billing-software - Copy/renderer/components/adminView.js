@@ -116,10 +116,8 @@
     let activeMain = mainKeys[0] || '';
     let activeSub = '';
     let activeSeries = '';
-    let showAllProducts = true;  // Default to All Products view
 
     function setDefaultForMain(main) {
-      showAllProducts = false;
       const value = collectionTree[main];
       if (Array.isArray(value)) {
         activeSub = '';
@@ -135,35 +133,20 @@
     function renderSidebar() {
       sidebar.innerHTML = '';
 
-      // "All Products" button at top of sidebar
-      const allProductsBtn = document.createElement('button');
-      allProductsBtn.type = 'button';
-      allProductsBtn.className = `products-main-btn ${showAllProducts ? 'active' : ''}`;
-      allProductsBtn.textContent = 'All Products';
-      allProductsBtn.onclick = () => {
-        showAllProducts = true;
-        searchInput.value = '';
-        renderSidebar();
-        renderCards();
-        setTimeout(() => searchInput.focus(), 50);
-      };
-      sidebar.appendChild(allProductsBtn);
-
       mainKeys.forEach((main) => {
         const mainBtn = document.createElement('button');
         mainBtn.type = 'button';
-        mainBtn.className = `products-main-btn ${!showAllProducts && activeMain === main ? 'active' : ''}`;
+        mainBtn.className = `products-main-btn ${activeMain === main ? 'active' : ''}`;
         mainBtn.textContent = main;
         mainBtn.onclick = () => {
           activeMain = main;
-          showAllProducts = false;
           setDefaultForMain(main);
           renderSidebar();
           renderCards();
         };
         sidebar.appendChild(mainBtn);
 
-        if (showAllProducts || activeMain !== main) return;
+        if (activeMain !== main) return;
 
         const group = collectionTree[main];
         const subContainer = document.createElement('div');
@@ -222,19 +205,12 @@
       const term = (searchInput.value || '').trim().toLowerCase();
       const allCards = window.BillingState.products || [];
 
-      let filtered;
-      if (showAllProducts) {
-        filtered = allCards
-          .filter((card) => !term || (card.name || '').toLowerCase().includes(term))
-          .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-        infoBar.textContent = `Showing ${filtered.length} card(s) — All Products`;
-      } else {
-        filtered = allCards
-          .filter((card) => cardMatchesSeries(card, activeMain, activeSeries))
-          .filter((card) => !term || (card.name || '').toLowerCase().includes(term))
-          .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-        infoBar.textContent = `Showing ${filtered.length} card(s) for ${activeSeries || 'selected series'}`;
-      }
+      const filtered = allCards
+        .filter((card) => cardMatchesSeries(card, activeMain, activeSeries))
+        .filter((card) => !term || (card.name || '').toLowerCase().includes(term))
+        .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+      infoBar.textContent = `Showing ${filtered.length} card(s) for ${activeSeries || 'selected series'}`;
       cardsGrid.innerHTML = '';
 
       if (!filtered.length) {
@@ -286,10 +262,11 @@
         addBtn.type = 'button';
         addBtn.className = 'btn-primary';
         addBtn.textContent = 'Add To Billing';
-        addBtn.title = 'Add to current bill';
         addBtn.onclick = () => {
+          // Use wrapper which shows toast and normalizes the object
           const result = addCardToBill(card);
           if (result && result.ok) {
+            // notify billing UI to refresh if it's visible
             try {
               window.dispatchEvent(new Event('billing:cart-changed'));
             } catch (e) {
@@ -298,57 +275,7 @@
           }
         };
 
-        const editBtn = document.createElement('button');
-        editBtn.type = 'button';
-        editBtn.className = 'btn-secondary';
-        editBtn.textContent = '✏️ Edit';
-        editBtn.title = 'Edit this card';
-        editBtn.onclick = (e) => {
-          e.stopPropagation();
-          // Directly open update modal — skip the detail overlay
-          onOpenDetail(card, true);
-        };
-
-        const deleteBtn = document.createElement('button');
-        deleteBtn.type = 'button';
-        deleteBtn.className = 'btn-danger';
-        deleteBtn.textContent = '🗑️ Delete';
-        deleteBtn.title = 'Delete this card';
-        deleteBtn.onclick = async (e) => {
-          e.stopPropagation();
-          // Use a simple confirm to avoid complex overlay inside buildProductsLayout
-          const confirmed = window.confirm(`Delete card "${card.name || 'Unnamed card'}"? This cannot be undone.`);
-          if (!confirmed) return;
-          try {
-            await window.ApiService.deleteProduct(card.id);
-            const latest = await window.ApiService.fetchProducts();
-            window.BillingActions.setProducts(latest);
-            renderCards();
-            if (window.Toastify) {
-              window.Toastify({
-                text: `Card "${card.name}" deleted.`,
-                duration: 3000,
-                gravity: 'top',
-                position: 'right',
-                style: { background: 'linear-gradient(135deg, #b85b5b, #8e3f3f)', color: '#fff', borderRadius: '10px', fontWeight: '600' },
-              }).showToast();
-            }
-          } catch (err) {
-            if (window.Toastify) {
-              window.Toastify({
-                text: 'Failed to delete card.',
-                duration: 4000,
-                gravity: 'top',
-                position: 'right',
-                style: { background: 'linear-gradient(135deg, #b85b5b, #8e3f3f)', color: '#fff', borderRadius: '10px', fontWeight: '600' },
-              }).showToast();
-            }
-          }
-        };
-
         actions.appendChild(addBtn);
-        actions.appendChild(editBtn);
-        actions.appendChild(deleteBtn);
         body.appendChild(title);
         body.appendChild(description);
         body.appendChild(meta);
@@ -363,12 +290,13 @@
       // debug overlay removed
     }
 
-    // Default: All Products mode, search bar always visible in content area
+    if (activeMain) {
+      setDefaultForMain(activeMain);
+    }
+
     searchInput.addEventListener('input', renderCards);
     renderSidebar();
     renderCards();
-    // Focus the search box immediately
-    setTimeout(() => searchInput.focus(), 80);
   }
 
   function renderAdminView(container) {
@@ -481,16 +409,10 @@
     pressesBtn.className = 'admin-tab-btn';
     pressesBtn.textContent = 'Presses';
 
-    const companiesBtn = document.createElement('button');
-    companiesBtn.type = 'button';
-    companiesBtn.className = 'admin-tab-btn';
-    companiesBtn.textContent = 'Companies';
-
     tabs.appendChild(dashboardBtn);
     tabs.appendChild(productsBtn);
     tabs.appendChild(addProductBtn);
     tabs.appendChild(pressesBtn);
-    tabs.appendChild(companiesBtn);
 
     const dashboardPanel = document.createElement('section');
     dashboardPanel.className = 'admin-panel';
@@ -504,15 +426,11 @@
     const pressesPanel = document.createElement('section');
     pressesPanel.className = 'admin-panel hidden';
 
-    const companiesPanel = document.createElement('section');
-    companiesPanel.className = 'admin-panel hidden';
-
     root.appendChild(tabs);
     root.appendChild(dashboardPanel);
     root.appendChild(productsPanel);
     root.appendChild(addPanel);
     root.appendChild(pressesPanel);
-    root.appendChild(companiesPanel);
     container.appendChild(root);
 
     function setTab(tab) {
@@ -520,18 +438,15 @@
       const isProducts = tab === 'products';
       const isAddProduct = tab === 'add-product';
       const isPresses = tab === 'presses';
-      const isCompanies = tab === 'companies';
 
       dashboardBtn.classList.toggle('active', isDashboard);
       productsBtn.classList.toggle('active', isProducts);
       addProductBtn.classList.toggle('active', isAddProduct);
       pressesBtn.classList.toggle('active', isPresses);
-      companiesBtn.classList.toggle('active', isCompanies);
       dashboardPanel.classList.toggle('hidden', !isDashboard);
       productsPanel.classList.toggle('hidden', !isProducts);
       addPanel.classList.toggle('hidden', !isAddProduct);
       pressesPanel.classList.toggle('hidden', !isPresses);
-      companiesPanel.classList.toggle('hidden', !isCompanies);
     }
 
     function renderPressesPanel() {
@@ -606,140 +521,6 @@
           err.textContent = `Error: ${error.message || 'Unknown error'}`;
           grid.appendChild(err);
         });
-    }
-
-    function renderCompaniesPanel() {
-      companiesPanel.innerHTML = '';
-
-      const header = document.createElement('div');
-      header.className = 'admin-section-header';
-      const title = document.createElement('h3');
-      title.textContent = 'Supplier Companies';
-      header.appendChild(title);
-
-      const actions = document.createElement('div');
-      actions.className = 'admin-section-actions';
-      const addBtn = document.createElement('button');
-      addBtn.type = 'button';
-      addBtn.className = 'btn-primary';
-      addBtn.textContent = '+ Add New Company';
-
-      const reportBtn = document.createElement('button');
-      reportBtn.type = 'button';
-      reportBtn.className = 'btn-secondary';
-      reportBtn.textContent = 'Report';
-
-      actions.appendChild(reportBtn);
-      actions.appendChild(addBtn);
-      header.appendChild(actions);
-
-      const list = document.createElement('div');
-      list.className = 'companies-admin-list';
-
-      companiesPanel.appendChild(header);
-      companiesPanel.appendChild(list);
-
-      // Add company modal
-      const modalOverlay = document.createElement('div');
-      modalOverlay.className = 'admin-modal-overlay hidden';
-      const modal = document.createElement('div');
-      modal.className = 'admin-modal';
-      modal.innerHTML = `
-        <h3>Add New Company</h3>
-        <form id="admin-add-company-form">
-          <div class="form-group"><label>Company Name *</label><input id="admin-company-name" required /></div>
-          <div class="form-group"><label>Contact Person</label><input id="admin-company-contact" /></div>
-          <div class="form-group"><label>Email</label><input id="admin-company-email" type="email" /></div>
-          <div class="form-group"><label>Phone</label><input id="admin-company-phone" /></div>
-          <div class="form-group"><label>Address</label><textarea id="admin-company-address" rows="3"></textarea></div>
-          <div style="margin-top:12px;"><button type="submit" class="btn btn-primary">Add Company</button>
-          <button type="button" id="admin-cancel-add-company" class="btn btn-secondary">Cancel</button></div>
-        </form>
-      `;
-      modalOverlay.appendChild(modal);
-      companiesPanel.appendChild(modalOverlay);
-
-      async function loadAdminCompanies() {
-        try {
-          const resp = await window.ApiService.fetchFromBackend('/companies', { method: 'GET' });
-          const arr = Array.isArray(resp) ? resp : [];
-          list.innerHTML = arr.map(c => `
-            <div class="company-row">
-              <strong>${c.name}</strong>
-              <div class="company-row-meta">${c.contact_person || ''} • ${c.phone || ''}</div>
-            </div>
-          `).join('');
-        } catch (err) {
-          list.innerHTML = '<div class="empty-products-state">Failed to load companies</div>';
-        }
-      }
-
-      addBtn.addEventListener('click', () => {
-        modalOverlay.classList.remove('hidden');
-      });
-
-      modalOverlay.querySelector('#admin-cancel-add-company').addEventListener('click', () => {
-        modalOverlay.classList.add('hidden');
-      });
-
-      modalOverlay.querySelector('#admin-add-company-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const name = modalOverlay.querySelector('#admin-company-name').value;
-        const contact_person = modalOverlay.querySelector('#admin-company-contact').value;
-        const email = modalOverlay.querySelector('#admin-company-email').value;
-        const phone = modalOverlay.querySelector('#admin-company-phone').value;
-        const address = modalOverlay.querySelector('#admin-company-address').value;
-        try {
-          await window.ApiService.fetchFromBackend('/companies', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, contact_person, email, phone, address })
-          });
-          modalOverlay.classList.add('hidden');
-          await loadAdminCompanies();
-        } catch (err) {
-          showToast('Failed to add company', 'error');
-        }
-      });
-
-      reportBtn.addEventListener('click', async () => {
-        try {
-          const purchases = await window.ApiService.fetchFromBackend('/purchases', { method: 'GET' });
-          const choice = prompt('Enter report type: today | range | monthly | yearly');
-          if (!choice) return;
-          const key = String(choice).trim().toLowerCase();
-          let filtered = Array.isArray(purchases) ? purchases : [];
-          if (key === 'today') {
-            const today = new Date().toISOString().split('T')[0];
-            filtered = filtered.filter(p => p.purchase_date && p.purchase_date.startsWith(today));
-          } else if (key === 'monthly') {
-            const now = new Date();
-            const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-            filtered = filtered.filter(p => p.purchase_date && p.purchase_date.startsWith(monthStr));
-          } else if (key === 'yearly') {
-            const year = new Date().getFullYear().toString();
-            filtered = filtered.filter(p => p.purchase_date && p.purchase_date.startsWith(year));
-          } else if (key === 'range') {
-            const startDate = prompt('Enter start date (YYYY-MM-DD):');
-            if (!startDate) return;
-            const endDate = prompt('Enter end date (YYYY-MM-DD):');
-            if (!endDate) return;
-            filtered = filtered.filter(p => p.purchase_date >= startDate && p.purchase_date <= endDate);
-          } else {
-            showToast('Unknown report type', 'warning');
-            return;
-          }
-          if (!filtered.length) return showToast('No purchases for selected period', 'info');
-          const opts = { type: choice, folder: 'purchases', company_name: 'All' };
-          const res = await window.billingApp.downloadPurchasesPdf(filtered, opts);
-          if (res && res.success) showToast('Report downloaded', 'success'); else showToast(res && res.error || 'Failed to download', 'error');
-        } catch (err) {
-          showToast('Failed to generate report', 'error');
-        }
-      });
-
-      // initial load
-      loadAdminCompanies();
     }
 
     function renderDashboard() {

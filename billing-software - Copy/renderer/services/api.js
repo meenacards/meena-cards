@@ -182,13 +182,4 @@ window.ApiService = {
       body: JSON.stringify(invoiceData),
     });
   },
-  async fetchInvoices() {
-    return apiRequest('/invoices');
-  },
-  async fetchInvoiceById(id) {
-    return apiRequest(`/invoices/${id}`);
-  },
-  async fetchFromBackend(path, options = {}) {
-    return apiRequest(path, options);
-  },
 };
