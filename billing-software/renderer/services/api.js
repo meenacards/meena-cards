@@ -2,6 +2,8 @@ function sanitizeBaseUrl(url) {
   return String(url || '').trim().replace(/\/+$/, '');
 }
 
+const DEFAULT_DEPLOYED_BACKEND_URL = 'https://api.meenacards.com';
+
 let cachedBaseUrlPromise = null;
 
 async function resolveBaseUrl() {
@@ -13,12 +15,12 @@ async function resolveBaseUrl() {
     try {
       if (window.billingApp && typeof window.billingApp.getBackendUrl === 'function') {
         const resolved = await window.billingApp.getBackendUrl();
-        return sanitizeBaseUrl(resolved) || 'http://localhost:8080';
+        return sanitizeBaseUrl(resolved) || DEFAULT_DEPLOYED_BACKEND_URL;
       }
     } catch (_error) {
       // fall back below
     }
-    return 'http://localhost:8080';
+    return DEFAULT_DEPLOYED_BACKEND_URL;
   })();
 
   return cachedBaseUrlPromise;
