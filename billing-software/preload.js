@@ -4,17 +4,21 @@ function sanitizeBaseUrl(url) {
   return String(url || '').trim().replace(/\/+$/, '');
 }
 
+<<<<<<< HEAD
+const resolvedBackendUrl = sanitizeBaseUrl(process.env.BACKEND_URL) || 'https://api.meenacards.com';
+=======
 const resolvedBackendUrl = null;
+>>>>>>> 0ce6dd61a5ff4da5cb4619f2863a06c77bd0daf4
 
 const billingBridge = {
   version: '1.0.0',
-  backendUrl: null,
+  backendUrl: resolvedBackendUrl,
   getBackendUrl: async () => {
     try {
       const value = await ipcRenderer.invoke('env:get', 'BACKEND_URL');
-      return sanitizeBaseUrl(value) || 'http://localhost:8080';
+      return sanitizeBaseUrl(value) || resolvedBackendUrl;
     } catch (_error) {
-      return 'http://localhost:8080';
+      return resolvedBackendUrl;
     }
   },
   // Keep simple static asset path to avoid preload runtime dependency issues.
