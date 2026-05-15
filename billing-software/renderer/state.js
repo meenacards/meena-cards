@@ -6,6 +6,18 @@ window.BillingState = {
   invoices: [],
   cgstPercent: 9,
   sgstPercent: 9,
+  selectedPress: null,
+  billingForm: {
+    pressSearch: '',
+    customerName: '',
+    customerAddress: '',
+    customerPhone: '',
+    gstin: '',
+    transportationCharge: '',
+    cgstPercent: 9,
+    sgstPercent: 9,
+    productSearch: '',
+  },
 };
 
 window.BillingActions = {

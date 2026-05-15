@@ -29,6 +29,8 @@
   function renderBillingView(container) {
     container.innerHTML = '';
 
+    const formState = window.BillingState.billingForm || {};
+
     const layout = document.createElement('div');
     layout.className = 'billing-layout';
 
@@ -91,7 +93,9 @@
     cgstPercentInput.min = '0';
     cgstPercentInput.step = '0.01';
     cgstPercentInput.className = 'input';
-    cgstPercentInput.value = String(window.BillingState.cgstPercent ?? 9);
+    if (formState.cgstPercent !== undefined && formState.cgstPercent !== null) {
+      cgstPercentInput.value = String(formState.cgstPercent);
+    }
     cgstWrap.appendChild(cgstLabel);
     cgstWrap.appendChild(cgstPercentInput);
 
@@ -104,7 +108,9 @@
     sgstPercentInput.min = '0';
     sgstPercentInput.step = '0.01';
     sgstPercentInput.className = 'input';
-    sgstPercentInput.value = String(window.BillingState.sgstPercent ?? 9);
+    if (formState.sgstPercent !== undefined && formState.sgstPercent !== null) {
+      sgstPercentInput.value = String(formState.sgstPercent);
+    }
     sgstWrap.appendChild(sgstLabel);
     sgstWrap.appendChild(sgstPercentInput);
 
@@ -123,6 +129,12 @@
     pressPanel.appendChild(gstLabel);
     pressPanel.appendChild(gstInput);
 
+    if (formState.pressSearch) pressSearchInput.value = formState.pressSearch;
+    if (formState.customerName) toInput.value = formState.customerName;
+    if (formState.customerAddress) addressInput.value = formState.customerAddress;
+    if (formState.customerPhone) phoneInput.value = formState.customerPhone;
+    if (formState.gstin) gstInput.value = formState.gstin;
+
     left.appendChild(pressPanel);
 
     // Product search input + suggestions
@@ -133,6 +145,7 @@
     searchInput.placeholder = 'Search product by name';
     searchInput.className = 'input';
     searchInput.style.width = '100%';
+    if (formState.productSearch) searchInput.value = formState.productSearch;
 
     const addCustomProductBtn = document.createElement('button');
     addCustomProductBtn.type = 'button';
@@ -187,6 +200,9 @@
     transportAmountInput.className = 'input';
     transportAmountInput.placeholder = 'Enter transportation charge';
     transportAmountInput.required = true;
+    if (formState.transportationCharge !== undefined && formState.transportationCharge !== null) {
+      transportAmountInput.value = String(formState.transportationCharge);
+    }
 
     const transportValidationMsg = document.createElement('div');
     transportValidationMsg.className = 'billing-notice error';
@@ -219,7 +235,7 @@
     container.appendChild(layout);
 
     let presses = [];
-    let selectedPress = null;
+    let selectedPress = window.BillingState.selectedPress || formState.selectedPress || null;
 
     function showBillingMessage(type, message) {
       const toastType = type || 'info';
@@ -383,12 +399,18 @@
 
     function applySelectedPress(press) {
       selectedPress = press || null;
+      window.BillingState.selectedPress = selectedPress;
+      window.BillingState.billingForm.selectedPress = selectedPress;
       toInput.value = press ? (press.name || '') : '';
       addressInput.value = press ? (press.address || '') : '';
       phoneInput.value = press ? (press.ph_no || '') : '';
       if (press) {
         pressSearchInput.value = `${press.name || ''} - ${press.address || ''}`.trim();
       }
+      window.BillingState.billingForm.pressSearch = pressSearchInput.value;
+      window.BillingState.billingForm.customerName = toInput.value;
+      window.BillingState.billingForm.customerAddress = addressInput.value;
+      window.BillingState.billingForm.customerPhone = phoneInput.value;
       pressSuggestions.innerHTML = '';
     }
 
@@ -423,13 +445,36 @@
 
     pressSearchInput.addEventListener('input', () => {
       selectedPress = null;
+      window.BillingState.selectedPress = null;
+      window.BillingState.billingForm.pressSearch = pressSearchInput.value;
       renderPressSuggestions(pressSearchInput.value);
     });
 
     pressSearchInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
+        window.BillingState.billingForm.pressSearch = pressSearchInput.value;
         renderPressSuggestions(pressSearchInput.value);
       }
+    });
+
+    toInput.addEventListener('input', () => {
+      selectedPress = null;
+      window.BillingState.selectedPress = null;
+      window.BillingState.billingForm.customerName = toInput.value;
+    });
+
+    addressInput.addEventListener('input', () => {
+      selectedPress = null;
+      window.BillingState.selectedPress = null;
+      window.BillingState.billingForm.customerAddress = addressInput.value;
+    });
+
+    phoneInput.addEventListener('input', () => {
+      window.BillingState.billingForm.customerPhone = phoneInput.value;
+    });
+
+    gstInput.addEventListener('input', () => {
+      window.BillingState.billingForm.gstin = gstInput.value;
     });
 
     function renderCartRows() {
@@ -593,6 +638,7 @@
 
     function resetBillingForm() {
       selectedPress = null;
+      window.BillingState.selectedPress = null;
       pressSearchInput.value = '';
       pressSuggestions.innerHTML = '';
       toInput.value = '';
@@ -605,6 +651,18 @@
       sgstPercentInput.value = '9';
       setTransportationMode(false);
       syncTaxState();
+      window.BillingState.billingForm = {
+        pressSearch: '',
+        customerName: '',
+        customerAddress: '',
+        customerPhone: '',
+        gstin: '',
+        transportationCharge: '',
+        cgstPercent: 9,
+        sgstPercent: 9,
+        productSearch: '',
+        selectedPress: null,
+      };
       renderTotals();
     }
 
@@ -642,6 +700,7 @@
             return;
           }
           searchInput.value = '';
+          window.BillingState.billingForm.productSearch = '';
           suggestions.innerHTML = '';
           renderCartRows();
           renderTotals();
@@ -652,6 +711,7 @@
     }
 
     searchInput.addEventListener('input', () => {
+      window.BillingState.billingForm.productSearch = searchInput.value;
       renderSuggestions(searchInput.value);
     });
     searchInput.addEventListener('keydown', (e) => {
@@ -661,16 +721,19 @@
     });
 
     cgstPercentInput.addEventListener('input', () => {
+      window.BillingState.billingForm.cgstPercent = cgstPercentInput.value;
       syncTaxState();
       renderTotals();
     });
 
     sgstPercentInput.addEventListener('input', () => {
+      window.BillingState.billingForm.sgstPercent = sgstPercentInput.value;
       syncTaxState();
       renderTotals();
     });
 
     transportAmountInput.addEventListener('input', () => {
+      window.BillingState.billingForm.transportationCharge = transportAmountInput.value;
       validateTransportationCharge();
       renderTotals();
     });
@@ -694,6 +757,10 @@
         const customerName = toInput.value.trim();
         const customerAddress = addressInput.value.trim();
         const customerPhone = phoneInput.value.trim();
+        window.BillingState.billingForm.customerName = customerName;
+        window.BillingState.billingForm.customerAddress = customerAddress;
+        window.BillingState.billingForm.customerPhone = customerPhone;
+        window.BillingState.billingForm.gstin = gstInput.value.trim();
 
         if (!customerName) {
           showBillingMessage('error', 'Please enter customer/press name before generating invoice.');
@@ -788,7 +855,12 @@
     };
 
     renderCartRows();
-    setTransportationMode(false);
+    if (transportAmountInput.value) {
+      validateTransportationCharge();
+    } else {
+      transportValidationMsg.style.display = 'none';
+      transportAmountInput.style.borderColor = '';
+    }
     renderTotals();
 
     // Auto-focus the search box so the caret is visible immediately
