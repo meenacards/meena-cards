@@ -52,13 +52,22 @@ class ApiService {
   // Helper for user-friendly error messages
   String getErrorMessage(dynamic e) {
     if (e is DioException) {
+      // 1. Try to get specific error message from server response first
+      if (e.response?.data != null && e.response?.data is Map) {
+        final serverError = e.response?.data['error'];
+        if (serverError != null && serverError is String) {
+          return serverError;
+        }
+      }
+
+      // 2. Fallback to generic messages based on error type/status code
       if (e.type == DioExceptionType.connectionTimeout ||
           e.type == DioExceptionType.receiveTimeout) {
         return "Network timeout. Please check your internet.";
       } else if (e.type == DioExceptionType.connectionError) {
         return "No internet connection.";
       } else if (e.response?.statusCode == 401) {
-        return "Session expired. Please login again.";
+        return "Invalid credentials or session expired.";
       } else if (e.response?.statusCode == 403) {
         return "Access denied.";
       } else if (e.response?.statusCode == 404) {

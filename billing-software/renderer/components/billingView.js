@@ -7,7 +7,7 @@
     const result = await window.billingApp.printInvoice(invoice, {
       silent: true,
       pageSize: 'A5',
-      margins: { marginType: 'printableArea' },
+      margins: { marginType: 'none' },
     });
 
     if (!result || !result.ok) {

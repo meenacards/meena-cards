@@ -746,7 +746,7 @@ function printInvoice(invoice, options = {}) {
             silent: isSilent,
             printBackground: true,
             pageSize: options.pageSize || 'A5',
-            margins: options.margins || { marginType: 'printableArea' },
+            margins: options.margins || { marginType: 'none' },
             deviceName,
           },
           (success, errorType) => {
@@ -1038,7 +1038,7 @@ function printPurchase(purchase, options = {}) {
             silent: isSilent,
             printBackground: true,
             pageSize: options.pageSize || 'A5',
-            margins: { marginType: 'printableArea' },
+            margins: { marginType: 'none' },
             deviceName,
           },
           (success, errorType) => {
