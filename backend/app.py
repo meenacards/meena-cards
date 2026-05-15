@@ -476,7 +476,11 @@ def login_admin():
     admin_pass = os.getenv("ADMIN_PASS") or os.getenv("VITE_ADMIN_PASS", "1234")
     
     if user == admin_user and password == admin_pass:
-        return jsonify({"message": "Admin login successful", "role": "admin"}), 200
+        return jsonify({
+            "message": "Admin login successful", 
+            "role": "admin",
+            "token": "admin-dummy-token-123"
+        }), 200
     return jsonify({"error": "Invalid admin credentials"}), 401
 
 @app.route("/login/press", methods=["POST"])
@@ -510,7 +514,8 @@ def login_press():
         "id": str(press["_id"]),
         "name": press["name"],
         "ph_no": press.get("ph_no", ""),
-        "is_approved": True
+        "is_approved": True,
+        "token": f"press-dummy-token-{str(press['_id'])}"
     }), 200
 
 @app.route("/register/press", methods=["POST"])
