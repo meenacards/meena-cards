@@ -13,8 +13,9 @@
 
     if (!result || !result.ok) {
       const errMsg = (result && result.error) || '';
-      // Detect common no-printer error strings from Electron/Windows
-      const noPrinter = /no printer|printer not found|no default printer|cancelled|canceled/i.test(errMsg);
+      // Check noPrinter flag from main process, OR detect from error string
+      const noPrinter = !!(result && result.noPrinter)
+        || /no printer|printer not found|no default printer|cancelled|canceled|no.*connected/i.test(errMsg);
       return {
         ok: false,
         noPrinter,

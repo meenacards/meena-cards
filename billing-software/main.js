@@ -233,7 +233,7 @@ function printSavedPdfFile(pdfPath, options = {}) {
     const absolutePath = path.resolve(String(pdfPath || ''));
 
     if (!absolutePath || path.extname(absolutePath).toLowerCase() !== '.pdf' || !fs.existsSync(absolutePath)) {
-      resolve({ ok: false, success: false, error: 'Saved PDF file was not found for printing.' });
+      resolve({ ok: false, success: false, noPrinter: false, error: 'Saved PDF file was not found for printing.' });
       return;
     }
 
@@ -242,16 +242,15 @@ function printSavedPdfFile(pdfPath, options = {}) {
       return;
     }
 
+    // Embed the path directly in the command string.
+    // Using $args[0] with Node spawn -Command does NOT work — extra array elements
+    // are NOT passed as $args in -Command mode, so $args[0] is always null/empty.
+    const escapedPath = absolutePath.replace(/'/g, "''");
+    const psCommand = `Start-Process -FilePath '${escapedPath}' -Verb Print -WindowStyle Hidden`;
+
     const child = spawn(
       'powershell.exe',
-      [
-        '-NoProfile',
-        '-ExecutionPolicy',
-        'Bypass',
-        '-Command',
-        'Start-Process -FilePath $args[0] -Verb Print -WindowStyle Hidden',
-        absolutePath,
-      ],
+      ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', psCommand],
       { windowsHide: true }
     );
 
@@ -261,7 +260,7 @@ function printSavedPdfFile(pdfPath, options = {}) {
     });
 
     child.on('error', (error) => {
-      resolve({ ok: false, success: false, error: error.message || 'Failed to send PDF to printer.' });
+      resolve({ ok: false, success: false, noPrinter: false, error: error.message || 'Failed to send PDF to printer.' });
     });
 
     child.on('close', (code) => {
@@ -270,10 +269,15 @@ function printSavedPdfFile(pdfPath, options = {}) {
         return;
       }
 
+      const errText = stderr.trim();
+      const noPrinter = /no.*default.*printer|no.*printer|printer.*not.*found|there is no printer/i.test(errText);
       resolve({
         ok: false,
         success: false,
-        error: stderr.trim() || 'Failed to send saved PDF to printer.',
+        noPrinter,
+        error: noPrinter
+          ? 'No printer is connected or selected.'
+          : errText || 'Failed to send saved PDF to printer.',
       });
     });
   });
@@ -902,8 +906,8 @@ function isPdfPrinterName(name) {
 function printInvoice(invoice, options = {}) {
   return new Promise((resolve) => {
     const hiddenWin = new BrowserWindow({
-      width: 820,
-      height: 1160,
+      width: 559,
+      height: 794,
       show: false,
       webPreferences: {
         contextIsolation: true,
@@ -1162,8 +1166,8 @@ function createWindow() {
 function printPurchase(purchase, options = {}) {
   return new Promise((resolve) => {
     const hiddenWin = new BrowserWindow({
-      width: 820,
-      height: 1160,
+      width: 559,
+      height: 794,
       show: false,
       webPreferences: {
         contextIsolation: true,
