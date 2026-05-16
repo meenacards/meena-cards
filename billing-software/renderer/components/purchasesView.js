@@ -1058,7 +1058,7 @@ window.PurchasesView = (function () {
             const endpoint = editingPurchaseId ? `/purchases/${editingPurchaseId}` : '/purchases';
             const method = editingPurchaseId ? 'PUT' : 'POST';
 
-            await window.ApiService.fetchFromBackend(endpoint, {
+            const saved = await window.ApiService.fetchFromBackend(endpoint, {
               method,
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -1071,6 +1071,53 @@ window.PurchasesView = (function () {
             });
 
             showToast(editingPurchaseId ? 'Purchase bill updated successfully' : 'Purchase bill saved successfully', 'success');
+
+            // Attempt to save a PDF copy to Documents/meena-cards/purchases asynchronously.
+            (async () => {
+              try {
+                const company = companies.find(c => c.id === companyId) || {};
+                // Backend create/update endpoints often return only an ID/message.
+                // Prefer the full saved object when it contains items; otherwise fall back to local data.
+                const hasItemsInSaved = saved && typeof saved === 'object' && Array.isArray(saved.items) && saved.items.length > 0;
+                const purchaseObj = hasItemsInSaved ? saved : {
+                  id: (saved && saved.id) || null,
+                  invoice_number: invoiceNo,
+                  purchase_date: purchaseDate,
+                  items: Array.isArray(cartItems) ? cartItems : [],
+                  total_amount: totalAmount,
+                  company_name: (company && company.name) || ''
+                };
+
+                const now = new Date();
+                const dateStr = now.toISOString().split('T')[0];
+                const filename = `purchase_bill_${purchaseObj.invoice_number || invoiceNo}_${dateStr}.pdf`;
+
+                const enhanced = {
+                  ...purchaseObj,
+                  company_address: company.address || '-',
+                  company_phone: company.phone || '-',
+                };
+
+                if (window.billingApp && typeof window.billingApp.downloadPurchasePdf === 'function') {
+                  const pdfResult = await window.billingApp.downloadPurchasePdf(enhanced, {
+                    filename,
+                    folder: 'purchases',
+                    pageSize: 'A5',
+                    margins: { marginType: 'none' },
+                  });
+
+                  if (pdfResult && (pdfResult.success || pdfResult.ok)) {
+                    showToast('PDF copy saved to Documents/meena-cards/purchases', 'success');
+                  } else {
+                    console.warn('Purchase PDF save result:', pdfResult);
+                    showToast('Purchase saved but failed to store PDF copy', 'warning');
+                  }
+                }
+              } catch (pdfErr) {
+                console.error('Failed to save purchase PDF:', pdfErr);
+                // don't surface as fatal; user already got DB save success
+              }
+            })();
             
             // Refresh products to sync stocks in UI
             try {
@@ -1299,6 +1346,7 @@ window.PurchasesView = (function () {
 
       const result = await window.billingApp.downloadPurchasePdf(enhancedPurchase, {
         filename,
+        // When downloading a single bill from the reports page, store under purchase-reports
         folder: 'purchase-reports',
       });
 

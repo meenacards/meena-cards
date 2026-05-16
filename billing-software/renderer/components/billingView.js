@@ -7,7 +7,7 @@
     const result = await window.billingApp.printInvoice(invoice, {
       silent: true,
       pageSize: 'A5',
-      margins: { marginType: 'printableArea' },
+      margins: { marginType: 'none' },
     });
 
     if (!result || !result.ok) {
@@ -811,7 +811,7 @@
             gstin: invoice.gstin,
             created_at: invoice.created_at,
           };
-          // First save the PDF silently to Documents/meen-cards/bill then print
+          // First save the PDF silently to Documents/meena-cards/bill then print
           const saveResult = window.billingApp && typeof window.billingApp.downloadPdf === 'function'
             ? await window.billingApp.downloadPdf(printData, `Bill_${invoice.invoice_number}.pdf`, {
               folder: 'bill',
@@ -829,7 +829,7 @@
 
           if (printResult && printResult.ok) {
             if (saveResult && saveResult.ok) {
-              showBillingMessage('success', `Invoice #${invoice.invoice_number} printed and saved in Documents/meen-cards/bill.`);
+              showBillingMessage('success', `Invoice #${invoice.invoice_number} printed and saved in Documents/meena-cards/bill.`);
             } else {
               showBillingMessage('warning', `Invoice #${invoice.invoice_number} printed, but saving the bill copy failed.${saveResult && saveResult.error ? ` ${saveResult.error}` : ''}`);
             }
