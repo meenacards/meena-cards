@@ -58,7 +58,8 @@ class AuthProvider extends ChangeNotifier {
       }
       return false;
     } catch (e) {
-      rethrow;
+      // If it's a 401 or any error, we just return false so the UI can try Press login
+      return false;
     }
   }
 

@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv
+venv/
+ENV/
+
+# Debug and Reports
+debug_db.py
+*.html
+*.log
+.DS_Store
