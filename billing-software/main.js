@@ -2,6 +2,8 @@ const { app, BrowserWindow, Menu, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const { spawn } = require('child_process');
+const { pathToFileURL } = require('url');
 
 let mainWindow = null;
 
@@ -92,6 +94,189 @@ function safeDeleteFile(filePath) {
   } catch (_error) {
     // Ignore cleanup failures.
   }
+}
+
+function createTempPdfFilePath() {
+  const tempDir = app.getPath('temp');
+  return path.join(tempDir, `meena-print-${Date.now()}-${Math.random().toString(36).slice(2)}.pdf`);
+}
+
+const A5_PRINT_PAGE_SIZE = { width: 148000, height: 210000 };
+
+function getPrintPageSize(options = {}) {
+  if (!options.pageSize || String(options.pageSize).toUpperCase() === 'A5') {
+    return A5_PRINT_PAGE_SIZE;
+  }
+
+  return options.pageSize;
+}
+
+async function resolvePrintDeviceName(webContents, options = {}) {
+  const isSilent = options.silent !== false;
+  let deviceName = options.deviceName || undefined;
+
+  if (isSilent && !deviceName) {
+    const printers = await webContents.getPrintersAsync();
+    const physicalPrinters = (printers || []).filter((printer) => printer && printer.name && !isPdfPrinterName(printer.name));
+    const defaultPhysical = physicalPrinters.find((printer) => printer && printer.isDefault);
+    const pickedPrinter = defaultPhysical || physicalPrinters[0];
+
+    if (!pickedPrinter || !pickedPrinter.name) {
+      throw new Error('No physical printer available for auto print.');
+    }
+
+    deviceName = pickedPrinter.name;
+  }
+
+  return deviceName;
+}
+
+async function waitForPrintableContent(webContents) {
+  await webContents.executeJavaScript(`
+    (async () => {
+      if (document.fonts && document.fonts.ready) {
+        await document.fonts.ready;
+      }
+      const images = Array.from(document.images || []);
+      await Promise.all(images.map((img) => {
+        if (img.complete && img.naturalWidth !== 0) return true;
+        if (img.decode) return img.decode().catch(() => true);
+        return new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve;
+        });
+      }));
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      return true;
+    })();
+  `);
+}
+
+async function printLoadedWindow(hiddenWin, options = {}) {
+  await waitForPrintableContent(hiddenWin.webContents);
+  const isSilent = options.silent !== false;
+  const deviceName = await resolvePrintDeviceName(hiddenWin.webContents, options);
+
+  return new Promise((resolve) => {
+    hiddenWin.webContents.print(
+      {
+        silent: isSilent,
+        printBackground: true,
+        pageSize: getPrintPageSize(options),
+        margins: options.margins || { marginType: 'none' },
+        scaleFactor: 100,
+        deviceName,
+      },
+      (success, errorType) => {
+        if (!success) {
+          resolve({ ok: false, success: false, error: errorType || 'Print failed' });
+          return;
+        }
+        resolve({ ok: true, success: true });
+      }
+    );
+  });
+}
+
+function printPdfFile(pdfPath, options = {}) {
+  return new Promise((resolve) => {
+    const hiddenWin = new BrowserWindow({
+      width: 820,
+      height: 1160,
+      show: false,
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+        plugins: true,
+      },
+    });
+
+    hiddenWin.webContents.once('did-finish-load', async () => {
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 250));
+        const isSilent = options.silent !== false;
+        const deviceName = await resolvePrintDeviceName(hiddenWin.webContents, options);
+
+        hiddenWin.webContents.print(
+          {
+            silent: isSilent,
+            printBackground: true,
+            pageSize: getPrintPageSize(options),
+            margins: options.margins || { marginType: 'none' },
+            scaleFactor: 100,
+            deviceName,
+          },
+          (success, errorType) => {
+            hiddenWin.close();
+            if (!success) {
+              resolve({ ok: false, success: false, error: errorType || 'Print failed' });
+              return;
+            }
+            resolve({ ok: true, success: true });
+          }
+        );
+      } catch (error) {
+        hiddenWin.close();
+        resolve({ ok: false, success: false, error: error.message || 'Print failed' });
+      }
+    });
+
+    hiddenWin.loadURL(pathToFileURL(pdfPath).href).catch((error) => {
+      hiddenWin.close();
+      resolve({ ok: false, success: false, error: error.message || 'Failed to load PDF print template' });
+    });
+  });
+}
+
+function printSavedPdfFile(pdfPath, options = {}) {
+  return new Promise((resolve) => {
+    const absolutePath = path.resolve(String(pdfPath || ''));
+
+    if (!absolutePath || path.extname(absolutePath).toLowerCase() !== '.pdf' || !fs.existsSync(absolutePath)) {
+      resolve({ ok: false, success: false, error: 'Saved PDF file was not found for printing.' });
+      return;
+    }
+
+    if (process.platform !== 'win32') {
+      printPdfFile(absolutePath, options).then(resolve);
+      return;
+    }
+
+    const child = spawn(
+      'powershell.exe',
+      [
+        '-NoProfile',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-Command',
+        'Start-Process -FilePath $args[0] -Verb Print -WindowStyle Hidden',
+        absolutePath,
+      ],
+      { windowsHide: true }
+    );
+
+    let stderr = '';
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    child.on('error', (error) => {
+      resolve({ ok: false, success: false, error: error.message || 'Failed to send PDF to printer.' });
+    });
+
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve({ ok: true, success: true, path: absolutePath });
+        return;
+      }
+
+      resolve({
+        ok: false,
+        success: false,
+        error: stderr.trim() || 'Failed to send saved PDF to printer.',
+      });
+    });
+  });
 }
 
 function loadEnvFromFile() {
@@ -205,16 +390,25 @@ function buildPrintFooterComponent() {
 
 function buildPrintBaseStyles(extraCss = '') {
   return `
-    @page { size: A5; margin: 0; }
-    body { font-family: Arial, sans-serif; margin: 0; color: #222; font-size: 12px; }
+    @page { size: 148mm 210mm; margin: 0; }
+    html, body { width: 148mm; min-height: 210mm; margin: 0; padding: 0; background: #fff; }
+    body {
+      font-family: Arial, sans-serif;
+      color: #222;
+      font-size: 12px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
     .page {
       position: relative;
-      width: 147mm; /* Slightly reduced width to avoid printer edge issues */
+      width: 148mm;
       min-height: 210mm;
       height: 210mm;
-      padding: 8mm 10mm 6mm 8mm; /* Increased right padding to prevent cutting */
+      padding: 7mm;
       box-sizing: border-box;
       overflow: hidden;
+      page-break-inside: avoid;
+      margin: 0;
     }
     .watermark {
       position: absolute;
@@ -721,44 +915,10 @@ function printInvoice(invoice, options = {}) {
 
     hiddenWin.webContents.once('did-finish-load', async () => {
       try {
-        const isSilent = options.silent !== false;
-        let deviceName = options.deviceName || undefined;
-
-        // For direct invoice generation prints, auto-target a physical printer only.
-        if (isSilent && !deviceName) {
-          const printers = await hiddenWin.webContents.getPrintersAsync();
-          const physicalPrinters = (printers || []).filter((printer) => printer && printer.name && !isPdfPrinterName(printer.name));
-          const defaultPhysical = physicalPrinters.find((printer) => printer && printer.isDefault);
-          const pickedPrinter = defaultPhysical || physicalPrinters[0];
-
-          if (!pickedPrinter || !pickedPrinter.name) {
-            hiddenWin.close();
-            safeDeleteFile(tempHtmlPath);
-            resolve({ ok: false, error: 'No physical printer available for auto print.' });
-            return;
-          }
-
-          deviceName = pickedPrinter.name;
-        }
-
-        hiddenWin.webContents.print(
-          {
-            silent: isSilent,
-            printBackground: true,
-            pageSize: options.pageSize || 'A5',
-            margins: options.margins || { marginType: 'none' },
-            deviceName,
-          },
-          (success, errorType) => {
-            hiddenWin.close();
-            safeDeleteFile(tempHtmlPath);
-            if (!success) {
-              resolve({ ok: false, error: errorType || 'Print failed' });
-              return;
-            }
-            resolve({ ok: true });
-          }
-        );
+        const printResult = await printLoadedWindow(hiddenWin, options);
+        hiddenWin.close();
+        safeDeleteFile(tempHtmlPath);
+        resolve(printResult);
       } catch (error) {
         hiddenWin.close();
         safeDeleteFile(tempHtmlPath);
@@ -1015,42 +1175,10 @@ function printPurchase(purchase, options = {}) {
 
     hiddenWin.webContents.once('did-finish-load', async () => {
       try {
-        const isSilent = options.silent !== false;
-        let deviceName = options.deviceName || undefined;
-
-        if (isSilent && !deviceName) {
-          const printers = await hiddenWin.webContents.getPrintersAsync();
-          const physicalPrinters = (printers || []).filter((p) => p && p.name && !isPdfPrinterName(p.name));
-          const defaultPhysical = physicalPrinters.find((p) => p && p.isDefault);
-          const pickedPrinter = defaultPhysical || physicalPrinters[0];
-
-          if (!pickedPrinter || !pickedPrinter.name) {
-            hiddenWin.close();
-            safeDeleteFile(tempHtmlPath);
-            resolve({ success: false, error: 'No physical printer available for auto print.' });
-            return;
-          }
-          deviceName = pickedPrinter.name;
-        }
-
-        hiddenWin.webContents.print(
-          {
-            silent: isSilent,
-            printBackground: true,
-            pageSize: options.pageSize || 'A5',
-            margins: { marginType: 'none' },
-            deviceName,
-          },
-          (success, errorType) => {
-            hiddenWin.close();
-            safeDeleteFile(tempHtmlPath);
-            if (!success) {
-              resolve({ success: false, error: errorType || 'Print failed' });
-            } else {
-              resolve({ success: true });
-            }
-          }
-        );
+        const printResult = await printLoadedWindow(hiddenWin, options);
+        hiddenWin.close();
+        safeDeleteFile(tempHtmlPath);
+        resolve({ success: !!(printResult && (printResult.ok || printResult.success)), error: printResult && printResult.error ? printResult.error : undefined });
       } catch (error) {
         hiddenWin.close();
         safeDeleteFile(tempHtmlPath);
@@ -1541,6 +1669,9 @@ app.whenReady().then(() => {
 
   ipcMain.handle('print:invoice', async (_event, payload) => {
     try {
+      if (payload && payload.options && payload.options.pdfPath) {
+        return await printSavedPdfFile(payload.options.pdfPath, payload.options || {});
+      }
       return await printInvoice(payload.invoice, payload.options || {});
     } catch (error) {
       return { ok: false, error: error.message || 'Print error' };
@@ -1627,6 +1758,10 @@ ipcMain.handle('purchases:download-report-pdf', async (_event, payload) => {
 
 ipcMain.handle('purchases:print', async (_event, payload) => {
   try {
+    if (payload && payload.options && payload.options.pdfPath) {
+      const result = await printSavedPdfFile(payload.options.pdfPath, payload.options || {});
+      return { success: !!(result && (result.ok || result.success)), error: result && result.error ? result.error : undefined };
+    }
     return await printPurchase(payload.purchase || {}, payload.options || {});
   } catch (error) {
     return { success: false, error: error.message || 'Purchase print error' };
