@@ -583,7 +583,7 @@ function buildReportPrintHtml(report) {
   ];
 
   const invoices = report.invoices || [];
-  const ROWS_PER_PAGE = 8;
+  const ROWS_PER_PAGE = 10;
   const pagesData = [];
 
   for (let i = 0; i < invoices.length; i += ROWS_PER_PAGE) {
@@ -600,7 +600,7 @@ function buildReportPrintHtml(report) {
 
   const reportCss = `
     ${buildPrintBaseStyles()}
-    .page { page-break-after: always; }
+    .page { page-break-after: always; width: 145mm; padding: 7mm 10mm 6mm 4mm; }
     .page:last-child { page-break-after: avoid; }
     .report-title { font-size: 14px; color: #5b1225; font-weight: 700; margin-bottom: 2px; }
     .report-subtitle { font-size: 11px; color: #666; margin-bottom: 10px; }
@@ -746,7 +746,7 @@ function buildInvoicePrintHtml(invoice) {
 
   const invoiceCss = `
     ${buildPrintBaseStyles()}
-    .page { page-break-after: always; }
+    .page { page-break-after: always; width: 145mm; padding: 7mm 10mm 6mm 4mm; }
     .page:last-child { page-break-after: avoid; }
     .invoice-main-content { flex: 1; display: flex; flex-direction: column; }
     .bill-title { margin: 0 0 8px; text-align: center; font-size: 13px; font-weight: 800; color: #5b1225; }
@@ -755,18 +755,21 @@ function buildInvoicePrintHtml(invoice) {
     .party-line { display: flex; align-items: baseline; }
     .party-label { width: 66px; font-weight: 700; }
     .party-colon { width: 10px; text-align: center; }
-    .meta-box { font-size: 10px; display: flex; flex-direction: column; gap: 2px; width: 170px; }
+    .meta-box { font-size: 10px; display: flex; flex-direction: column; gap: 2px; width: 160px; }
     .meta-line { display: flex; align-items: center; }
     .meta-label { font-weight: 700; width: 80px; }
+    .header-left { width: 30%; }
+    .company-center { width: 40%; }
+    .header-right { width: 30%; font-size: 8px; }
     
     table.items-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 10px; table-layout: fixed; }
     .items-table th { background: #f8eef1; color: #5b1225; padding: 8px; border: 1px solid #ddd; font-weight: 800; }
     .items-table td { border: 1px solid #ddd; padding: 8px; text-align: center; line-height: 1.4; word-wrap: break-word; }
     
     .totals-section { display: flex; justify-content: flex-end; margin-top: 10px; }
-    .totals-right { min-width: 170px; }
+    .totals-right { min-width: 155px; }
     .totals-row { display: flex; justify-content: space-between; padding: 2px 0; font-size: 11px; }
-    .totals-row.grand-total { font-weight: 800; font-size: 14px; color: #5b1225; border-top: 2px solid #5b1225; padding-top: 5px; margin-top: 4px; }
+    .totals-row.grand-total { font-weight: 800; font-size: 13px; color: #5b1225; border-top: 2px solid #5b1225; padding-top: 5px; margin-top: 4px; }
     
     .bottom-stack { margin-top: auto; padding-top: 10px; }
     .terms-signature-row { display: flex; justify-content: space-between; align-items: flex-end; }
@@ -1216,7 +1219,7 @@ function buildPurchasePrintHtml(purchase) {
 
   const purchaseCss = `
     ${buildPrintBaseStyles()}
-    .page { page-break-after: always; }
+    .page { page-break-after: always; width: 145mm; padding: 7mm 10mm 6mm 4mm; }
     .page:last-child { page-break-after: avoid; }
     .invoice-main-content { flex: 1; display: flex; flex-direction: column; }
     .bill-title { margin: 0 0 8px; text-align: center; font-size: 13px; font-weight: 800; color: #5b1225; }
@@ -1343,10 +1346,11 @@ function buildPurchasesReportPrintHtml(report) {
     { label: 'Total Bills', value: Number(report.totalBills || 0) },
     { label: 'Items Purchased', value: Number(report.itemsCount || 0) },
     { label: 'Total Amount', value: `Rs. ${Number(report.totalAmount || 0).toFixed(2)}` },
+    { label: 'Transportation', value: `Rs. ${Number(report.transport || 0).toFixed(2)}` },
   ];
 
   const purchases = report.purchases || [];
-  const ROWS_PER_PAGE = 8;
+  const ROWS_PER_PAGE = 10;
   const pagesData = [];
 
   for (let i = 0; i < purchases.length; i += ROWS_PER_PAGE) {
@@ -1363,11 +1367,11 @@ function buildPurchasesReportPrintHtml(report) {
 
   const reportCss = `
     ${buildPrintBaseStyles()}
-    .page { page-break-after: always; }
+    .page { page-break-after: always; width: 145mm; padding: 7mm 10mm 6mm 4mm; }
     .page:last-child { page-break-after: avoid; }
     .report-title { font-size: 14px; color: #5b1225; font-weight: 700; margin-bottom: 2px; }
     .report-subtitle { font-size: 11px; color: #666; margin-bottom: 10px; }
-    .summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+    .summary-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
     .summary-card { border: 1px solid #ddcfba; background: #fffdf9; border-radius: 12px; padding: 10px; }
     .summary-label { font-size: 10px; color: #4b3a34; text-transform: uppercase; font-weight: 700; }
     .summary-value { margin-top: 4px; font-size: 14px; font-weight: 700; color: #5b1225; }

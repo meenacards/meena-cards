@@ -166,14 +166,22 @@
         </tr>
       </thead>
       <tbody>
-        ${(invoice.items || []).map(item => `
+        ${(invoice.items || []).map(item => {
+          const qty = Number(item.quantity || 0);
+          const price = Number(item.price || 0);
+          const lineTotal = Number(item.line_total);
+          const amount = Number.isFinite(lineTotal) ? lineTotal : (qty * price);
+          const isTransport = Boolean(item.is_transportation);
+
+          return `
           <tr style="border-bottom: 1px solid #eee;">
             <td style="padding: 8px;">${escapeHtml(item.name)}</td>
-            <td style="padding: 8px; text-align: right;">${item.quantity}</td>
-            <td style="padding: 8px; text-align: right;">Rs. ${Number(item.price).toFixed(2)}</td>
-            <td style="padding: 8px; text-align: right;">Rs. ${(item.price * item.quantity).toFixed(2)}</td>
+            <td style="padding: 8px; text-align: right;">${isTransport ? '-' : qty}</td>
+            <td style="padding: 8px; text-align: right;">Rs. ${price.toFixed(2)}</td>
+            <td style="padding: 8px; text-align: right;">Rs. ${amount.toFixed(2)}</td>
           </tr>
-        `).join('')}
+        `;
+        }).join('')}
       </tbody>
     `;
     content.appendChild(itemsTable);

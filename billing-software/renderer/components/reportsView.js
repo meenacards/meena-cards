@@ -79,6 +79,19 @@
     return Number(invoice.tax || 0);
   }
 
+  function getInvoiceTransportation(invoice) {
+    const itemAmount = (invoice.items || []).reduce((sum, item) => {
+      if (!item || !item.is_transportation) return sum;
+      return sum + Number(item.line_total ?? item.amount ?? item.price ?? 0);
+    }, 0);
+
+    if (itemAmount > 0) {
+      return itemAmount;
+    }
+
+    return Number(invoice.transportation_charge || 0);
+  }
+
   function buildRangeLabel(scope, config) {
     if (scope === 'today') return 'Today';
     if (scope === 'month') {
@@ -134,7 +147,7 @@
     const stocksSold = filtered.reduce((sum, invoice) => sum + getInvoiceItemsSold(invoice), 0);
     const revenue = filtered.reduce((sum, invoice) => sum + getInvoiceRevenue(invoice), 0);
     const tax = filtered.reduce((sum, invoice) => sum + getInvoiceTax(invoice), 0);
-    const transport = filtered.reduce((sum, invoice) => sum + Number(invoice.transportation_charge || 0), 0);
+    const transport = filtered.reduce((sum, invoice) => sum + getInvoiceTransportation(invoice), 0);
     const averageBill = totalBills ? revenue / totalBills : 0;
 
     return {

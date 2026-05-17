@@ -428,7 +428,7 @@ window.PurchasesView = (function () {
   }
 
   function renderReportsContent() {
-    const report = purchasesReport.data || { totalBills: 0, totalAmount: 0, itemsCount: 0, purchases: [] };
+    const report = purchasesReport.data || { totalBills: 0, totalAmount: 0, itemsCount: 0, transport: 0, purchases: [] };
     const now = new Date();
 
     return `
@@ -468,10 +468,11 @@ window.PurchasesView = (function () {
           <button id="download-purchase-report-btn" class="btn btn-secondary">Download PDF</button>
         </div>
 
-        <div class="report-overview-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px;">
+          <div class="report-overview-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 20px;">
            ${buildPurchasesMetricCard('Total Bills', String(report.totalBills), 'Purchase count')}
            ${buildPurchasesMetricCard('Items Purchased', String(report.itemsCount), 'Quantity received')}
            ${buildPurchasesMetricCard('Total Amount', `Rs. ${report.totalAmount.toFixed(2)}`, 'Total purchase cost')}
+            ${buildPurchasesMetricCard('Transportation', `Rs. ${Number(report.transport || 0).toFixed(2)}`, 'Transport charges')}
         </div>
 
         <div class="report-detail-card" style="margin-top: 24px; background: var(--surface); border: 1px solid var(--border-soft); padding: 20px; border-radius: 12px;">
@@ -546,16 +547,22 @@ window.PurchasesView = (function () {
     const totalBills = filtered.length;
     let totalAmount = 0;
     let itemsCount = 0;
+    let transport = 0;
 
     filtered.forEach(p => {
       totalAmount += parseFloat(p.total_amount || 0);
       itemsCount += (p.items || []).reduce((sum, item) => sum + parseInt(item.quantity || 0), 0);
+      transport += (p.items || []).reduce((sum, item) => {
+        if (!item || !item.is_transportation) return sum;
+        return sum + Number(item.line_total ?? item.price ?? item.amount ?? 0);
+      }, 0);
     });
 
     purchasesReport.data = {
       totalBills,
       totalAmount,
       itemsCount,
+      transport,
       purchases: filtered.sort((a, b) => new Date(b.purchase_date) - new Date(a.purchase_date))
     };
   }

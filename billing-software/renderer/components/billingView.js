@@ -795,10 +795,21 @@
         renderCartRows();
         renderTotals();
         if (invoice) {
+          const invoiceItemsForPrint = Array.isArray(invoice.items) ? invoice.items.slice() : [];
+          if (transportationCharge > 0 && !invoiceItemsForPrint.some((item) => item && item.is_transportation)) {
+            invoiceItemsForPrint.push({
+              name: 'TRANSPORTATION CHARGE',
+              quantity: 0,
+              price: 0,
+              line_total: transportationCharge,
+              is_transportation: true,
+            });
+          }
+
           // Format invoice for printing with correct keys
           const printData = {
             invoice_number: invoice.invoice_number,
-            items: invoice.items,
+            items: invoiceItemsForPrint,
             subtotal: invoice.subtotal,
             tax: invoice.tax,
             total_amount: invoice.total_amount,
