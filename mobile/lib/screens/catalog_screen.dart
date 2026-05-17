@@ -58,6 +58,26 @@ class _CatalogScreenState extends State<CatalogScreen> {
                             card.categories.any((c) => c.toLowerCase().contains(query));
       return matchesCategory && matchesSearch;
     }).toList();
+
+    // Sort by Category Hierarchy
+    final orderedCats = AppConstants.orderedCategories;
+    _filteredCards.sort((a, b) {
+      int indexA = 999999;
+      for (var cat in a.categories) {
+        final idx = orderedCats.indexOf(cat);
+        if (idx != -1 && idx < indexA) indexA = idx;
+      }
+      int indexB = 999999;
+      for (var cat in b.categories) {
+        final idx = orderedCats.indexOf(cat);
+        if (idx != -1 && idx < indexB) indexB = idx;
+      }
+      
+      if (indexA != indexB) {
+        return indexA.compareTo(indexB);
+      }
+      return a.name.compareTo(b.name);
+    });
   }
 
   void _filter(String category) {
@@ -79,6 +99,10 @@ class _CatalogScreenState extends State<CatalogScreen> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Color(0xFFFDFBF0)),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.contact_support_outlined),
+            onPressed: () => context.push('/contact'),
+          ),
           IconButton(
             icon: const Icon(Icons.favorite_border),
             onPressed: () => context.push('/favorites'),

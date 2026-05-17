@@ -35,4 +35,25 @@ class AppConstants {
     traverse(categoryHierarchy);
     return flat.toSet().toList()..sort();
   }
+
+  static List<String> get orderedCategories {
+    List<String> flat = [];
+    void traverse(dynamic obj) {
+      if (obj is List) {
+        flat.addAll(obj.cast<String>());
+      } else if (obj is Map) {
+        for (var key in obj.keys) {
+          flat.add(key.toString());
+        }
+        for (var val in obj.values) {
+          traverse(val);
+        }
+      }
+    }
+    traverse(categoryHierarchy);
+    for (var key in categoryHierarchy.keys) {
+      flat.add(key);
+    }
+    return flat.toSet().toList();
+  }
 }
