@@ -47,10 +47,10 @@ const Collections = ({ filterCategory }) => {
       "12x8 Metallic ITC Board Set", 
       "12x8 Offset ITC Board Set"
     ],
-    "Brand Series": [],
-    "Ceremony Tags": [],
-    "Tradition Tags": [],
-    "Special Collections": []
+    "Brand Series": ["V Cards", "K Cards", "R Cards", "ES Cards"],
+    "Ceremony Tags": ["Ear piercing", "Puberty", "House warming"],
+    "Tradition Tags": ["Hindu", "Muslim", "Christian"],
+    "Special Collections": ["Friends Card", "Luxe", "Offer"]
   };
 
 
@@ -103,7 +103,7 @@ const Collections = ({ filterCategory }) => {
       return matchesCategory(c.category, activeSeries);
     }
 
-    if (activeMain === "V Cards") {
+    if (activeMain === "V Cards" || activeSeries === "V Cards") {
       const vCardSeries = ['10x8 Board Set', '12x8 Board Set', 'V Cards'];
       return categoryIncludes(c.category, vCardSeries);
     }
@@ -112,7 +112,7 @@ const Collections = ({ filterCategory }) => {
       return c.is_offer === true || c.is_offer === "true";
     }
 
-    if (activeMain === "Luxe Models" || activeSeries === "Luxe Models") {
+    if (activeMain === "Luxe Models" || activeSeries === "Luxe Models" || activeSeries.toLowerCase() === "luxe") {
         return categoryIncludes(c.category, ['luxe']);
     }
 
