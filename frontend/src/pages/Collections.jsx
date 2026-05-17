@@ -161,7 +161,7 @@ const Collections = ({ filterCategory }) => {
   };
 
   return (
-    <div className="home-page animate-fade-in" style={{ padding: 0 }}>
+    <div className="home-page" style={{ padding: 0 }}>
       <SEO 
         title="Luxury Wedding Card Collections | Gold Foil, 3D & Scroll Cards" 
         description="Browse our exclusive collections of laser-cut, 3D, and metallic wedding cards. Find the perfect box set or pouch set for your special day at Meena Cards."
@@ -182,9 +182,10 @@ const Collections = ({ filterCategory }) => {
           display: 'flex',
           flexDirection: 'column',
           zIndex: 10,
-          position: window.innerWidth < 1024 ? 'relative' : 'sticky',
-          top: 0,
-          height: window.innerWidth < 1024 ? 'auto' : '100vh',
+          position: window.innerWidth < 1024 ? 'relative' : 'fixed',
+          top: window.innerWidth < 1024 ? 0 : '80px',
+          left: window.innerWidth < 1024 ? 'auto' : 0,
+          height: window.innerWidth < 1024 ? 'auto' : 'calc(100vh - 80px)',
           overflowY: 'auto'
         }}>
           <div style={{ marginBottom: '32px', display: 'flex', alignItems: 'center', gap: '12px', padding: '0 8px' }}>
@@ -295,7 +296,12 @@ const Collections = ({ filterCategory }) => {
         </aside>
 
         {/* Catalog Body */}
-        <main style={{ flex: 1, padding: '40px', background: 'var(--bg-color)', overflowY: 'auto' }} ref={catalogRef}>
+        <main className="animate-fade-in" style={{ 
+          flex: 1, 
+          padding: '40px', 
+          background: 'var(--bg-color)', 
+          marginLeft: window.innerWidth < 1024 ? 0 : '300px' 
+        }} ref={catalogRef}>
           <div style={{ marginBottom: '40px' }}>
             <h2 style={{ fontSize: '2.4rem', color: 'var(--primary-color)', marginBottom: '8px' }}>Catalogue</h2>
             <p style={{ color: '#6b7280' }}>Explore our premium handcrafted invitation series</p>
