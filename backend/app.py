@@ -284,6 +284,8 @@ def delete_card(card_id):
 
 # --- Invoice Management ---
 
+INVOICE_SEQUENCE_START = 74
+
 @app.route("/invoices", methods=["POST"])
 def create_invoice():
     if invoices_collection is None or cards_collection is None:
@@ -341,13 +343,16 @@ def create_invoice():
         else:
             # Backward compatibility for older invoices that stored only invoice_number.
             legacy_last = invoices_collection.find_one(sort=[("_id", -1)])
-            legacy_value = legacy_last.get("invoice_number") if legacy_last else 0
-            if isinstance(legacy_value, str) and "-" in legacy_value:
-                legacy_value = legacy_value.split("-", 1)[0]
-            try:
-                invoice_sequence = int(legacy_value) + 1
-            except (TypeError, ValueError):
-                invoice_sequence = 1
+            if not legacy_last:
+                invoice_sequence = INVOICE_SEQUENCE_START
+            else:
+                legacy_value = legacy_last.get("invoice_number")
+                if isinstance(legacy_value, str) and "-" in legacy_value:
+                    legacy_value = legacy_value.split("-", 1)[0]
+                try:
+                    invoice_sequence = int(legacy_value) + 1
+                except (TypeError, ValueError):
+                    invoice_sequence = INVOICE_SEQUENCE_START
 
         invoice_year = datetime.now().year
         invoice_number = f"{invoice_sequence}-{invoice_year}"
