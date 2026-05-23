@@ -19,7 +19,6 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   final _api = ApiService();
   final _nameController = TextEditingController();
   final _priceController = TextEditingController();
-  final _stockController = TextEditingController();
   final _descController = TextEditingController();
   
   List<String> _selectedCategories = [];
@@ -34,7 +33,6 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     if (widget.card != null) {
       _nameController.text = widget.card!.name;
       _priceController.text = widget.card!.price.toString();
-      _stockController.text = widget.card!.stock.toString();
       _descController.text = widget.card!.description;
       _selectedCategories = List.from(widget.card!.categories);
       _isLatest = widget.card!.isLatest;
@@ -84,7 +82,6 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
         isLatest: _isLatest,
         isOffer: _isOffer,
         price: double.tryParse(_priceController.text) ?? 0.0,
-        stock: int.tryParse(_stockController.text) ?? 0,
       );
     } else {
       result = await _api.updateCard(
@@ -96,7 +93,6 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
         isLatest: _isLatest,
         isOffer: _isOffer,
         price: double.tryParse(_priceController.text) ?? 0.0,
-        stock: int.tryParse(_stockController.text) ?? 0,
       );
     }
 
@@ -125,8 +121,6 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
             Row(
               children: [
                 Expanded(child: _buildTextField(_priceController, 'Price (₹)', Icons.money, isNum: true)),
-                const SizedBox(width: 16),
-                Expanded(child: _buildTextField(_stockController, 'Stock', Icons.inventory, isNum: true)),
               ],
             ),
             const SizedBox(height: 16),

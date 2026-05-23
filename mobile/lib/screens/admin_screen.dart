@@ -353,7 +353,7 @@ class _AdminScreenState extends State<AdminScreen> {
                                     children: [
                                       Text(card.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                                       const SizedBox(height: 4),
-                                      Text('₹${card.price} | ${card.stock} in stock', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                                      Text('₹${card.price}', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
                                     ],
                                   ),
                                 ),
@@ -401,7 +401,11 @@ class _AdminScreenState extends State<AdminScreen> {
               margin: const EdgeInsets.only(bottom: 8),
               child: ListTile(
                 title: Text(press.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text(press.phNo.isEmpty ? "No phone number" : press.phNo),
+                subtitle: Text([
+                  if (press.address.isNotEmpty) press.address,
+                  if (press.phNo.isNotEmpty) press.phNo else 'No phone number',
+                  if (press.gstin.isNotEmpty) 'GSTIN: ${press.gstin}',
+                ].join(' • ')),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -462,6 +466,10 @@ class _AdminScreenState extends State<AdminScreen> {
                 Row(children: [const Icon(Icons.phone, size: 14, color: Colors.grey), const SizedBox(width: 8), Text(press.phNo, style: const TextStyle(color: Colors.grey))]),
                 const SizedBox(height: 4),
                 Row(children: [const Icon(Icons.location_on, size: 14, color: Colors.grey), const SizedBox(width: 8), Expanded(child: Text(press.address, style: const TextStyle(color: Colors.grey)))]),
+                if (press.gstin.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Row(children: [const Icon(Icons.receipt_long, size: 14, color: Colors.grey), const SizedBox(width: 8), Expanded(child: Text('GSTIN: ${press.gstin}', style: const TextStyle(color: Colors.grey)))]),
+                ],
                 const SizedBox(height: 16),
                 Row(
                   children: [
@@ -503,6 +511,7 @@ class _AdminScreenState extends State<AdminScreen> {
     final nameController = TextEditingController(text: press?.name ?? '');
     final addrController = TextEditingController(text: press?.address ?? '');
     final phoneController = TextEditingController(text: press?.phNo ?? '');
+    final gstinController = TextEditingController(text: press?.gstin ?? '');
 
     final result = await showDialog<bool>(
       context: context,
@@ -515,6 +524,7 @@ class _AdminScreenState extends State<AdminScreen> {
               TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Press Name')),
               TextField(controller: addrController, decoration: const InputDecoration(labelText: 'Address')),
               TextField(controller: phoneController, decoration: const InputDecoration(labelText: 'Phone Number')),
+              TextField(controller: gstinController, decoration: const InputDecoration(labelText: 'GSTIN')),
             ],
           ),
         ),
@@ -525,10 +535,21 @@ class _AdminScreenState extends State<AdminScreen> {
               if (nameController.text.isEmpty || addrController.text.isEmpty) return;
               bool success;
               if (press == null) {
-                final newPress = await _api.addPress(name: nameController.text, address: addrController.text, phNo: phoneController.text);
+                final newPress = await _api.addPress(
+                  name: nameController.text,
+                  address: addrController.text,
+                  phNo: phoneController.text,
+                  gstin: gstinController.text,
+                );
                 success = newPress != null;
               } else {
-                final updPress = await _api.updatePress(press.id, name: nameController.text, address: addrController.text, phNo: phoneController.text);
+                final updPress = await _api.updatePress(
+                  press.id,
+                  name: nameController.text,
+                  address: addrController.text,
+                  phNo: phoneController.text,
+                  gstin: gstinController.text,
+                );
                 success = updPress != null;
               }
               if (success && ctx.mounted) Navigator.pop(ctx, true);

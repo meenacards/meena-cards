@@ -81,6 +81,7 @@ def format_press(press):
         "name": press.get("name"),
         "address": press.get("address"),
         "ph_no": press.get("ph_no", ""),
+        "gstin": press.get("gstin", ""),
         "is_approved": press.get("is_approved", False)
     }
 
@@ -565,6 +566,7 @@ def add_press():
     name = data.get("name")
     address = data.get("address")
     ph_no = data.get("ph_no", "")
+    gstin = str(data.get("gstin", "")).strip()
 
     if not name or not address:
         return jsonify({"error": "Name and address are required"}), 400
@@ -584,6 +586,7 @@ def add_press():
             "name": name,
             "address": address,
             "ph_no": clean_ph_no,
+            "gstin": gstin,
             "is_approved": False  # New presses require approval
         }
         result = presses_collection.insert_one(new_press)
@@ -643,6 +646,7 @@ def update_press(press_id):
     if "name" in data: update_data["name"] = data["name"]
     if "address" in data: update_data["address"] = data["address"]
     if "ph_no" in data: update_data["ph_no"] = data["ph_no"]
+    if "gstin" in data: update_data["gstin"] = str(data["gstin"]).strip()
 
     if not update_data:
         return jsonify({"error": "No data provided to update"}), 400

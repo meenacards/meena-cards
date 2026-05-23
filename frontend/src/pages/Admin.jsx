@@ -27,8 +27,7 @@ const Admin = () => {
     image: null,
     is_latest: false,
     is_offer: false,
-    price: '',
-    stock: ''
+    price: ''
   });
   const [imagePreview, setImagePreview] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -37,7 +36,7 @@ const Admin = () => {
   const [presses, setPresses] = useState([]);
   const [isPressFormOpen, setIsPressFormOpen] = useState(false);
   const [editingPress, setEditingPress] = useState(null);
-  const [pressFormData, setPressFormData] = useState({ name: '', address: '', ph_no: '' });
+  const [pressFormData, setPressFormData] = useState({ name: '', address: '', ph_no: '', gstin: '' });
   const [pressLoading, setPressLoading] = useState(false);
 
   const showToast = (message, type = 'success') => {
@@ -114,8 +113,7 @@ const Admin = () => {
       image: null,
       is_latest: false,
       is_offer: false,
-      price: '',
-      stock: ''
+      price: ''
     });
     setImagePreview(null);
     setEditingCard(null);
@@ -130,8 +128,7 @@ const Admin = () => {
       image: null,
       is_latest: card.is_latest || false,
       is_offer: card.is_offer || false,
-      price: card.price || '',
-      stock: card.stock || ''
+      price: card.price || ''
     });
     setImagePreview(card.image_url);
     setIsFormOpen(true);
@@ -173,7 +170,6 @@ const Admin = () => {
         formPayload.append('image', formData.image);
       }
       formPayload.append('price', formData.price || 0);
-      formPayload.append('stock', formData.stock || 0);
 
       const headers = { 'Content-Type': 'multipart/form-data' };
 
@@ -214,7 +210,7 @@ const Admin = () => {
   };
 
   const resetPressForm = () => {
-    setPressFormData({ name: '', address: '', ph_no: '' });
+    setPressFormData({ name: '', address: '', ph_no: '', gstin: '' });
     setEditingPress(null);
     setIsPressFormOpen(false);
   };
@@ -224,7 +220,8 @@ const Admin = () => {
     setPressFormData({
       name: press.name,
       address: press.address,
-      ph_no: press.ph_no || ''
+      ph_no: press.ph_no || '',
+      gstin: press.gstin || ''
     });
     setIsPressFormOpen(true);
   };
@@ -553,7 +550,6 @@ const Admin = () => {
                     <th>NAME</th>
                     <th>CATEGORIES</th>
                     <th>PRICE (₹)</th>
-                    <th>STOCK</th>
                     <th>FLAGS</th>
                     <th>ACTIONS</th>
                   </tr>
@@ -605,7 +601,7 @@ const Admin = () => {
                   })().map(([groupName, groupCards]) => (
                     <React.Fragment key={groupName}>
                       <tr id={`group-${groupName.replace(/\s+/g, '-').toLowerCase()}`} style={{ background: '#f1f5f9', borderTop: '2px solid #e2e8f0' }}>
-                        <td colSpan="5" style={{ padding: '12px 24px', fontWeight: 'bold', color: '#1e293b', fontSize: '1rem' }}>
+                        <td colSpan="4" style={{ padding: '12px 24px', fontWeight: 'bold', color: '#1e293b', fontSize: '1rem' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span>{groupName.toUpperCase()}</span>
                             <span style={{ fontSize: '0.8rem', background: '#3b82f6', color: 'white', padding: '2px 10px', borderRadius: '20px' }}>
@@ -625,9 +621,6 @@ const Admin = () => {
                           </td>
                           <td style={{ fontWeight: 'bold', color: '#059669' }}>
                             {card.price ? `₹${card.price}` : '—'}
-                          </td>
-                          <td style={{ fontWeight: 'bold', color: card.stock > 10 ? '#475569' : '#ef4444' }}>
-                            {card.stock || 0}
                           </td>
                           <td className="admin-item-flags" style={{ verticalAlign: 'middle' }}>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
@@ -659,6 +652,7 @@ const Admin = () => {
                     <th>NAME</th>
                     <th>ADDRESS</th>
                     <th>PHONE NO</th>
+                    <th>GSTIN</th>
                     <th>ACTIONS</th>
                   </tr>
                 </thead>
@@ -671,7 +665,7 @@ const Admin = () => {
                   }, {})).sort(([a], [b]) => a.localeCompare(b)).map(([groupAddr, groupPresses]) => (
                     <React.Fragment key={groupAddr}>
                       <tr style={{ background: '#f1f5f9', borderTop: '2px solid #e2e8f0' }}>
-                        <td colSpan="4" style={{ padding: '10px 24px', fontWeight: 'bold', color: '#1e293b' }}>
+                        <td colSpan="5" style={{ padding: '10px 24px', fontWeight: 'bold', color: '#1e293b' }}>
                           {groupAddr.toUpperCase()} ({groupPresses.length})
                         </td>
                       </tr>
@@ -680,6 +674,7 @@ const Admin = () => {
                           <td className="admin-item-name">{press.name}</td>
                           <td className="admin-item-cat">{press.address}</td>
                           <td>{press.ph_no || <em style={{color: '#94a3b8'}}>Not set</em>}</td>
+                          <td>{press.gstin || <em style={{color: '#94a3b8'}}>Not set</em>}</td>
                           <td>
                             <div className="action-buttons-flex">
                               <button className="pill-btn-edit" onClick={() => editPress(press)}>Edit</button>
@@ -822,16 +817,6 @@ const Admin = () => {
                     step="0.01"
                   />
                 </div>
-                <div className="form-group">
-                  <label>Stock Quantity</label>
-                  <input 
-                    type="number" 
-                    name="stock" 
-                    value={formData.stock} 
-                    onChange={handleInputChange} 
-                    placeholder="0"
-                  />
-                </div>
               </div>
 
               <div className="form-group">
@@ -909,6 +894,17 @@ const Admin = () => {
                   value={pressFormData.ph_no} 
                   onChange={handlePressInputChange} 
                   placeholder="e.g. 9876543210"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>GSTIN (Optional)</label>
+                <input 
+                  type="text" 
+                  name="gstin" 
+                  value={pressFormData.gstin} 
+                  onChange={handlePressInputChange} 
+                  placeholder="e.g. 33AIPPJ2536H1ZA"
                 />
               </div>
 
