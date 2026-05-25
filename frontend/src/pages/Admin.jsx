@@ -247,14 +247,20 @@ const Admin = () => {
         await axios.put(`${API_URL}/presses/${editingPress.id}`, pressFormData);
         showToast('✅ Press updated successfully');
       } else {
-        await axios.post(`${API_URL}/presses`, pressFormData);
+        const res = await axios.post(`${API_URL}/presses`, pressFormData);
         showToast('✅ Press added successfully');
+        // Append new press to current list so admin sees it immediately
+        if (res && res.data) {
+          setPresses(prev => [...prev, res.data]);
+        }
       }
-      fetchPresses();
+      // If we edited an existing press (likely approved), refresh list from server
+      if (editingPress) fetchPresses();
       resetPressForm();
     } catch (error) {
       console.error('Error saving press', error);
-      showToast('❌ Error saving press', 'error');
+      const msg = error.response?.data?.error || '❌ Error saving press';
+      showToast(msg, 'error');
     } finally {
       setIsSubmitting(false);
     }

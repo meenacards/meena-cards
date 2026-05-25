@@ -271,7 +271,8 @@ class ApiService {
       }
       return null;
     } catch (e) {
-      return null;
+      // Propagate a user-friendly error message so UI can display it
+      throw getErrorMessage(e);
     }
   }
 

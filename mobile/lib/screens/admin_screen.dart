@@ -533,24 +533,30 @@ class _AdminScreenState extends State<AdminScreen> {
           ElevatedButton(
             onPressed: () async {
               if (nameController.text.isEmpty || addrController.text.isEmpty) return;
-              bool success;
-              if (press == null) {
-                final newPress = await _api.addPress(
-                  name: nameController.text,
-                  address: addrController.text,
-                  phNo: phoneController.text,
-                  gstin: gstinController.text,
-                );
-                success = newPress != null;
-              } else {
-                final updPress = await _api.updatePress(
-                  press.id,
-                  name: nameController.text,
-                  address: addrController.text,
-                  phNo: phoneController.text,
-                  gstin: gstinController.text,
-                );
-                success = updPress != null;
+              bool success = false;
+              try {
+                if (press == null) {
+                  final newPress = await _api.addPress(
+                    name: nameController.text,
+                    address: addrController.text,
+                    phNo: phoneController.text,
+                    gstin: gstinController.text,
+                  );
+                  success = newPress != null;
+                } else {
+                  final updPress = await _api.updatePress(
+                    press.id,
+                    name: nameController.text,
+                    address: addrController.text,
+                    phNo: phoneController.text,
+                    gstin: gstinController.text,
+                  );
+                  success = updPress != null;
+                }
+              } catch (err) {
+                final msg = err is String ? err : 'Failed to save press.';
+                if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(msg)));
+                return;
               }
               if (success && ctx.mounted) Navigator.pop(ctx, true);
             },

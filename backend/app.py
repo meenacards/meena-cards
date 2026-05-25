@@ -580,7 +580,7 @@ def add_press():
             "ph_no": clean_ph_no
         })
         if existing:
-            return jsonify({"error": "Already phone number exists, try different phone number."}), 400
+            return jsonify({"error": "Phone number already exists, try a different phone number."}), 400
 
         new_press = {
             "name": name,
