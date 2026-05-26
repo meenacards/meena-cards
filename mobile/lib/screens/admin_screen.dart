@@ -24,6 +24,7 @@ class _AdminScreenState extends State<AdminScreen> {
   bool _isLoading = true;
   bool _isLoadingPresses = true;
   String _searchQuery = "";
+  String _pressSearchQuery = "";
   int _selectedIndex = 0; // 0 for Products, 1 for Presses, 2 for Requests
 
   @override
@@ -375,50 +376,82 @@ class _AdminScreenState extends State<AdminScreen> {
 
   Widget _buildPressesView() {
     if (_isLoadingPresses) return const Center(child: CircularProgressIndicator());
+
+    final query = _pressSearchQuery.trim().toLowerCase();
+    final filteredPresses = query.isEmpty
+        ? _presses
+        : _presses.where((press) {
+            return press.name.toLowerCase().contains(query) || press.address.toLowerCase().contains(query);
+          }).toList();
+
     if (_presses.isEmpty) return const Center(child: Text('No presses registered yet.'));
+    if (filteredPresses.isEmpty) return const Center(child: Text('No presses matched your search.'));
 
     Map<String, List<Press>> addrGroups = {};
-    for (var p in _presses) {
+    for (var p in filteredPresses) {
       if (!addrGroups.containsKey(p.address)) addrGroups[p.address] = [];
       addrGroups[p.address]!.add(p);
     }
     final sortedAddrs = addrGroups.keys.toList()..sort();
 
-    return ListView.builder(
-      itemCount: sortedAddrs.length,
-      padding: const EdgeInsets.all(16),
-      itemBuilder: (context, idx) {
-        final addr = sortedAddrs[idx];
-        final group = addrGroups[addr]!;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: Text(addr.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF3A0303))),
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: TextField(
+            decoration: InputDecoration(
+              hintText: 'Search presses by name or address...',
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              suffixIcon: _pressSearchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () => setState(() => _pressSearchQuery = ''),
+                    )
+                  : null,
             ),
-            ...group.map((press) => Card(
-              margin: const EdgeInsets.only(bottom: 8),
-              child: ListTile(
-                title: Text(press.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text([
-                  if (press.address.isNotEmpty) press.address,
-                  if (press.phNo.isNotEmpty) press.phNo else 'No phone number',
-                  if (press.gstin.isNotEmpty) 'GSTIN: ${press.gstin}',
-                ].join(' • ')),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(icon: const Icon(Icons.edit, color: Colors.blue), onPressed: () => _showAddEditPress(press)),
-                    IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _deletePress(press.id)),
-                  ],
-                ),
-              ),
-            )),
-            const SizedBox(height: 16),
-          ],
-        );
-      },
+            onChanged: (value) => setState(() => _pressSearchQuery = value),
+          ),
+        ),
+        Expanded(
+          child: ListView.builder(
+            itemCount: sortedAddrs.length,
+            padding: const EdgeInsets.all(16),
+            itemBuilder: (context, idx) {
+              final addr = sortedAddrs[idx];
+              final group = addrGroups[addr]!;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Text(addr.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF3A0303))),
+                  ),
+                  ...group.map((press) => Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      title: Text(press.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text([
+                        if (press.address.isNotEmpty) press.address,
+                        if (press.phNo.isNotEmpty) press.phNo else 'No phone number',
+                        if (press.gstin.isNotEmpty) 'GSTIN: ${press.gstin}',
+                      ].join(' • ')),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(icon: const Icon(Icons.edit, color: Colors.blue), onPressed: () => _showAddEditPress(press)),
+                          IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _deletePress(press.id)),
+                        ],
+                      ),
+                    ),
+                  )),
+                  const SizedBox(height: 16),
+                ],
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
