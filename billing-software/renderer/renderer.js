@@ -71,6 +71,12 @@
       return;
     }
 
+    if (view === 'presses-reports') {
+      viewTitle.textContent = 'Presses Reports';
+      window.PressesReportsView.render(viewContainer);
+      return;
+    }
+
     viewTitle.textContent = 'Billing Counter';
     window.BillingView.render(viewContainer);
   }
