@@ -18,7 +18,7 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCard, setEditingCard] = useState(null);
   const [formData, setFormData] = useState({
@@ -27,8 +27,7 @@ const Admin = () => {
     image: null,
     is_latest: false,
     is_offer: false,
-    price: '',
-    stock: ''
+    price: ''
   });
   const [imagePreview, setImagePreview] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -37,7 +36,7 @@ const Admin = () => {
   const [presses, setPresses] = useState([]);
   const [isPressFormOpen, setIsPressFormOpen] = useState(false);
   const [editingPress, setEditingPress] = useState(null);
-  const [pressFormData, setPressFormData] = useState({ name: '', address: '', ph_no: '' });
+  const [pressFormData, setPressFormData] = useState({ name: '', address: '', ph_no: '', gstin: '' });
   const [pressLoading, setPressLoading] = useState(false);
 
   const showToast = (message, type = 'success') => {
@@ -86,7 +85,7 @@ const Admin = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    
+
     if (name === 'category_item') {
       const currentCats = [...formData.category];
       if (checked) {
@@ -114,8 +113,7 @@ const Admin = () => {
       image: null,
       is_latest: false,
       is_offer: false,
-      price: '',
-      stock: ''
+      price: ''
     });
     setImagePreview(null);
     setEditingCard(null);
@@ -130,8 +128,7 @@ const Admin = () => {
       image: null,
       is_latest: card.is_latest || false,
       is_offer: card.is_offer || false,
-      price: card.price || '',
-      stock: card.stock || ''
+      price: card.price || ''
     });
     setImagePreview(card.image_url);
     setIsFormOpen(true);
@@ -155,25 +152,24 @@ const Admin = () => {
       return;
     }
     setIsSubmitting(true);
-    
+
     try {
       const formPayload = new FormData();
       formPayload.append('name', formData.name);
-      
+
       // Append each category to the payload
       formData.category.forEach(cat => {
         formPayload.append('category', cat);
       });
 
-      formPayload.append('description', ''); 
+      formPayload.append('description', '');
       formPayload.append('is_latest', formData.is_latest);
       formPayload.append('is_offer', formData.is_offer);
-      
+
       if (formData.image) {
         formPayload.append('image', formData.image);
       }
       formPayload.append('price', formData.price || 0);
-      formPayload.append('stock', formData.stock || 0);
 
       const headers = { 'Content-Type': 'multipart/form-data' };
 
@@ -214,7 +210,7 @@ const Admin = () => {
   };
 
   const resetPressForm = () => {
-    setPressFormData({ name: '', address: '', ph_no: '' });
+    setPressFormData({ name: '', address: '', ph_no: '', gstin: '' });
     setEditingPress(null);
     setIsPressFormOpen(false);
   };
@@ -224,7 +220,8 @@ const Admin = () => {
     setPressFormData({
       name: press.name,
       address: press.address,
-      ph_no: press.ph_no || ''
+      ph_no: press.ph_no || '',
+      gstin: press.gstin || ''
     });
     setIsPressFormOpen(true);
   };
@@ -250,14 +247,20 @@ const Admin = () => {
         await axios.put(`${API_URL}/presses/${editingPress.id}`, pressFormData);
         showToast('✅ Press updated successfully');
       } else {
-        await axios.post(`${API_URL}/presses`, pressFormData);
+        const res = await axios.post(`${API_URL}/presses`, pressFormData);
         showToast('✅ Press added successfully');
+        // Append new press to current list so admin sees it immediately
+        if (res && res.data) {
+          setPresses(prev => [...prev, res.data]);
+        }
       }
-      fetchPresses();
+      // If we edited an existing press (likely approved), refresh list from server
+      if (editingPress) fetchPresses();
       resetPressForm();
     } catch (error) {
       console.error('Error saving press', error);
-      showToast('❌ Error saving press', 'error');
+      const msg = error.response?.data?.error || '❌ Error saving press';
+      showToast(msg, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -266,13 +269,13 @@ const Admin = () => {
   const scrollToCategory = (catName) => {
     setActiveTab('dashboard'); // Ensure dashboard/products view is active
     setIsSidebarOpen(false); // Close mobile sidebar after selection
-    
+
     // Small delay to allow re-render before scrolling
     setTimeout(() => {
       const safeId = `group-${catName.replace(/\s+/g, '-').toLowerCase()}`;
       const element = document.getElementById(safeId);
       const container = document.querySelector('.admin-main-panel');
-      
+
       if (element && container) {
         const offset = 100; // Account for sticky header
         const elementRect = element.getBoundingClientRect();
@@ -324,20 +327,20 @@ const Admin = () => {
           <h2 className="admin-login-title">Admin Login</h2>
           <div className="admin-login-group">
             <label>Username</label>
-            <input 
-              type="text" 
-              value={loginForm.username} 
-              onChange={e => setLoginForm({...loginForm, username: e.target.value})} 
+            <input
+              type="text"
+              value={loginForm.username}
+              onChange={e => setLoginForm({ ...loginForm, username: e.target.value })}
               required
             />
           </div>
           <div className="admin-login-group">
             <label>Password</label>
             <div style={{ position: 'relative' }}>
-              <input 
+              <input
                 type={showPassword ? 'text' : 'password'}
-                value={loginForm.password} 
-                onChange={e => setLoginForm({...loginForm, password: e.target.value})} 
+                value={loginForm.password}
+                onChange={e => setLoginForm({ ...loginForm, password: e.target.value })}
                 required
                 style={{ paddingRight: '44px' }}
               />
@@ -364,8 +367,8 @@ const Admin = () => {
               </button>
             </div>
           </div>
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className="admin-login-btn"
             disabled={loginStatus === 'Logging in...'}
           >
@@ -454,7 +457,7 @@ const Admin = () => {
           to { opacity: 1; transform: translateX(0); }
         }
       `}</style>
-      
+
       {/* Mobile Top Header (Fixed) */}
       <div className="admin-mobile-header desktop-hidden">
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -464,41 +467,41 @@ const Admin = () => {
           <img src="/logo1.png" alt="Logo" style={{ height: '30px' }} />
         </div>
         <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-          <button onClick={() => setIsFormOpen(true)} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}><Plus size={24}/></button>
-          <button onClick={() => { showToast('👋 Logged out successfully!', 'success'); setTimeout(() => setIsAuthenticated(false), 1000); }} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}><LogOut size={20}/></button>
+          <button onClick={() => setIsFormOpen(true)} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}><Plus size={24} /></button>
+          <button onClick={() => { showToast('👋 Logged out successfully!', 'success'); setTimeout(() => setIsAuthenticated(false), 1000); }} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}><LogOut size={20} /></button>
         </div>
       </div>
 
       {/* Overlay to close sidebar on click */}
       {isSidebarOpen && (
-        <div className="mobile-overlay" onClick={() => setIsSidebarOpen(false)} style={{ position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.5)', zIndex: 999 }}></div>
+        <div className="mobile-overlay" onClick={() => setIsSidebarOpen(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999 }}></div>
       )}
 
       <aside className={`admin-sidebar ${isSidebarOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-brand">
-          <button className="desktop-hidden close-sidebar-btn" onClick={() => setIsSidebarOpen(false)} style={{ position:'absolute', top:'10px', right:'10px', color:'white', background:'none', border:'none' }}><X size={24}/></button>
+          <button className="desktop-hidden close-sidebar-btn" onClick={() => setIsSidebarOpen(false)} style={{ position: 'absolute', top: '10px', right: '10px', color: 'white', background: 'none', border: 'none' }}><X size={24} /></button>
           <img src="/logo1.png" alt="Logo" className="admin-sidebar-logo" />
         </div>
         <nav className="sidebar-nav">
-          <button 
+          <button
             className={`sidebar-link ${activeTab === 'dashboard' ? 'active' : ''}`}
             onClick={() => setActiveTab('dashboard')}
           >
             <span className="sidebar-icon">📦</span> Dashboard
           </button>
-          <button 
+          <button
             className={`sidebar-link ${activeTab === 'presses' ? 'active' : ''}`}
             onClick={() => setActiveTab('presses')}
           >
             <span className="sidebar-icon">🏢</span> Presses
           </button>
-          <button 
-            className="sidebar-link desktop-only" 
+          <button
+            className="sidebar-link desktop-only"
             onClick={() => activeTab === 'presses' ? setIsPressFormOpen(true) : setIsFormOpen(true)}
           >
             <Plus size={18} /> Add {activeTab === 'presses' ? 'Press' : 'Card'}
           </button>
-          
+
           <div className="sidebar-categories-nav">
             <h4 className="sidebar-section-title">QUICK VIEW</h4>
             <div className="sidebar-scroll-area">
@@ -512,10 +515,10 @@ const Admin = () => {
                   ) : (
                     Object.entries(content).map(([sub, series]) => (
                       <div key={sub} style={{ paddingLeft: '10px' }}>
-                         <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', marginTop: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>{sub}</div>
-                         {series.map(ser => (
-                            <button key={ser} className="sidebar-category-link" onClick={() => scrollToCategory(ser)}>{ser}</button>
-                         ))}
+                        <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', marginTop: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>{sub}</div>
+                        {series.map(ser => (
+                          <button key={ser} className="sidebar-category-link" onClick={() => scrollToCategory(ser)}>{ser}</button>
+                        ))}
                       </div>
                     ))
                   )}
@@ -553,7 +556,6 @@ const Admin = () => {
                     <th>NAME</th>
                     <th>CATEGORIES</th>
                     <th>PRICE (₹)</th>
-                    <th>STOCK</th>
                     <th>FLAGS</th>
                     <th>ACTIONS</th>
                   </tr>
@@ -605,7 +607,7 @@ const Admin = () => {
                   })().map(([groupName, groupCards]) => (
                     <React.Fragment key={groupName}>
                       <tr id={`group-${groupName.replace(/\s+/g, '-').toLowerCase()}`} style={{ background: '#f1f5f9', borderTop: '2px solid #e2e8f0' }}>
-                        <td colSpan="5" style={{ padding: '12px 24px', fontWeight: 'bold', color: '#1e293b', fontSize: '1rem' }}>
+                        <td colSpan="4" style={{ padding: '12px 24px', fontWeight: 'bold', color: '#1e293b', fontSize: '1rem' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span>{groupName.toUpperCase()}</span>
                             <span style={{ fontSize: '0.8rem', background: '#3b82f6', color: 'white', padding: '2px 10px', borderRadius: '20px' }}>
@@ -614,7 +616,7 @@ const Admin = () => {
                           </div>
                         </td>
                       </tr>
-                      {groupCards.sort((a,b) => a.name.localeCompare(b.name)).map(card => (
+                      {groupCards.sort((a, b) => a.name.localeCompare(b.name)).map(card => (
                         <tr key={card.id}>
                           <td>
                             <img src={card.image_url} alt={card.name} className="admin-thumb" />
@@ -625,9 +627,6 @@ const Admin = () => {
                           </td>
                           <td style={{ fontWeight: 'bold', color: '#059669' }}>
                             {card.price ? `₹${card.price}` : '—'}
-                          </td>
-                          <td style={{ fontWeight: 'bold', color: card.stock > 10 ? '#475569' : '#ef4444' }}>
-                            {card.stock || 0}
                           </td>
                           <td className="admin-item-flags" style={{ verticalAlign: 'middle' }}>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
@@ -659,6 +658,7 @@ const Admin = () => {
                     <th>NAME</th>
                     <th>ADDRESS</th>
                     <th>PHONE NO</th>
+                    <th>GSTIN</th>
                     <th>ACTIONS</th>
                   </tr>
                 </thead>
@@ -671,7 +671,7 @@ const Admin = () => {
                   }, {})).sort(([a], [b]) => a.localeCompare(b)).map(([groupAddr, groupPresses]) => (
                     <React.Fragment key={groupAddr}>
                       <tr style={{ background: '#f1f5f9', borderTop: '2px solid #e2e8f0' }}>
-                        <td colSpan="4" style={{ padding: '10px 24px', fontWeight: 'bold', color: '#1e293b' }}>
+                        <td colSpan="5" style={{ padding: '10px 24px', fontWeight: 'bold', color: '#1e293b' }}>
                           {groupAddr.toUpperCase()} ({groupPresses.length})
                         </td>
                       </tr>
@@ -679,7 +679,8 @@ const Admin = () => {
                         <tr key={press.id}>
                           <td className="admin-item-name">{press.name}</td>
                           <td className="admin-item-cat">{press.address}</td>
-                          <td>{press.ph_no || <em style={{color: '#94a3b8'}}>Not set</em>}</td>
+                          <td>{press.ph_no || <em style={{ color: '#94a3b8' }}>Not set</em>}</td>
+                          <td>{press.gstin || <em style={{ color: '#94a3b8' }}>Not set</em>}</td>
                           <td>
                             <div className="action-buttons-flex">
                               <button className="pill-btn-edit" onClick={() => editPress(press)}>Edit</button>
@@ -709,22 +710,22 @@ const Admin = () => {
               <h3>{editingCard ? 'Edit Card' : 'Add New Card'}</h3>
               <button className="close-btn" onClick={resetForm}><X size={24} /></button>
             </div>
-            
-            <form onSubmit={handleSubmit} className="admin-form" style={{maxHeight: '80vh', overflowY: 'scroll', paddingRight: '15px'}}>
+
+            <form onSubmit={handleSubmit} className="admin-form" style={{ maxHeight: '80vh', overflowY: 'scroll', paddingRight: '15px' }}>
               <div className="form-group">
                 <label>Card Name</label>
-                <input 
-                  type="text" 
-                  name="name" 
-                  value={formData.name} 
-                  onChange={handleInputChange} 
-                  required 
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
                   placeholder="e.g. Royal Gold Wedding Card"
                 />
               </div>
 
               <div className="form-group">
-                <label style={{fontWeight: 'bold', marginBottom: '10px', display: 'block'}}>Select Categories (Folder View)</label>
+                <label style={{ fontWeight: 'bold', marginBottom: '10px', display: 'block' }}>Select Categories (Folder View)</label>
                 <div className="category-folder-container" style={{
                   background: '#f8fafc',
                   padding: '5px',
@@ -738,18 +739,18 @@ const Admin = () => {
                       <div style={{ fontWeight: '800', color: 'var(--primary-color)', marginBottom: '10px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ transform: 'rotate(90deg)', fontSize: '10px' }}>▶</span> {main}
                       </div>
-                      
+
                       <div style={{ paddingLeft: '20px' }}>
                         {Array.isArray(content) ? (
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '8px' }}>
                             {content.map(cat => (
                               <label key={cat} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.85rem' }}>
-                                <input 
-                                  type="checkbox" 
-                                  name="category_item" 
-                                  value={cat} 
-                                  checked={formData.category.includes(cat)} 
-                                  onChange={handleInputChange} 
+                                <input
+                                  type="checkbox"
+                                  name="category_item"
+                                  value={cat}
+                                  checked={formData.category.includes(cat)}
+                                  onChange={handleInputChange}
                                   style={{ width: 'auto' }}
                                 />
                                 {cat}
@@ -763,12 +764,12 @@ const Admin = () => {
                               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '8px', paddingLeft: '10px' }}>
                                 {series.map(cat => (
                                   <label key={cat} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.85rem' }}>
-                                    <input 
-                                      type="checkbox" 
-                                      name="category_item" 
-                                      value={cat} 
-                                      checked={formData.category.includes(cat)} 
-                                      onChange={handleInputChange} 
+                                    <input
+                                      type="checkbox"
+                                      name="category_item"
+                                      value={cat}
+                                      checked={formData.category.includes(cat)}
+                                      onChange={handleInputChange}
                                       style={{ width: 'auto' }}
                                     />
                                     {cat}
@@ -787,23 +788,23 @@ const Admin = () => {
 
               <div className="form-row" style={{ gap: '20px', margin: '20px 0' }}>
                 <div className="form-group-checkbox" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input 
-                    type="checkbox" 
-                    name="is_latest" 
+                  <input
+                    type="checkbox"
+                    name="is_latest"
                     id="is_latest"
-                    checked={formData.is_latest} 
-                    onChange={handleInputChange} 
+                    checked={formData.is_latest}
+                    onChange={handleInputChange}
                     style={{ width: 'auto' }}
                   />
                   <label htmlFor="is_latest" style={{ marginBottom: 0 }}>Latest Arrival</label>
                 </div>
                 <div className="form-group-checkbox" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input 
-                    type="checkbox" 
-                    name="is_offer" 
+                  <input
+                    type="checkbox"
+                    name="is_offer"
                     id="is_offer"
-                    checked={formData.is_offer} 
-                    onChange={handleInputChange} 
+                    checked={formData.is_offer}
+                    onChange={handleInputChange}
                     style={{ width: 'auto' }}
                   />
                   <label htmlFor="is_offer" style={{ marginBottom: 0 }}>Special Offer</label>
@@ -813,23 +814,13 @@ const Admin = () => {
               <div className="form-row" style={{ gap: '20px', marginBottom: '20px' }}>
                 <div className="form-group">
                   <label>Price (₹)</label>
-                  <input 
-                    type="number" 
-                    name="price" 
-                    value={formData.price} 
-                    onChange={handleInputChange} 
+                  <input
+                    type="number"
+                    name="price"
+                    value={formData.price}
+                    onChange={handleInputChange}
                     placeholder="0.00"
                     step="0.01"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Stock Quantity</label>
-                  <input 
-                    type="number" 
-                    name="stock" 
-                    value={formData.stock} 
-                    onChange={handleInputChange} 
-                    placeholder="0"
                   />
                 </div>
               </div>
@@ -837,8 +828,8 @@ const Admin = () => {
               <div className="form-group">
                 <label>Image Thumbnail</label>
                 <div className="image-upload-wrapper">
-                  <input 
-                    type="file" 
+                  <input
+                    type="file"
                     id="image-upload"
                     accept="image/*"
                     onChange={handleImageChange}
@@ -875,40 +866,51 @@ const Admin = () => {
               <h3>{editingPress ? 'Edit Press' : 'Add New Press'}</h3>
               <button className="close-btn" onClick={resetPressForm}><X size={24} /></button>
             </div>
-            
+
             <form onSubmit={handlePressSubmit} className="admin-form">
               <div className="form-group">
                 <label>Press Name</label>
-                <input 
-                  type="text" 
-                  name="name" 
-                  value={pressFormData.name} 
-                  onChange={handlePressInputChange} 
-                  required 
+                <input
+                  type="text"
+                  name="name"
+                  value={pressFormData.name}
+                  onChange={handlePressInputChange}
+                  required
                   placeholder="e.g. Jayachitra Press"
                 />
               </div>
 
               <div className="form-group">
                 <label>Address / Location</label>
-                <input 
-                  type="text" 
-                  name="address" 
-                  value={pressFormData.address} 
-                  onChange={handlePressInputChange} 
-                  required 
+                <input
+                  type="text"
+                  name="address"
+                  value={pressFormData.address}
+                  onChange={handlePressInputChange}
+                  required
                   placeholder="e.g. Abhiramam"
                 />
               </div>
 
               <div className="form-group">
                 <label>Phone Number (Optional)</label>
-                <input 
-                  type="text" 
-                  name="ph_no" 
-                  value={pressFormData.ph_no} 
-                  onChange={handlePressInputChange} 
+                <input
+                  type="text"
+                  name="ph_no"
+                  value={pressFormData.ph_no}
+                  onChange={handlePressInputChange}
                   placeholder="e.g. 9876543210"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>GSTIN (Optional)</label>
+                <input
+                  type="text"
+                  name="gstin"
+                  value={pressFormData.gstin}
+                  onChange={handlePressInputChange}
+                  placeholder="e.g. 33AIPPJ2536H1ZA"
                 />
               </div>
 

@@ -274,7 +274,6 @@
         stats.className = 'product-card-stats';
         stats.innerHTML = `
           <span>Price: Rs. ${Number(card.price || 0).toFixed(2)}</span>
-          <span>Stock: ${Number(card.stock || 0)}</span>
           <span>${card.is_latest ? 'Latest' : 'Regular'}</span>
           <span>${card.is_offer ? 'Offer' : 'No Offer'}</span>
         `;
@@ -707,11 +706,6 @@
           </label>
 
           <label class="admin-form-field">
-            <span>Stock *</span>
-            <input class="input" type="number" min="0" name="stock" required />
-          </label>
-
-          <label class="admin-form-field">
             <span>Category / Series *</span>
             <select class="input" name="category" required>
               <option value="">Select series</option>
@@ -782,7 +776,6 @@
           category: [String(fd.get('category') || '').trim()].filter(Boolean),
           description: String(fd.get('description') || '').trim(),
           price: Number(fd.get('price') || 0),
-          stock: Number(fd.get('stock') || 0),
           is_latest: fd.get('is_latest') === 'on',
           is_offer: fd.get('is_offer') === 'on',
           image: fd.get('image'),
@@ -852,11 +845,6 @@
               <label class="admin-form-field">
                 <span>Price *</span>
                 <input class="input" type="number" step="0.01" min="0" name="price" required value="${Number(card.price || 0)}" />
-              </label>
-
-              <label class="admin-form-field">
-                <span>Stock *</span>
-                <input class="input" type="number" min="0" name="stock" required value="${Number(card.stock || 0)}" />
               </label>
 
               <label class="admin-form-field">
@@ -935,7 +923,6 @@
             category: [String(fd.get('category') || '').trim()].filter(Boolean),
             description: String(fd.get('description') || '').trim(),
             price: Number(fd.get('price') || 0),
-            stock: Number(fd.get('stock') || 0),
             is_latest: fd.get('is_latest') === 'on',
             is_offer: fd.get('is_offer') === 'on',
             image: fd.get('image'),
@@ -991,7 +978,6 @@
                 <div><span>Name</span><strong>${card.name || 'Unnamed card'}</strong></div>
                 <div><span>Category</span><strong>${normalizeCategoryList(card.category).join(', ') || 'Uncategorized'}</strong></div>
                 <div><span>Price</span><strong>Rs. ${Number(card.price || 0).toFixed(2)}</strong></div>
-                <div><span>Stock</span><strong>${Number(card.stock || 0)}</strong></div>
               </div>
               <p class="admin-product-detail-description">${card.description || 'No description available.'}</p>
               <div class="admin-product-detail-actions">

@@ -112,20 +112,23 @@ class ApiService {
     bool isLatest = false,
     bool isOffer = false,
     double price = 0.0,
-    int stock = 0,
+    int? stock,
   }) async {
     try {
       String fileName = image.path.split('/').last;
-      FormData formData = FormData.fromMap({
+      final dataMap = <String, dynamic>{
         'name': name,
         'category': categories,
         'description': description,
         'is_latest': isLatest.toString(),
         'is_offer': isOffer.toString(),
         'price': price.toString(),
-        'stock': stock.toString(),
         'image': await MultipartFile.fromFile(image.path, filename: fileName),
-      });
+      };
+      if (stock != null) {
+        dataMap['stock'] = stock.toString();
+      }
+      FormData formData = FormData.fromMap(dataMap);
 
       final response = await _dio.post('/cards', data: formData);
       if (response.statusCode == 201) {
@@ -217,12 +220,14 @@ class ApiService {
     required String name,
     required String address,
     required String phNo,
+    String gstin = '',
   }) async {
     try {
       final response = await _dio.post('/register/press', data: {
         'name': name,
         'address': address,
         'ph_no': phNo,
+        'gstin': gstin,
       });
       if (response.statusCode == 201) {
         return Press.fromJson(response.data);
@@ -252,19 +257,22 @@ class ApiService {
     required String name,
     required String address,
     String phNo = '',
+    String gstin = '',
   }) async {
     try {
       final response = await _dio.post('/presses', data: {
         'name': name,
         'address': address,
         'ph_no': phNo,
+        'gstin': gstin,
       });
       if (response.statusCode == 201) {
         return Press.fromJson(response.data);
       }
       return null;
     } catch (e) {
-      return null;
+      // Propagate a user-friendly error message so UI can display it
+      throw getErrorMessage(e);
     }
   }
 
@@ -272,12 +280,14 @@ class ApiService {
     String? name,
     String? address,
     String? phNo,
+    String? gstin,
   }) async {
     try {
       Map<String, dynamic> data = {};
       if (name != null) data['name'] = name;
       if (address != null) data['address'] = address;
       if (phNo != null) data['ph_no'] = phNo;
+      if (gstin != null) data['gstin'] = gstin;
 
       final response = await _dio.put('/presses/$id', data: data);
       if (response.statusCode == 200) {

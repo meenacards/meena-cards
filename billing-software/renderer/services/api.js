@@ -81,7 +81,6 @@ async function createProduct(data) {
   form.append('is_latest', data.is_latest ? 'true' : 'false');
   form.append('is_offer', data.is_offer ? 'true' : 'false');
   form.append('price', String(Number(data.price || 0)));
-  form.append('stock', String(Number(data.stock || 0)));
   if (data.image instanceof File) {
     form.append('image', data.image);
   }
@@ -101,7 +100,6 @@ async function updateProduct(id, data) {
   if (typeof data.is_latest === 'boolean') form.append('is_latest', data.is_latest ? 'true' : 'false');
   if (typeof data.is_offer === 'boolean') form.append('is_offer', data.is_offer ? 'true' : 'false');
   if (typeof data.price !== 'undefined') form.append('price', String(Number(data.price || 0)));
-  if (typeof data.stock !== 'undefined') form.append('stock', String(Number(data.stock || 0)));
   if (data.image instanceof File) {
     form.append('image', data.image);
   }

@@ -4,12 +4,14 @@ class Press {
   final String name;
   final String address;
   final String phNo;
+  final String gstin;
 
   Press({
     required this.id,
     required this.name,
     required this.address,
     required this.phNo,
+    this.gstin = '',
   });
 
   factory Press.fromJson(Map<String, dynamic> json) {
@@ -18,6 +20,7 @@ class Press {
       name: json['name'] ?? '',
       address: json['address'] ?? '',
       phNo: json['ph_no'] ?? '',
+      gstin: json['gstin'] ?? '',
     );
   }
 
@@ -26,6 +29,7 @@ class Press {
       'name': name,
       'address': address,
       'ph_no': phNo,
+      'gstin': gstin,
     };
   }
 }

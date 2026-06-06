@@ -107,7 +107,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void _sendWhatsAppRequest(String name, String phone) async {
     final message = "Registration Approval Request\nName: $name\nPhone: $phone\nPlease approve my account for Meena Cards.";
-    const adminPhone = "916379262122";
+    const adminPhone = "919965125250";
     final url = "https://wa.me/+$adminPhone?text=${Uri.encodeComponent(message)}";
     
     if (await canLaunchUrl(Uri.parse(url))) {

@@ -43,7 +43,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     "Product Page: https://meenacards.com/product/${_card!.id}";
                     
     // Admin WhatsApp Number (India)
-    const phone = "916379262122"; 
+    const phone = "919965125250"; 
     final url = "https://wa.me/+$phone?text=${Uri.encodeComponent(message)}";
     
     if (await canLaunchUrl(Uri.parse(url))) {

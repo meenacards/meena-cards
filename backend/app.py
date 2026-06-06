@@ -81,6 +81,7 @@ def format_press(press):
         "name": press.get("name"),
         "address": press.get("address"),
         "ph_no": press.get("ph_no", ""),
+        "gstin": press.get("gstin", ""),
         "is_approved": press.get("is_approved", False)
     }
 
@@ -284,6 +285,8 @@ def delete_card(card_id):
 
 # --- Invoice Management ---
 
+INVOICE_SEQUENCE_START = 74
+
 @app.route("/invoices", methods=["POST"])
 def create_invoice():
     if invoices_collection is None or cards_collection is None:
@@ -341,13 +344,16 @@ def create_invoice():
         else:
             # Backward compatibility for older invoices that stored only invoice_number.
             legacy_last = invoices_collection.find_one(sort=[("_id", -1)])
-            legacy_value = legacy_last.get("invoice_number") if legacy_last else 0
-            if isinstance(legacy_value, str) and "-" in legacy_value:
-                legacy_value = legacy_value.split("-", 1)[0]
-            try:
-                invoice_sequence = int(legacy_value) + 1
-            except (TypeError, ValueError):
-                invoice_sequence = 1
+            if not legacy_last:
+                invoice_sequence = INVOICE_SEQUENCE_START
+            else:
+                legacy_value = legacy_last.get("invoice_number")
+                if isinstance(legacy_value, str) and "-" in legacy_value:
+                    legacy_value = legacy_value.split("-", 1)[0]
+                try:
+                    invoice_sequence = int(legacy_value) + 1
+                except (TypeError, ValueError):
+                    invoice_sequence = INVOICE_SEQUENCE_START
 
         invoice_year = datetime.now().year
         invoice_number = f"{invoice_sequence}-{invoice_year}"
@@ -560,6 +566,7 @@ def add_press():
     name = data.get("name")
     address = data.get("address")
     ph_no = data.get("ph_no", "")
+    gstin = str(data.get("gstin", "")).strip()
 
     if not name or not address:
         return jsonify({"error": "Name and address are required"}), 400
@@ -573,12 +580,13 @@ def add_press():
             "ph_no": clean_ph_no
         })
         if existing:
-            return jsonify({"error": "Already phone number exists, try different phone number."}), 400
+            return jsonify({"error": "Phone number already exists, try a different phone number."}), 400
 
         new_press = {
             "name": name,
             "address": address,
             "ph_no": clean_ph_no,
+            "gstin": gstin,
             "is_approved": False  # New presses require approval
         }
         result = presses_collection.insert_one(new_press)
@@ -638,6 +646,7 @@ def update_press(press_id):
     if "name" in data: update_data["name"] = data["name"]
     if "address" in data: update_data["address"] = data["address"]
     if "ph_no" in data: update_data["ph_no"] = data["ph_no"]
+    if "gstin" in data: update_data["gstin"] = str(data["gstin"]).strip()
 
     if not update_data:
         return jsonify({"error": "No data provided to update"}), 400

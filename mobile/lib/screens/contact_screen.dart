@@ -109,11 +109,11 @@ class ContactScreen extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          Column(
                             children: [
-                              _buildTimeInfo('Mon - Sat', '10:00 AM - 9:00 PM'),
-                              _buildTimeInfo('Sunday', '10:00 AM - 2:00 PM', isSpecial: true),
+                              _buildTimeRow('Mon - Sat', '10:00 AM - 9:00 PM'),
+                              const Divider(height: 16, color: Colors.black12),
+                              _buildTimeRow('Sunday', '10:00 AM - 2:00 PM', isSpecial: true),
                             ],
                           ),
                         ],
@@ -177,10 +177,11 @@ class ContactScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTimeInfo(String days, String time, {bool isSpecial = false}) {
-    return Column(
+  Widget _buildTimeRow(String days, String time, {bool isSpecial = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(days, style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey)),
+        Text(days, style: GoogleFonts.outfit(fontSize: 14, color: Colors.grey[700], fontWeight: FontWeight.w500)),
         Text(time, style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: isSpecial ? Colors.pink : Colors.black)),
       ],
     );
