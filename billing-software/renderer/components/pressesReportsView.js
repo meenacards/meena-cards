@@ -253,6 +253,25 @@
     leftPanel.style.maxHeight = 'calc(100vh - 160px)';
     leftPanel.style.overflow = 'auto';
 
+    let selectedPressName = presses[0] ? presses[0].name : '';
+    let pressSearchTerm = '';
+
+    const leftHeading = document.createElement('div');
+    leftHeading.style.fontFamily = 'Cormorant Garamond, serif';
+    leftHeading.style.fontSize = '28px';
+    leftHeading.style.color = 'var(--brand-maroon)';
+    leftHeading.style.marginBottom = '12px';
+    leftHeading.textContent = 'Presses';
+
+    const leftSearchInput = document.createElement('input');
+    leftSearchInput.type = 'text';
+    leftSearchInput.className = 'input';
+    leftSearchInput.placeholder = 'Search by press name or address';
+    leftSearchInput.style.marginBottom = '12px';
+    leftSearchInput.value = pressSearchTerm;
+
+    const leftList = document.createElement('div');
+
     const rightPanel = document.createElement('div');
 
     const topTitle = document.createElement('div');
@@ -366,7 +385,16 @@
     root.appendChild(layout);
     container.appendChild(root);
 
-    let selectedPressName = presses[0] ? presses[0].name : '';
+    leftPanel.appendChild(leftHeading);
+    leftPanel.appendChild(leftSearchInput);
+    leftPanel.appendChild(leftList);
+
+    leftSearchInput.value = pressSearchTerm;
+
+    leftSearchInput.addEventListener('input', () => {
+      pressSearchTerm = leftSearchInput.value;
+      renderScope();
+    });
 
     function getConfig() {
       return {
@@ -386,20 +414,13 @@
     }
 
     function renderLeftList(filteredPresses) {
-      leftPanel.innerHTML = '';
-      const heading = document.createElement('div');
-      heading.style.fontFamily = 'Cormorant Garamond, serif';
-      heading.style.fontSize = '28px';
-      heading.style.color = 'var(--brand-maroon)';
-      heading.style.marginBottom = '12px';
-      heading.textContent = 'Presses';
-      leftPanel.appendChild(heading);
+      leftList.innerHTML = '';
 
       if (!filteredPresses.length) {
         const empty = document.createElement('div');
         empty.className = 'empty-state';
         empty.textContent = 'No presses found.';
-        leftPanel.appendChild(empty);
+        leftList.appendChild(empty);
         return;
       }
 
@@ -422,6 +443,7 @@
 
         card.innerHTML = `
           <div style="font-weight: 700; color: var(--brand-maroon); font-size: 16px; margin-bottom: 4px;">${escapeHtml(press.name)}</div>
+          <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">${escapeHtml(press.address || 'Address not available')}</div>
           <div style="font-size: 12px; color: var(--text-secondary);">Bills: ${totalBills}</div>
           <div style="font-size: 12px; color: var(--text-secondary);">Amount: Rs. ${totalAmount.toFixed(2)}</div>
         `;
@@ -431,7 +453,7 @@
           renderScope();
         });
 
-        leftPanel.appendChild(card);
+        leftList.appendChild(card);
       });
     }
 
@@ -440,13 +462,22 @@
       const scope = scopeSelect.value;
       const config = getConfig();
 
-      if (!selectedPressName || !presses.some((press) => press.name === selectedPressName)) {
-        selectedPressName = presses[0] ? presses[0].name : '';
+      const normalizedSearch = String(pressSearchTerm || '').trim().toLowerCase();
+      const filteredPresses = normalizedSearch
+        ? presses.filter((press) => {
+          const name = String(press && press.name || '').toLowerCase();
+          const address = String(press && press.address || '').toLowerCase();
+          return name.includes(normalizedSearch) || address.includes(normalizedSearch);
+        })
+        : presses;
+
+      if (!selectedPressName || !filteredPresses.some((press) => press.name === selectedPressName)) {
+        selectedPressName = filteredPresses[0] ? filteredPresses[0].name : '';
       }
 
-      renderLeftList(presses);
+      renderLeftList(filteredPresses);
 
-      const currentPress = presses.find((press) => press.name === selectedPressName) || presses[0] || { name: '' };
+      const currentPress = filteredPresses.find((press) => press.name === selectedPressName) || filteredPresses[0] || { name: '' };
       const pressInvoices = filterInvoices(
         invoices.filter((invoice) => invoiceMatchesPress(invoice, currentPress)),
         scope,

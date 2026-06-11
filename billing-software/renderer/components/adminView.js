@@ -572,6 +572,7 @@
             <h4>${press.name || 'Unnamed Press'}</h4>
             <div class="press-line"><span>Address</span><strong>${press.address || '-'}</strong></div>
             <div class="press-line"><span>Mobile</span><strong>${press.ph_no || '-'}</strong></div>
+            <div class="press-line"><span>GSTIN</span><strong>${press.gstin || '-'}</strong></div>
           `;
           grid.appendChild(card);
         });

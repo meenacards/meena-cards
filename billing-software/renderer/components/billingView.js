@@ -405,6 +405,7 @@
       toInput.value = press ? (press.name || '') : '';
       addressInput.value = press ? (press.address || '') : '';
       phoneInput.value = press ? (press.ph_no || '') : '';
+      gstInput.value = press ? (press.gstin || '') : '';
       if (press) {
         pressSearchInput.value = `${press.name || ''} - ${press.address || ''}`.trim();
       }
@@ -412,6 +413,7 @@
       window.BillingState.billingForm.customerName = toInput.value;
       window.BillingState.billingForm.customerAddress = addressInput.value;
       window.BillingState.billingForm.customerPhone = phoneInput.value;
+      window.BillingState.billingForm.gstin = gstInput.value;
       pressSuggestions.innerHTML = '';
     }
 
